@@ -1,0 +1,128 @@
+% -*-LaTex-*-
+%front matter of pcasm book
+
+\chapter{Preface}
+
+\section*{Purpose}
+
+The purpose of this book is to give the reader a better understanding
+of how computers really work at a lower level than in programming
+languages like Pascal. By gaining a deeper understanding of how
+computers work, the reader can often be much more productive
+developing software in higher level languages such as C and
+C++. Learning to program in assembly language is an excellent way to
+achieve this goal. Other PC assembly language books still teach how to
+program the 8086 processor that the original PC used in 1981!  The
+8086 processor only supported \emph{real} mode. In this mode, any
+program may address any memory or device in the computer. This mode is
+not suitable for a secure, multitasking operating system.  This book
+instead discusses how to program the 80386 and later processors in
+\emph{protected} mode (the mode that Windows and Linux runs in).
+This mode supports the features that modern operating systems expect,
+such as virtual memory and memory protection.
+There are several reasons to use protected mode:
+\begin{enumerate}
+\item It is easier to program in protected mode than in the 8086 real mode
+      that other books use.
+\item All modern PC operating systems run in protected mode.
+\item There is free software available that runs in this mode.
+\end{enumerate}
+The lack of textbooks for protected mode PC assembly programming is the
+main reason that the author wrote this book.
+
+As alluded to above, this text makes use of Free/Open Source software: namely,
+the NASM assembler and the DJGPP C/C++ compiler. Both of these are available
+to download from the Internet. The text also discusses how to use NASM 
+assembly code under the Linux operating system and with Borland's and
+Microsoft's C/C++ compilers under Windows. Examples for all of these
+platforms can be found on my web site: 
+{\code http://www.drpaulcarter.com/pcasm}.
+You \emph{must} download the example code if you wish to assemble
+and run many of the examples in this tutorial.
+
+Be aware that this text does not attempt to cover every aspect of assembly
+programming. The author has tried to cover the most important topics that
+\emph{all} programmers should be acquainted with.
+
+\section*{Acknowledgements}
+
+The author would like to thank the many programmers around the world
+that have contributed to the Free/Open Source movement. All the
+programs and even this book itself were produced using free
+software. Specifically, the author would like to thank John~S.~Fine,
+Simon~Tatham, Julian~Hall and others for developing the NASM assembler
+that all the examples in this book are based on; DJ Delorie for
+developing the DJGPP C/C++ compiler used; the numerous people who have
+contributed to the GNU gcc compiler on which DJGPP is based on; Donald
+Knuth and others for developing the \TeX\ and \LaTeXe\ typesetting
+languages that were used to produce the book; Richard Stallman
+(founder of the Free Software Foundation), Linus Torvalds (creator of
+the Linux kernel) and others who produced the underlying software the
+author used to produce this work.
+
+Thanks to the following people for corrections:
+\begin{itemize}
+\item John S. Fine
+\item Marcelo Henrique Pinto de Almeida
+\item Sam Hopkins
+\item Nick D'Imperio
+\item Jeremiah Lawrence
+\item Ed Beroset
+\item Jerry Gembarowski
+\item Ziqiang Peng
+\item Eno Compton
+\item Josh I Cates
+\item Mik Mifflin
+\item Luke Wallis
+\item Gaku Ueda
+\item Brian Heward
+\item Chad Gorshing
+\item F. Gotti
+\item Bob Wilkinson
+\item Markus Koegel
+\item Louis Taber
+\item Dave Kiddell
+\item Eduardo Horowitz
+\item S\'{e}bastien Le Ray
+\item Nehal Mistry
+\item Jianyue Wang
+\item Jeremias Kleer
+\item Marc Janicki
+\item Trevor Hansen
+\item Giacomo Bruschi
+\item Leonardo Rodr\'{i}guez M\'{u}jica
+\item Ulrich Bicheler
+\item Wu Xing
+\item Oleksandr Baranyuk
+\end{itemize}
+
+
+\section*{Resources on the Internet}
+\begin{center}
+\begin{tabular}{|ll|}
+\hline
+Author's page & {\code http://www.drpaulcarter.com/} \\
+%NASM   & {\code http://nasm.2y.net/} \\
+NASM SourceForge page & {\code http://sourceforge.net/projects/nasm/} \\
+DJGPP  & {\code http://www.delorie.com/djgpp} \\
+Linux Assembly & {\code http://www.linuxassembly.org/} \\
+The Art of Assembly & {\code http://webster.cs.ucr.edu/} \\
+USENET & {\code comp.lang.asm.x86 } \\
+Intel documentation & {\code http://developer.intel.com/design/Pentium4/documentation.htm} \\
+\hline
+\end{tabular}
+\end{center}
+
+
+\section*{Feedback}
+
+The author welcomes any feedback on this work.
+\begin{center}
+\begin{tabular}{ll}
+\textbf{E-mail:} & {\code pacman128@gmail.com} \\
+\textbf{WWW:}    & {\code http://www.drpaulcarter.com/pcasm} \\
+\end{tabular}
+\end{center}
+
+
+

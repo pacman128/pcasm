@@ -1,0 +1,307 @@
+%appendix
+\chapter{80x86 Instructions}
+\section{Non-floating Point Instructions}
+This section lists and describes the actions and formats of the 
+non-floating point instructions of the Intel 80x86 CPU family.
+
+The formats use the following abbreviations:
+\begin{center}
+\begin{tabular}{|l|l|}
+\hline
+R   & general register \\
+R8  & 8-bit register \\
+R16 & 16-bit register \\
+R32 & 32-bit register \\
+SR  & segment register \\
+M   & memory \\
+M8  & byte \\
+M16 & word \\
+M32 & double word \\
+I   & immediate value \\
+\hline
+\end{tabular}
+\end{center}
+These can be combined for the multiple operand instructions. For example,
+the format \emph{R, R} means that the instruction takes two register operands.
+Many of the two operand instructions allow the same operands. The abbreviation
+\emph{O2} is used to represent these operands: \emph{R,R R,M R,I M,R M,I}. If
+a 8-bit register or memory can be used for an operand, the abbreviation,
+\emph{R/M8} is used.
+
+The table also shows how various bits of the FLAGS register are affected by
+each instruction. If the column is blank, the corresponding bit is not
+affected at all. If the bit is always changed to a particular value, a 1 or
+0 is shown in the column. If the bit is changed to a value that depends on
+the operands of the instruction, a \emph{C} is placed in the column. Finally,
+if the bit is modified in some undefined way a \emph{?} appears in the
+column. Because the only instructions that change the direction flag are 
+{\code CLD} and {\code STD}, it is not listed under the FLAGS columns.
+
+\begin{longtable}{||l|p{1.5in}|p{0.75in}|c|c|c|c|c|c||}
+\hline \hline
+\multicolumn{1}{||c}{} & 
+   \multicolumn{1}{c}{} &
+   \multicolumn{1}{c}{} &
+  \multicolumn{6}{c||}{\textbf{Flags}} \\ \cline{4-9}
+\multicolumn{1}{||c}{\textbf{Name}} & 
+   \multicolumn{1}{c}{\textbf{Description}} &
+   \multicolumn{1}{c}{\textbf{Formats}} &
+   \multicolumn{1}{c}{\textbf{O}} &
+   \multicolumn{1}{c}{\textbf{S}} &
+   \multicolumn{1}{c}{\textbf{Z}} &
+   \multicolumn{1}{c}{\textbf{A}} &
+   \multicolumn{1}{c}{\textbf{P}} &
+   \multicolumn{1}{c||}{\textbf{C}} \\ \hline \endhead
+\hline \hline \endfoot
+%                                              O   S   Z   A   P   C
+{\code ADC} & Add with Carry & O2            & C & C & C & C & C & C \\
+{\code ADD} & Add Integers   & O2            & C & C & C & C & C & C \\
+{\code AND} & Bitwise AND    & O2            & 0 & C & C & ? & C & 0 \\
+{\code BSWAP} & Byte Swap    & R32           &   &   &   &   &   &  \\
+{\code CALL} & Call Routine  & R M I         &   &   &   &   &   &   \\
+{\code CBW} & Convert Byte to Word &         &   &   &   &   &   & \\
+{\code CDQ} & Convert Dword to Qword &       &   &   &   &   &   & \\
+{\code CLC} & Clear Carry &                  &   &   &   &   &   & 0 \\
+{\code CLD} & Clear Direction Flag &         &   &   &   &   &   & \\
+{\code CMC} & Complement Carry &             &   &   &   &   &   & C \\
+{\code CMP} & Compare Integers & O2          & C & C & C & C & C & C \\
+{\code CMPSB} & Compare Bytes &              & C & C & C & C & C & C \\
+{\code CMPSW} & Compare Words &              & C & C & C & C & C & C \\
+{\code CMPSD} & Compare Dwords &             & C & C & C & C & C & C \\
+{\code CWD} & Convert Word to Dword into DX:AX & &   &   &   &   &   & \\
+{\code CWDE} & Convert Word to Dword into EAX & &   &   &   &   &   & \\
+{\code DEC} & Decrement Integer & R M        & C & C & C & C & C & \\
+{\code DIV} & Unsigned Divide & R M          & ? & ? & ? & ? & ? & ? \\
+{\code ENTER} & Make stack frame & I,0       &   &   &   &   &   & \\
+{\code IDIV} & Signed Divide & R M           & ? & ? & ? & ? & ? & ? \\
+{\code IMUL} & Signed Multiply & R M R16,R/M16 R32,R/M32 R16,I R32,I 
+                                       {\small R16,R/M16,I R32,R/M32,I}
+                                             & C & ? & ? & ? & ? & C \\
+{\code INC} & Increment Integer & R M        & C & C & C & C & C & \\
+{\code INT} & Generate Interrupt & I         &   &   &   &   &   & \\
+{\code JA } & Jump Above & I                 &   &   &   &   &   & \\
+{\code JAE } & Jump Above or Equal & I       &   &   &   &   &   & \\
+{\code JB } & Jump Below & I                 &   &   &   &   &   & \\
+{\code JBE } & Jump Below or Equal  & I      &   &   &   &   &   & \\
+{\code JC } & Jump Carry & I                 &   &   &   &   &   & \\
+{\code JCXZ } & Jump if CX = 0 & I           &   &   &   &   &   & \\
+{\code JE } & Jump Equal & I                 &   &   &   &   &   & \\
+{\code JG } & Jump Greater & I               &   &   &   &   &   & \\
+{\code JGE } & Jump Greater or Equal & I     &   &   &   &   &   & \\
+{\code JL } & Jump Less & I                  &   &   &   &   &   & \\
+{\code JLE } & Jump Less or Equal & I        &   &   &   &   &   & \\
+{\code JMP } & Unconditional Jump & R M I    &   &   &   &   &   & \\
+{\code JNA } & Jump Not Above & I            &   &   &   &   &   & \\
+{\code JNAE } & Jump Not Above or Equal& I   &   &   &   &   &   & \\
+{\code JNB } & Jump Not Below & I            &   &   &   &   &   & \\
+{\code JNBE } & Jump Not Below or Equal & I  &   &   &   &   &   & \\
+{\code JNC } & Jump No Carry & I             &   &   &   &   &   & \\
+{\code JNE } & Jump Not Equal & I            &   &   &   &   &   & \\
+{\code JNG } & Jump Not Greater & I          &   &   &   &   &   & \\
+{\code JNGE } & Jump Not Greater or Equal & I&   &   &   &   &   & \\
+{\code JNL } & Jump Not Less & I             &   &   &   &   &   & \\
+{\code JNLE } & Jump Not Less or Equal & I   &   &   &   &   &   & \\
+{\code JNO } & Jump No Overflow & I          &   &   &   &   &   & \\
+{\code JNS } & Jump No Sign & I              &   &   &   &   &   & \\
+{\code JNZ } & Jump Not Zero & I             &   &   &   &   &   & \\
+{\code JO } & Jump Overflow & I              &   &   &   &   &   & \\
+{\code JPE } & Jump Parity Even & I          &   &   &   &   &   & \\
+{\code JPO } & Jump Parity Odd & I           &   &   &   &   &   & \\
+{\code JS } & Jump Sign & I                  &   &   &   &   &   & \\
+{\code JZ } & Jump Zero & I                  &   &   &   &   &   & \\
+{\code LAHF} & Load FLAGS into AH &          &   &   &   &   &   & \\
+{\code LEA} & Load Effective Address & R32,M &   &   &   &   &   & \\
+{\code LEAVE} & Leave Stack Frame &          &   &   &   &   &   & \\
+{\code LODSB} & Load Byte &                  &   &   &   &   &   & \\
+{\code LODSW} & Load Word &                  &   &   &   &   &   & \\
+{\code LODSD} & Load Dword &                 &   &   &   &   &   & \\
+{\code LOOP}  & Loop       & I               &   &   &   &   &   & \\
+{\code LOOPE/LOOPZ} & Loop If Equal & I     &   &   &   &   &   & \\
+{\code LOOPNE/LOOPNZ} & Loop If Not Equal & I  &   &   &   &   &   & \\
+{\code MOV} & Move Data & O2 \mbox{SR,R/M16} R/M16,SR
+                                             &   &   &   &   &   & \\
+{\code MOVSB} & Move Byte &                  &   &   &   &   &   & \\
+{\code MOVSW} & Move Word &                  &   &   &   &   &   & \\
+{\code MOVSD} & Move Dword &                 &   &   &   &   &   & \\
+{\code MOVSX} & Move Signed & R16,R/M8 R32,R/M8 R32,R/M16
+                                             &   &   &   &   &   & \\
+{\code MOVZX} & Move Unsigned & R16,R/M8 R32,R/M8 R32,R/M16
+                                             &   &   &   &   &   & \\
+{\code MUL} & Unsigned Multiply & R M        & C & ? & ? & ? & ? & C \\
+{\code NEG} & Negate & R M                   & C & C & C & C & C & C \\
+{\code NOP} & No Operation &                 &   &   &   &   &   & \\
+{\code NOT} & 1's Complement & R M           &   &   &   &   &   & \\
+{\code OR} & Bitwise OR    & O2              & 0 & C & C & ? & C & 0 \\
+{\code POP} & Pop From Stack & R/M16 R/M32   &   &   &   &   &   & \\
+{\code POPA} & Pop All &                     &   &   &   &   &   & \\
+{\code POPF} & Pop FLAGS &                   & C & C & C & C & C & C \\
+{\code PUSH} & Push to Stack & R/M16 R/M32 I &   &   &   &   &   & \\
+{\code PUSHA} & Push All &                   &   &   &   &   &   & \\
+{\code PUSHF} & Push FLAGS &                 &   &   &   &   &   & \\
+{\code RCL} & Rotate Left with Carry & R/M,I R/M,CL
+                                             & C &   &   &   &   & C \\
+{\code RCR} & Rotate Right with Carry & R/M,I R/M,CL
+                                             & C &   &   &   &   & C \\
+{\code REP} & Repeat &                       &   &   &   &   &   & \\
+{\code REPE/REPZ} & Repeat If Equal&        &   &   &   &   &   & \\
+{\code REPNE/REPNZ} & Repeat If Not Equal&  &   &   &   &   &   & \\
+{\code RET} & Return &                       &   &   &   &   &   & \\
+{\code ROL} & Rotate Left & R/M,I R/M,CL     & C &   &   &   &   & C \\
+{\code ROR} & Rotate Right & R/M,I R/M,CL    & C &   &   &   &   & C \\
+{\code SAHF} & Copies AH into FLAGS &        &   & C & C & C & C & C \\
+{\code SAL} & Shifts to Left & R/M,I R/M, CL &   &   &   &   &   & C \\
+{\code SBB}  & Subtract with Borrow & O2     & C & C & C & C & C & C \\
+{\code SCASB} & Scan for Byte &              & C & C & C & C & C & C \\
+{\code SCASW} & Scan for Word &              & C & C & C & C & C & C \\
+{\code SCASD} & Scan for Dword &             & C & C & C & C & C & C \\
+{\code SETA } & Set Above & R/M8                 &   &   &   &   &   & \\
+{\code SETAE } & Set Above or Equal & R/M8       &   &   &   &   &   & \\
+{\code SETB } & Set Below & R/M8                 &   &   &   &   &   & \\
+{\code SETBE } & Set Below or Equal  & R/M8      &   &   &   &   &   & \\
+{\code SETC } & Set Carry & R/M8                 &   &   &   &   &   & \\
+{\code SETE } & Set Equal & R/M8                 &   &   &   &   &   & \\
+{\code SETG } & Set Greater & R/M8               &   &   &   &   &   & \\
+{\code SETGE } & Set Greater or Equal & R/M8     &   &   &   &   &   & \\
+{\code SETL } & Set Less & R/M8                  &   &   &   &   &   & \\
+{\code SETLE } & Set Less or Equal & R/M8        &   &   &   &   &   & \\
+{\code SETNA } & Set Not Above & R/M8            &   &   &   &   &   & \\
+{\code SETNAE } & Set Not Above or Equal& R/M8   &   &   &   &   &   & \\
+{\code SETNB } & Set Not Below & R/M8            &   &   &   &   &   & \\
+{\code SETNBE } & Set Not Below or Equal & R/M8  &   &   &   &   &   & \\
+{\code SETNC } & Set No Carry & R/M8             &   &   &   &   &   & \\
+{\code SETNE } & Set Not Equal & R/M8            &   &   &   &   &   & \\
+{\code SETNG } & Set Not Greater & R/M8          &   &   &   &   &   & \\
+{\code SETNGE } & Set Not Greater or Equal & R/M8&   &   &   &   &   & \\
+{\code SETNL } & Set Not Less & R/M8             &   &   &   &   &   & \\
+{\code SETNLE } & Set Not LEss or Equal & R/M8   &   &   &   &   &   & \\
+{\code SETNO } & Set No Overflow & R/M8          &   &   &   &   &   & \\
+{\code SETNS } & Set No Sign & R/M8              &   &   &   &   &   & \\
+{\code SETNZ } & Set Not Zero & R/M8             &   &   &   &   &   & \\
+{\code SETO } & Set Overflow & R/M8              &   &   &   &   &   & \\
+{\code SETPE } & Set Parity Even & R/M8          &   &   &   &   &   & \\
+{\code SETPO } & Set Parity Odd & R/M8           &   &   &   &   &   & \\
+{\code SETS } & Set Sign & R/M8                  &   &   &   &   &   & \\
+{\code SETZ } & Set Zero & R/M8                  &   &   &   &   &   & \\
+
+{\code SAR} & Arithmetic Shift to Right & R/M,I R/M, CL 
+                                             &   &   &   &   &   & C \\
+{\code SHR} & Logical Shift to Right & R/M,I R/M, CL 
+                                             &   &   &   &   &   & C \\
+{\code SHL} & Logical Shift to Left & R/M,I R/M, CL 
+                                             &   &   &   &   &   & C \\
+{\code STC} & Set Carry &                    &   &   &   &   &   & 1 \\
+{\code STD} & Set Direction Flag &           &   &   &   &   &   & \\
+{\code STOSB} & Store Btye &                 &   &   &   &   &   & \\
+{\code STOSW} & Store Word &                 &   &   &   &   &   & \\
+{\code STOSD} & Store Dword &                &   &   &   &   &   & \\
+{\code SUB} & Subtract & O2                  & C & C & C & C & C & C\\
+{\code TEST} & Logical Compare & R/M,R R/M,I & 0 & C & C & ? & C & 0\\
+{\code XCHG} & Exchange & R/M,R R,R/M        &   &   &   &   &   & \\
+{\code XOR} & Bitwise XOR    & O2            & 0 & C & C & ? & C & 0 \\
+
+\end{longtable}
+
+\newpage
+\section{Floating Point Instructions}
+
+\renewcommand{\thefootnote}{\fnsymbol{footnote}} In this section, many
+of the 80x86 math coprocessor instructions are described. The
+description section briefly describes the operation of the
+instruction. To save space, information about whether the instruction
+pops the stack is not given in the description. 
+
+The format column shows what type of operands can be used with each
+instruction. The following abbreviations are used:
+\begin{center}
+\begin{tabular}{|l|l|}
+\hline
+ST\emph{n} & A coprocessor register \\
+F          & Single precision number in memory \\
+D          & Double precision number in memory \\
+E          & Extended precision number in memory \\
+I16        & Integer word in memory \\
+I32        & Integer double word in memory \\
+I64        & Integer quad word in memory \\
+\hline
+\end{tabular}
+\end{center}
+
+Instructions requiring a Pentium Pro or better are marked with an 
+asterisk(\footnotemark[1]).
+
+\begin{longtable}{||l|l|l||}
+\hline \hline
+\multicolumn{1}{||c}{\textbf{Instruction}} & 
+  \multicolumn{1}{c}{\textbf{Description}} &
+\multicolumn{1}{c||}{\textbf{Format}} \\
+\hline
+\endhead
+\hline \hline \endfoot
+{\code FABS} & $\mathtt{ST0} = |\mathtt{ST0}|$ & \\
+{\code FADD \emph{src}} & {\code ST0 += \emph{src}} & ST\emph{n} F D \\
+{\code FADD \emph{dest}, ST0} & {\code \emph{dest} += STO} & ST\emph{n} \\
+{\code FADDP \emph{dest}[,ST0]} & {\code \emph{dest} += ST0} & ST\emph{n} \\
+{\code FCHS} & $\mathtt{ST0} = - \mathtt{ST0}$ & \\
+{\code FCOM \emph{src}} & Compare {\code ST0} and {\code \emph{src}} &
+ST\emph{n} F D \\
+{\code FCOMP \emph{src}} & Compare {\code ST0} and {\code \emph{src}} &
+ST\emph{n} F D \\
+{\code FCOMPP \emph{src}} & Compares {\code ST0} and {\code ST1} & \\
+{\code FCOMI\footnotemark[1] \emph{src}} & Compares into FLAGS 
+& ST\emph{n} \\
+{\code FCOMIP\footnotemark[1] \emph{src}} & Compares into FLAGS 
+& ST\emph{n} \\
+{\code FDIV \emph{src}} & {\code ST0 /= \emph{src}} & ST\emph{n} F D \\
+{\code FDIV \emph{dest}, ST0} & {\code \emph{dest} /= STO} & ST\emph{n} \\
+{\code FDIVP \emph{dest}[,ST0]} & {\code \emph{dest} /= ST0} & ST\emph{n} \\
+{\code FDIVR \emph{src}} & {\code ST0 = \emph{src}/ST0} & ST\emph{n} F D \\
+{\code FDIVR \emph{dest}, ST0} & {\code \emph{dest} = ST0/\emph{dest}} 
+& ST\emph{n} \\
+{\code FDIVRP \emph{dest}[,ST0]} & {\code \emph{dest} = ST0/\emph{dest}} 
+& ST\emph{n} \\
+{\code FFREE \emph{dest}} & Marks as empty & ST\emph{n} \\
+{\code FIADD \emph{src}} & {\code ST0 += \emph{src}} & I16 I32 \\
+{\code FICOM \emph{src}} & Compare {\code ST0} and {\code \emph{src}} &
+I16 I32 \\
+{\code FICOMP \emph{src}} & Compare {\code ST0} and {\code \emph{src}} &
+I16 I32 \\
+{\code FIDIV \emph{src}} & {\code STO /= \emph{src}} & I16 I32 \\
+{\code FIDIVR \emph{src}} & {\code STO = \emph{src}/ST0} & I16 I32 \\
+{\code FILD \emph{src}} & Push \emph{src} on Stack & I16 I32 I64 \\
+{\code FIMUL \emph{src}} & {\code ST0 *= \emph{src}} & I16 I32 \\
+{\code FINIT} & Initialize Coprocessor & \\
+{\code FIST \emph{dest}} & Store {\code ST0} & I16 I32 \\
+{\code FISTP \emph{dest}} & Store {\code ST0} & I16 I32 I64\\
+{\code FISUB \emph{src}} & {\code ST0 -= \emph{src}} & I16 I32 \\
+{\code FISUBR \emph{src}} & {\code ST0 = \emph{src} - ST0} & I16 I32 \\
+{\code FLD \emph{src}} & Push \emph{src} on Stack & ST\emph{n} F D E \\
+{\code FLD1} & Push 1.0 on Stack & \\
+{\code FLDCW \emph{src}} & Load Control Word Register & I16 \\
+{\code FLDPI} & Push $\pi$ on Stack & \\
+{\code FLDZ} & Push 0.0 on Stack & \\
+{\code FMUL \emph{src}} & {\code ST0 *= \emph{src}} & ST\emph{n} F D \\
+{\code FMUL \emph{dest}, ST0} & {\code \emph{dest} *= STO} & ST\emph{n} \\
+{\code FMULP \emph{dest}[,ST0]} & {\code \emph{dest} *= ST0} & ST\emph{n} \\
+{\code FRNDINT} & Round {\code ST0} & \\
+{\code FSCALE} & $\mathtt{ST0} = \mathtt{ST0} \times 2^{\lfloor \mathtt{ST1} \rfloor}$ & \\
+{\code FSQRT} & $\mathtt{ST0} = \sqrt{\mathtt{STO}}$ & \\
+{\code FST \emph{dest}} & Store {\code ST0} & ST\emph{n} F D \\
+{\code FSTP \emph{dest}} & Store {\code ST0} & ST\emph{n} F D E \\
+{\code FSTCW \emph{dest}} & Store Control Word Register & I16 \\
+{\code FSTSW \emph{dest}} & Store Status Word Register & I16 AX \\
+{\code FSUB \emph{src}} & {\code ST0 -= \emph{src}} & ST\emph{n} F D \\
+{\code FSUB \emph{dest}, ST0} & {\code \emph{dest} -= STO} & ST\emph{n} \\
+{\code FSUBP \emph{dest}[,ST0]} & {\code \emph{dest} -= ST0} & ST\emph{n} \\
+{\code FSUBR \emph{src}} & {\code ST0 = \emph{src}-ST0} & ST\emph{n} F D \\
+{\code FSUBR \emph{dest}, ST0} & {\code \emph{dest} = ST0-\emph{dest}} 
+& ST\emph{n} \\
+{\code FSUBP \emph{dest}[,ST0]} & {\code \emph{dest} = ST0-\emph{dest}} 
+& ST\emph{n} \\
+{\code FTST} & Compare {\code ST0} with 0.0 & \\
+{\code FXCH \emph{dest}} & Exchange {\code ST0} and {\code \emph{dest}} 
+& ST\emph{n} \\
+\end{longtable}
+
+\renewcommand{\thefootnote}{\arabic{footnote}}
+
+

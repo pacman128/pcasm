@@ -1,0 +1,1004 @@
+
+\chapter{Basic Assembly Language}
+
+\section{Working with Integers \index{integer|(}}
+
+\subsection{Integer representation \index{integer!representation|(}}
+
+\index{integer!unsigned|(}
+Integers come in two flavors: unsigned and signed. Unsigned integers (which
+are non-negative) are represented in a very straightforward binary manner.
+The number 200 as an one byte unsigned integer would be represented as by
+11001000 (or C8 in hex).
+\index{integer!unsigned|)}
+
+\index{integer!signed|(}
+Signed integers (which may be positive or negative) are represented in a more
+complicated ways. For example, consider $-56$. $+56$ as a byte would be
+represented by 00111000. On paper, one could represent $-56$ as $-111000$,
+but how would this be represented in a byte in the computer's memory.
+How would the minus sign be stored?
+
+There are three general techniques that have been used to represent
+signed integers in computer memory. All of these methods use the most
+significant bit of the integer as a \emph{sign
+bit}. \index{integer!sign bit} This bit is 0 if the number is positive
+and 1 if negative.
+
+\subsubsection{Signed magnitude \index{integer!representation!signed magnitude}}
+
+The first method is the simplest and is called \emph{signed magnitude}. It
+represents the integer as two parts. The first part is the sign bit and
+the second is the magnitude of the integer. So 56 would be represented as
+the byte $\underline{0}0111000$ (the sign bit is underlined) and $-56$
+would be $\underline{1}0111000$. The largest byte value would be
+$\underline{0}1111111$ or $+127$ and the smallest byte value would be
+$\underline{1}1111111$ or $-127$. To negate a value, the sign bit is reversed.
+This method is straightforward, but it does have its drawbacks. First,
+there are two possible values of zero, $+0$ ($\underline{0}0000000$) and
+$-0$ ($\underline{1}0000000$). Since zero is neither positive nor negative,
+both of these representations should act the same. This complicates the logic
+of arithmetic for the CPU. Secondly, general arithmetic is also complicated.
+If 10 is added to $-56$, this must be recast as 10 subtracted by 56. Again,
+this complicates the logic of the CPU.
+
+\subsubsection{One's complement \index{integer!representation!one's complement}}
+The second method is known as \emph{one's complement} representation. The
+one's complement of a number is found by reversing each bit in the number.
+(Another way to look at it is that the new bit value is $1 - \mathrm{old bit value}$.) 
+For example, the one's complement of 
+$\underline{0}0111000$ ($+56$) is $\underline{1}1000111$. In one's complement
+notation, computing the one's complement is equivalent to negation. Thus,
+$\underline{1}1000111$ is the representation for $-56$. Note that the sign
+bit was automatically changed by one's complement and that as one would
+expect taking the one's complement twice yields the original number. As for
+the first method, there are two representations of zero: 
+$\underline{0}0000000$ ($+0$) and $\underline{1}1111111$ ($-0$). Arithmetic
+with one's complement numbers is complicated.
+
+There is a handy trick to finding the one's complement of a number in
+hexadecimal without converting it to binary. The trick is to subtract the
+hex digit from F (or 15 in decimal). This method assumes that the number of
+bits in the number is a multiple of 4. Here is an example: $+56$ is
+represented by 38 in hex. To find the one's complement, subtract each
+digit from F to get C7 in hex. This agrees with the result above.
+
+\subsubsection{Two's complement \index{integer!representation!two's complement|(}
+               \index{two's complement|(}}
+
+The first two methods described were used on early computers. Modern computers
+use a third method called \emph{two's complement} representation. The two's
+complement of a number is found by the following two steps:
+\begin{enumerate}
+\item Find the one's complement of the number
+\item Add one to the result of step 1
+\end{enumerate}
+Here's an example using $\underline{0}0111000$ (56). First the one's complement
+is computed: $\underline{1}1000111$. Then one is added:
+\[
+\begin{array}{rr}
+ & \underline{1}1000111 \\
++&                    1 \\ \hline
+ & \underline{1}1001000
+\end{array}
+\]
+
+In two complement's notation, computing the two's complement is equivalent
+to negating a number. Thus, $\underline{1}1001000$ is the two's complement
+representation of $-56$. Two negations should reproduce the original number.
+Surprising two's complement does meet this requirement. Take the two's
+complement of $\underline{1}1001000$ by adding one to the one's complement.
+\[
+\begin{array}{rr}
+ & \underline{0}0110111 \\
++&                    1 \\ \hline
+ & \underline{0}0111000
+\end{array}
+\]
+
+When performing the addition in the two's complement operation, the addition
+of the leftmost bit may produce a carry. This carry is \emph{not} used. 
+Remember that all data on the computer is of some fixed size (in terms of
+number of bits). Adding two bytes always produces a byte as a result (just
+as adding two words produces a word, {\em etc\/}.) This property is important 
+for two's complement notation. For example, consider zero as a one byte
+two's complement number ($\underline{0}0000000$). Computing its two complement
+produces the sum:
+\[
+\begin{array}{rr}
+ & \underline{1}1111111 \\
++&                    1 \\ \hline
+c& \underline{0}0000000
+\end{array}
+\]
+where $c$ represents a carry. (Later it will be shown how to detect this carry,
+but it is not stored in the result.) Thus, in two's complement notation there
+is only one zero. This makes two's complement arithmetic simpler than the
+previous methods.
+
+\begin{table}
+\centering
+\begin{tabular}{||c|c||}
+\hline
+Number & Hex Representation \\
+\hline
+0 & 00 \\
+1 & 01 \\
+127 & 7F \\
+-128 & 80 \\
+-127 & 81 \\
+-2 & FE \\
+-1 & FF \\
+\hline
+\end{tabular}
+\caption{Two's Complement Representation \label{tab:twocomp}}
+\end{table}
+
+Using two's complement notation, a signed byte can be used to
+represent the numbers $-128$ to $+127$. Table~\ref{tab:twocomp} shows some
+selected values. If 16 bits are used, the signed numbers $-32,768$ to 
+$+32,767$ can be represented. $+32,767$ is represented by 7FFF, 
+$-32,768$ by 8000, -128 as FF80 and -1 as FFFF. 32 bit two's complement 
+numbers range from $-2$ billion to $+2$ billion approximately. 
+
+
+The CPU has no idea what a particular byte (or word or double word) is
+supposed to represent. Assembly does not have the idea of types that a
+high level language has. How data is interpreted depends on what instruction
+is used on the data. Whether the hex value FF is considered to represent
+a signed $-1$ or a unsigned $+255$ depends on the programmer. The C language
+defines signed and unsigned integer types. This allows a C compiler to
+determine the correct instructions to use with the data.
+
+\index{two's complement|)}
+\index{integer!representation!two's complement|)}
+\index{integer!signed|)}
+
+\subsection{Sign extension \index{integer!sign extension|(}}
+
+In assembly, all data has a specified size. It is not uncommon to need to
+change the size of data to use it with other data. Decreasing size is the
+easiest.
+
+\subsubsection{Decreasing size of data}
+
+To decrease the size of data, simply remove the more significant bits of the
+data. Here's a trivial example:
+\begin{AsmCodeListing}[numbers=none,frame=none]
+      mov    ax, 0034h      ; ax = 52 (stored in 16 bits)
+      mov    cl, al         ; cl = lower 8-bits of ax
+\end{AsmCodeListing}
+
+Of course, if the number can not be represented correctly in the smaller
+size, decreasing the size does not work. For example, if {\code AX}
+were 0134h (or 308 in decimal) then the above code would still set
+{\code CL} to 34h. This method works with both signed and unsigned
+numbers.  Consider signed numbers, if {\code AX} was FFFFh ($-1$ as a
+word), then {\code CL} would be FFh ($-1$ as a byte). However, note
+that this is not correct if the value in {\code AX} was unsigned!
+
+The rule for unsigned numbers is that all the bits being removed must
+be 0 for the conversion to be correct. The rule for signed numbers is
+that the bits being removed must be either all 1's or all 0's. In
+addition, the first bit not being removed must have the same value as
+the removed bits. This bit will be the new sign bit of the smaller value.
+It is important that it be same as the original sign bit!
+
+\subsubsection{Increasing size of data}
+
+Increasing the size of data is more complicated than
+decreasing. Consider the hex byte FF. If it is extended to a word,
+what value should the word have?  It depends on how FF is
+interpreted. If FF is a unsigned byte (255 in decimal), then the word
+should be 00FF; however, if it is a signed byte ($-1$ in decimal),
+then the word should be FFFF.
+
+In general, to extend an unsigned number, one makes all the new bits
+of the expanded number 0. Thus, FF becomes 00FF. However, to extend a
+signed number, one must \emph{extend} the sign
+bit. \index{integer!sign bit} This means that the new bits become
+copies of the sign bit. Since the sign bit of FF is 1, the new bits
+must also be all ones, to produce FFFF. If the signed number 5A (90 in
+decimal) was extended, the result would be 005A.
+
+There are several instructions that the 80386 provides for extension of
+numbers. Remember that the computer does not know whether a number is signed
+or unsigned. It is up to the programmer to use the correct instruction.
+
+For unsigned numbers, one can simply put zeros in the upper bits using a
+{\code MOV} instruction. For example, to extend the byte in AL to an unsigned
+word in AX:
+\begin{AsmCodeListing}[numbers=none,frame=none]
+      mov    ah, 0   ; zero out upper 8-bits
+\end{AsmCodeListing}
+However, it is not possible to use a {\code MOV} instruction to
+convert the unsigned word in AX to an unsigned double word in EAX. Why
+not? There is no way to specify the upper 16 bits of EAX in a {\code
+MOV}. The 80386 solves this problem by providing a new instruction
+{\code MOVZX}. \index{MOVZX} This instruction has two operands. The destination
+(first operand) must be a 16 or 32~bit register.  The source (second
+operand) may be an 8 or 16~bit register or a byte or word of
+memory. The other restriction is that the destination must be larger than
+the source. (Most instructions require the source and destination to be
+the same size.) Here are some examples:
+\begin{AsmCodeListing}[numbers=none,frame=none]
+      movzx  eax, ax      ; extends ax into eax
+      movzx  eax, al      ; extends al into eax
+      movzx  ax, al       ; extends al into ax
+      movzx  ebx, ax      ; extends ax into ebx
+\end{AsmCodeListing}
+
+For signed numbers, there is no easy way to use the {\code MOV}
+instruction for any case. The 8086 provided several instructions to
+extend signed numbers.  The {\code CBW} \index{CBW} (Convert Byte to
+Word) instruction sign extends the AL register into AX. The operands
+are implicit. The {\code CWD} \index{CWD} (Convert Word to Double
+word) instruction sign extends AX into DX:AX. The notation DX:AX means
+to think of the DX and AX registers as one 32~bit register with the
+upper 16 bits in DX and the lower bits in AX. (Remember that the 8086
+did not have any 32~bit registers!) The 80386 added several new
+instructions. The {\code CWDE} \index{CWDE} (Convert Word to Double
+word Extended) instruction sign extends AX into EAX. The {\code CDQ}
+\index{CDQ} (Convert Double word to Quad word) instruction sign
+extends EAX into EDX:EAX\index{register!EDX:EAX} (64~bits!). Finally, the
+{\code MOVSX} \index{MOVSX} instruction works like {\code MOVZX}
+except it uses the rules for signed numbers.
+
+\subsubsection{Application to C programming}
+
+Extending \MarginNote{ANSI C does not define whether the {\code char}
+type is signed or not, it is up to each individual compiler to decide
+this. That is why the type is explicitly defined in
+Figure~\ref{fig:charExt}.} of unsigned and signed integers also occurs
+in C. Variables in C may be declared as either signed or unsigned
+({\code int} is signed). Consider the code in
+Figure~\ref{fig:charExt}.  In line~3, the variable {\code a} is
+extended using the rules for unsigned values (using {\code MOVZX}), but in 
+line~4, the signed rules are used for {\code b} (using {\code MOVSX}).
+
+\begin{figure}[t]
+\begin{lstlisting}[frame=tlrb]{}
+unsigned char uchar = 0xFF;
+signed char   schar = 0xFF;
+int a = (int) uchar;     /* a = 255 (0x000000FF) */
+int b = (int) schar;     /* b = -1  (0xFFFFFFFF) */
+\end{lstlisting}
+\caption{}
+\label{fig:charExt}
+\end{figure}
+
+There is a common C programming bug that directly relates to this subject.
+Consider the code in Figure~\ref{fig:IObug}. The prototype of 
+{\code fgetc()}{\samepage is:
+\begin{CodeQuote}
+int fgetc( FILE * );
+\end{CodeQuote}
+One might question }why does the function return back an {\code int}
+since it reads characters? The reason is that it normally does return
+back an {\code char} (extended to an {\code int} value using zero
+extension). However, there is one value that it may return that is not
+a character, {\code EOF}. This is a macro that is usually defined as
+$-1$. Thus, {\code fgetc()} either returns back a {\code char}
+extended to an {\code int} value (which looks like {\code 000000{\em
+xx}} in hex) or {\code EOF} (which looks like {\code FFFFFFFF} in
+hex).
+
+\begin{figure}[t]
+\begin{lstlisting}[stepnumber=0,frame=tlrb]{}
+char ch;
+while( (ch = fgetc(fp)) != EOF ) {
+  /* do something with ch */
+}
+\end{lstlisting}
+\caption{}
+\label{fig:IObug}
+\end{figure}
+
+The basic problem with the program in Figure~\ref{fig:IObug} is that
+{\code fgetc()} returns an {\code int}, but this value is stored in a
+{\code char}. C will truncate the higher order bits to fit the {\code
+int} value into the {\code char}. The only problem is that the numbers
+(in hex) {\code 000000FF} and {\code FFFFFFFF} both will be truncated
+to the byte {\code FF}. Thus, the while loop can not distinguish
+between reading the byte {\code FF} from the file and end of file.
+
+Exactly what the code does in this case, depends on whether {\code char} is
+signed or unsigned. Why? Because in line~2, {\code ch} is compared with 
+{\code EOF}. Since {\code EOF} is an {\code int} value\footnote{It is a
+common misconception that files have an EOF character at their end. This is
+\emph{not} true!}, {\code ch} will be
+extended to an {\code int} so that two values being compared are of the
+same size\footnote{The reason for this requirement will be shown later.}.
+As Figure~\ref{fig:charExt} showed, where the variable is signed or 
+unsigned is very important.
+
+If {\code char} is unsigned, {\code FF} is extended to be {\code
+000000FF}. This is compared to {\code EOF} ({\code FFFFFFFF}) and
+found to be not equal. Thus, the loop never ends!
+
+If {\code char} is signed, {\code FF} is extended to {\code
+FFFFFFFF}. This does compare as equal and the loop ends. However,
+since the byte {\code FF} may have been read from the file, the loop
+could be ending prematurely.
+
+The solution to this problem is to define the {\code ch} variable as an
+{\code int}, not a {\code char}. When this is done, no truncating or
+extension is done in line~2. Inside the loop, it is safe to truncate the
+value since {\code ch} \emph{must} actually be a simple byte there.
+
+\index{integer!sign extension|)}
+\index{integer!representation|)}
+
+\subsection{Two's complement arithmetic \index{two's complement!arithmetic|(}}
+
+As was seen earlier, the {\code add} instruction performs addition and
+the {\code sub} instruction performs subtraction. Two of the bits in
+the FLAGS register that these instructions set are the \emph{overflow}
+and \emph{carry flag}. The overflow flag is set if the true result of
+the operation is too big to fit into the destination for signed
+arithmetic. The carry flag is set if there is a carry in the msb of an
+addition or a borrow in the msb of a subtraction. Thus, it can be used
+to detect overflow for unsigned arithmetic. The uses of the carry flag
+for signed arithmetic will be seen shortly. One of the great
+advantages of 2's~complement is that the rules for addition and
+subtraction are exactly the same as for unsigned integers. Thus,
+{\code add} and {\code sub} may be used on signed or unsigned
+integers.
+\[
+\begin{array}{rrcrr}
+ & 002\mathrm{C} & & & 44\\
++& \mathrm{FFFF} & &+&(-1)\\ \cline{1-2} \cline{4-5}
+ & 002\mathrm{B} & & & 43
+\end{array}
+\]
+There is a carry generated, but it is not part of the answer.
+
+\index{integer!multiplication|(}
+\index{MUL|(}
+\index{IMUL|(}
+There are two different multiply and divide instructions. First, to
+multiply use either the {\code MUL} or {\code IMUL} instruction. The
+{\code MUL} instruction is used to multiply unsigned numbers and
+{\code IMUL} is used to multiply signed integers. Why are two
+different instructions needed? The rules for multiplication are
+different for unsigned and 2's complement signed numbers. How so?
+Consider the multiplication of the byte FF with itself yielding a word
+result. Using unsigned multiplication this is 255 times 255 or 65025
+(or FE01 in hex). Using signed multiplication this is $-1$ times $-1$ or
+1 (or 0001 in hex).
+
+There are several forms of the multiplication instructions. The oldest
+form looks like:
+\begin{AsmCodeListing}[numbers=none,frame=none]
+      mul   source
+\end{AsmCodeListing}
+The \emph{source} is either a register or a memory reference. It can not be an 
+immediate value. Exactly what multiplication is performed depends on the
+size of the source operand. If the operand is byte sized, it is multiplied by
+the byte in the AL register and the result is stored in the 16 bits of AX.
+If the source is 16-bit, it is multiplied by the word in AX and the 32-bit
+result is stored in DX:AX. If the source is 32-bit, it is multiplied by EAX
+and the 64-bit result is stored into EDX:EAX\index{register!EDX:EAX}.
+\index{MUL|)}
+
+\begin{table}[t]
+\centering
+\begin{tabular}{|c|c|c|l|}
+\hline
+{ \bf dest} & { \bf source1 } & {\bf source2} & \multicolumn{1}{c|}{\bf Action} \\ \hline
+            & reg/mem8        &               & AX = AL*source1 \\
+            & reg/mem16       &               & DX:AX = AX*source1 \\
+            & reg/mem32       &               & EDX:EAX = EAX*source1 \\
+reg16       & reg/mem16       &               & dest *= source1 \\
+reg32       & reg/mem32       &               & dest *= source1 \\
+reg16       & immed8          &               & dest *= immed8 \\
+reg32       & immed8          &               & dest *= immed8 \\
+reg16       & immed16         &               & dest *= immed16 \\
+reg32       & immed32         &               & dest *= immed32 \\
+reg16       & reg/mem16       & immed8        & dest = source1*source2 \\
+reg32       & reg/mem32       & immed8        & dest = source1*source2 \\
+reg16       & reg/mem16       & immed16       & dest = source1*source2 \\
+reg32       & reg/mem32       & immed32       & dest = source1*source2 \\
+\hline
+\end{tabular}
+\caption{{\code imul} Instructions \label{tab:imul}}
+\end{table}
+
+The {\code IMUL} instruction has the same formats as {\code MUL}, but also
+adds some other instruction formats. There are two and three operand formats:
+\begin{AsmCodeListing}[numbers=none,frame=none]
+      imul   dest, source1
+      imul   dest, source1, source2
+\end{AsmCodeListing}
+Table~\ref{tab:imul} shows the possible combinations.
+\index{IMUL|)}
+\index{integer!multiplication|)}
+
+\index{integer!division|(}
+\index{DIV}
+The two division operators are {\code DIV} and {\code IDIV}. They perform
+unsigned and signed integer division respectively. The general format is:
+\begin{AsmCodeListing}[numbers=none,frame=none]
+      div   source
+\end{AsmCodeListing}
+If the source is 8-bit, then AX is divided by the operand. The
+quotient is stored in AL and the remainder in AH. If the source is
+16-bit, then DX:AX is divided by the operand. The quotient is stored
+into AX and remainder into DX. If the source is 32-bit, then
+EDX:EAX\index{register!EDX:EAX} is divided by the operand and the quotient is
+stored into EAX and the remainder into EDX. The {\code IDIV}
+\index{IDIV} instruction works the same way. There are no special
+{\code IDIV} instructions like the special {\code IMUL} ones. If the
+quotient is too big to fit into its register or the divisor is zero,
+the program is interrupted and terminates. A very common error is to
+forget to initialize DX or EDX before division.
+\index{integer!division|)}
+
+The {\code NEG} \index{NEG} instruction negates its single operand by computing
+its two's complement. Its operand may be any 8-bit, 16-bit, or 32-bit
+register or memory location.
+
+\subsection{Example program}
+\index{math.asm|(}
+\begin{AsmCodeListing}[label=math.asm]
+%include "asm_io.inc"
+segment .data         ; Output strings
+prompt          db    "Enter a number: ", 0
+square_msg      db    "Square of input is ", 0
+cube_msg        db    "Cube of input is ", 0
+cube25_msg      db    "Cube of input times 25 is ", 0
+quot_msg        db    "Quotient of cube/100 is ", 0
+rem_msg         db    "Remainder of cube/100 is ", 0
+neg_msg         db    "The negation of the remainder is ", 0
+
+segment .bss
+input   resd 1
+
+segment .text
+        global  _asm_main
+_asm_main:
+        enter   0,0               ; setup routine
+	pusha
+
+        mov     eax, prompt
+        call    print_string
+
+        call    read_int
+        mov     [input], eax
+
+        imul    eax               ; edx:eax = eax * eax
+        mov     ebx, eax          ; save answer in ebx
+        mov     eax, square_msg
+        call    print_string
+        mov     eax, ebx
+        call    print_int
+        call    print_nl
+
+        mov     ebx, eax
+        imul    ebx, [input]      ; ebx *= [input]
+        mov     eax, cube_msg
+        call    print_string
+        mov     eax, ebx
+        call    print_int
+        call    print_nl
+
+        imul    ecx, ebx, 25      ; ecx = ebx*25
+        mov     eax, cube25_msg
+        call    print_string
+        mov     eax, ecx
+        call    print_int
+        call    print_nl
+
+        mov     eax, ebx
+        cdq                       ; initialize edx by sign extension
+        mov     ecx, 100          ; can't divide by immediate value
+        idiv    ecx               ; edx:eax / ecx
+        mov     ecx, eax          ; save quotient into ecx
+        mov     eax, quot_msg
+        call    print_string
+        mov     eax, ecx
+        call    print_int
+        call    print_nl
+        mov     eax, rem_msg
+        call    print_string
+        mov     eax, edx
+        call    print_int
+        call    print_nl
+        
+        neg     edx               ; negate the remainder
+        mov     eax, neg_msg
+        call    print_string
+        mov     eax, edx
+        call    print_int
+        call    print_nl
+
+        popa
+        mov     eax, 0            ; return back to C
+        leave                     
+        ret
+\end{AsmCodeListing}
+\index{math.asm|)}
+
+\subsection{Extended precision arithmetic \label{sec:ExtPrecArith} \index{integer!extended precision|(}}}
+
+Assembly language also provides instructions that allow one to perform
+addition and subtraction of numbers larger than double words. These
+instructions use the carry flag. As stated above, both the {\code ADD}
+\index{ADD} and {\code SUB} \index{SUB} instructions modify the carry
+flag if a carry or borrow are generated, respectively. This
+information stored in the carry flag can be used to add or subtract
+large numbers by breaking up the operation into smaller double word
+(or smaller) pieces.
+
+The {\code ADC} \index{ADC} and {\code SBB} \index{SBB} instructions
+use this information in the carry flag. The {\code ADC} instruction
+performs the following operation:
+\begin{center}
+{\code \emph{operand1} = \emph{operand1} + carry flag + \emph{operand2} }
+\end{center}
+The {\code SBB} instruction performs:
+\begin{center}
+{\code \emph{operand1} = \emph{operand1} - carry flag - \emph{operand2} }
+\end{center}
+How are these used? Consider the sum of 64-bit integers in
+EDX:EAX\index{register!EDX:EAX} and EBX:ECX. The following code would store the
+sum in EDX:EAX:
+\begin{AsmCodeListing}[frame=none]
+      add    eax, ecx       ; add lower 32-bits
+      adc    edx, ebx       ; add upper 32-bits and carry from previous sum
+\end{AsmCodeListing}
+Subtraction is very similar. The following code subtracts EBX:ECX from 
+EDX:EAX:
+\begin{AsmCodeListing}[frame=none]
+      sub    eax, ecx       ; subtract lower 32-bits
+      sbb    edx, ebx       ; subtract upper 32-bits and borrow
+\end{AsmCodeListing}
+
+For \emph{really} large numbers, a loop could be used (see 
+Section~\ref{sec:control}). For a sum loop, it would be convenient to use
+{\code ADC} instruction for every iteration (instead of all but the first
+iteration). This can be done by using the {\code CLC} \index{CLC} (CLear Carry)
+instruction right before the loop starts to initialize the carry flag to 0.
+If the carry flag is 0, there is no difference between the {\code ADD} and
+{\code ADC} instructions. The same idea can be used for subtraction, too.
+\index{integer!extended precision|)}
+\index{two's complement!arithmetic|)}
+
+\section{Control Structures}
+\label{sec:control}
+High level languages provide high level control structures (\emph{e.g.}, the
+\emph{if} and \emph{while} statements) that control the thread of execution.
+Assembly language does not provide such complex control structures. It instead
+uses the infamous \emph{goto} and used inappropriately can result in
+spaghetti code! However, it \emph{is} possible to write structured assembly
+language programs. The basic procedure is to design the program logic using
+the familiar high level control structures and translate the design into
+the appropriate assembly language (much like a compiler would do).
+
+\subsection{Comparisons \index{integer!comparisons|(} \index{CMP|(}}
+%TODO: Make a table of all the FLAG bits
+
+\index{register!FLAGS|(}
+Control structures decide what to do based on comparisons of data. In
+assembly, the result of a comparison is stored in the FLAGS register
+to be used later. The 80x86 provides the {\code CMP} instruction to
+perform comparisons.  The FLAGS register is set based on the
+difference of the two operands of the {\code CMP} instruction. The
+operands are subtracted and the FLAGS are set based on the result, but
+the result is \emph{not} stored anywhere. If you need the result use
+the SUB instead of the {\code CMP} instruction.
+
+\index{integer!unsigned|(}
+For unsigned integers, there are two flags (bits in the FLAGS
+register) that are important: the zero (ZF) \index{register!FLAGS!ZF} and carry (CF) 
+\index{register!FLAGS!CF} flags. The
+zero flag is set (1) if the resulting difference would be zero. The
+carry flag is used as a borrow flag for subtraction. Consider a
+comparison like:
+\begin{AsmCodeListing}[frame=none, numbers=none]
+      cmp    vleft, vright
+\end{AsmCodeListing}
+The difference of {\code vleft~-~vright} is computed and the flags are
+set accordingly. If the difference of the of {\code CMP} is zero, {\code 
+vleft~=~vright}, then ZF is set (\emph{i.e.} 1) and the CF is unset
+(\emph{i.e.} 0). If {\code vleft~>~vright}, then ZF is unset and CF
+is unset (no borrow). If {\code vleft~<~vright}, then ZF is unset and
+CF is set (borrow).
+\index{integer!unsigned|)}
+
+\index{integer!signed|(} 
+For signed integers, there are three flags
+that are important: the zero \index{register!FLAGS!ZF} (ZF) flag, the
+overflow \index{register!FLAGS!OF}(OF) flag and the sign
+\index{register!FLAGS!SF} (SF) flag. \MarginNote{Why does SF~=~OF if
+{\code vleft~>~vright}? If there is no overflow, then the difference
+will have the correct value and must be non-negative. Thus,
+SF~=~OF~=~0. However, if there is an overflow, the difference will not
+have the correct value (and in fact will be negative). Thus,
+SF~=~OF~=~1.}The overflow flag is set if the result of an operation
+overflows (or underflows). The sign flag is set if the result of an
+operation is negative. If {\code vleft~=~vright}, the ZF is set (just
+as for unsigned integers). If {\code vleft~>~vright}, ZF is unset and
+SF~=~OF.  If {\code vleft~<~vright}, ZF is unset and SF~$\neq$~OF.
+\index{integer!signed|)}
+
+Do not forget that other instructions can also change the FLAGS
+register, not just {\code CMP}.
+\index{CMP|)}
+\index{integer!comparisons|)}
+\index{register!FLAGS|)}
+\index{integer|)}
+
+\subsection{Branch instructions}
+
+Branch instructions can transfer execution to arbitrary points of a program.
+In other words, they act like a \emph{goto}. There are two types of branches:
+unconditional and conditional. An unconditional branch is just like a goto,
+it always makes the branch. A conditional branch may or may not make the
+branch depending on the flags in the FLAGS register. If a conditional branch
+does not make the branch, control passes to the next instruction.
+
+\index{JMP|(}
+The {\code JMP} (short for \emph{jump}) instruction makes
+unconditional branches. Its single argument is usually a \emph{code
+label} to the instruction to branch to. The assembler or linker will
+replace the label with correct address of the instruction. This is
+another one of the tedious operations that the assembler does to make
+the programmer's life easier. It is important to realize that the
+statement immediately after the {\code JMP} instruction will never be
+executed unless another instruction branches to it!
+
+There are several variations of the jump instruction:
+\begin{description}
+
+\item[SHORT] This jump is very limited in range. It can only move up or
+down 128 bytes in memory. The advantage of this type is that it uses less
+memory than the others. It uses a single signed byte to store the 
+\emph{displacement} of the jump. The displacement is how many bytes to move 
+ahead or behind. (The displacement is added to EIP). To specify a
+short jump, use the {\code SHORT} keyword immediately before the label
+in the {\code JMP} instruction.
+
+\item[NEAR] This jump is the default type for both unconditional and 
+conditional branches, it can be used to jump to any location in a
+segment. Actually, the 80386 supports two types of near jumps.  One
+uses two bytes for the displacement. This allows one to move up or
+down roughly 32,000 bytes. The other type uses four bytes for the
+displacement, which of course allows one to move to any location in
+the code segment. The four byte type is the default in 386 protected
+mode. The two byte type can be specified by putting the {\code WORD}
+keyword before the label in the {\code JMP} instruction.
+
+\item[FAR] This jump allows control to move to another code segment. This is
+a very rare thing to do in 386 protected mode.
+\end{description}
+
+Valid code labels follow the same rules as data labels. Code labels
+are defined by placing them in the code segment in front of the statement
+they label. A colon is placed at the end of the label at its point of
+definition. The colon is \emph{not} part of the name.
+\index{JMP|)}
+
+\index{conditional branch|(}
+\begin{table}[t]
+\center
+\begin{tabular}{|ll|}
+\hline
+JZ  & branches only if ZF is set \\
+JNZ & branches only if ZF is unset \\
+JO  & branches only if OF is set \\
+JNO & branches only if OF is unset \\
+JS  & branches only if SF is set \\
+JNS & branches only if SF is unset \\
+JC  & branches only if CF is set \\
+JNC & branches only if CF is unset \\
+JP  & branches only if PF is set \\
+JNP & branches only if PF is unset \\
+\hline
+\end{tabular}
+\caption{Simple Conditional Branches \label{tab:SimpBran} \index{JZ} \index{JNZ}
+        \index{JO} \index{JNO} \index{JS} \index{JNS} \index{JC} \index{JNC}
+        \index{JP} \index{JNP}}
+\end{table}
+
+There are many different conditional branch instructions. They also
+take a code label as their single operand. The simplest ones just look
+at a single flag in the FLAGS register to determine whether to branch
+or not.  See Table~\ref{tab:SimpBran} for a list of these
+instructions. (PF is the \emph{parity flag} \index{register!FLAGS!PF}
+which indicates the odd or evenness of the number of bits set in the
+lower 8-bits of the result.)
+
+The following pseudo-code:
+\begin{Verbatim}
+if ( EAX == 0 )
+  EBX = 1;
+else
+  EBX = 2;
+\end{Verbatim}
+could be written in assembly as:
+\begin{AsmCodeListing}[frame=none]
+      cmp    eax, 0            ; set flags (ZF set if eax - 0 = 0)
+      jz     thenblock         ; if ZF is set branch to thenblock
+      mov    ebx, 2            ; ELSE part of IF
+      jmp    next              ; jump over THEN part of IF
+thenblock:
+      mov    ebx, 1            ; THEN part of IF
+next:
+\end{AsmCodeListing}
+
+Other comparisons are not so easy using the conditional branches in 
+Table~\ref{tab:SimpBran}. To illustrate, consider the following pseudo-code:
+\begin{Verbatim}
+if ( EAX >= 5 )
+  EBX = 1;
+else
+  EBX = 2;
+\end{Verbatim}
+If EAX is greater than or equal to five, the ZF may be set or unset and SF
+will equal OF. Here is assembly code that tests for these conditions 
+(assuming that EAX is signed):
+\begin{AsmCodeListing}[frame=none]
+      cmp    eax, 5
+      js     signon            ; goto signon if SF = 1
+      jo     elseblock         ; goto elseblock if OF = 1 and SF = 0
+      jmp    thenblock         ; goto thenblock if SF = 0 and OF = 0
+signon:
+      jo     thenblock         ; goto thenblock if SF = 1 and OF = 1
+elseblock:
+      mov    ebx, 2
+      jmp    next
+thenblock:
+      mov    ebx, 1
+next:
+\end{AsmCodeListing}
+
+\begin{table}
+\center
+\begin{tabular}{|ll|ll|}
+\hline
+\multicolumn{2}{|c|}{\textbf{Signed}} & \multicolumn{2}{c|}{\textbf{Unsigned}} \\
+\hline
+JE & branches if {\code vleft = vright} & JE & branches if {\code vleft = vright} \\
+JNE & branches if {\code vleft $\neq$ vright} & JNE & branches if {\code vleft $\neq$ vright} \\
+JL, JNGE & branches if {\code vleft < vright} & JB, JNAE & branches if {\code vleft < vright} \\
+JLE, JNG & branches if {\code vleft $\leq$ vright} & JBE, JNA & branches if {\code vleft $\leq$ vright} \\
+JG, JNLE & branches if {\code vleft > vright} & JA, JNBE & branches if {\code vleft > vright} \\
+JGE, JNL & branches if {\code vleft $\geq$ vright} & JAE, JNB & branches if {\code vleft $\geq$ vright} \\
+\hline
+\end{tabular}
+\caption{Signed and Unsigned Comparison Instructions \label{tab:CompBran} \index{JE} \index{JNE}
+         \index{JL} \index{JNGE} \index{JLE} \index{JNG} \index{JG} \index{JNLE} \index{JGE}
+         \index{JNL}}
+\end{table}
+
+The above code is very awkward. Fortunately, the 80x86 provides additional
+branch instructions to make these type of tests \emph{much} easier. There
+are signed and unsigned versions of each. Table~\ref{tab:CompBran} shows
+these instructions. The equal and not equal branches (JE and JNE) are the
+same for both signed and unsigned integers. (In fact, JE and JNE are really
+identical to JZ and JNZ, respectively.) Each of the other branch 
+instructions have two synonyms. For example, look at JL (jump less than) and
+JNGE (jump not greater than or equal to). These are the same instruction
+because:
+\[ x < y \Longrightarrow \mathbf{not}( x \geq y ) \]
+The unsigned branches use A for \emph{above} and B for \emph{below} instead of
+L and G.
+
+Using these new branch instructions, the pseudo-code above can be translated
+to assembly much easier.
+\begin{AsmCodeListing}[frame=none]
+      cmp    eax, 5
+      jge    thenblock
+      mov    ebx, 2
+      jmp    next
+thenblock:
+      mov    ebx, 1
+next:
+\end{AsmCodeListing}
+\index{conditional branch|)}
+
+\subsection{The loop instructions}
+
+The 80x86 provides several instructions designed to implement 
+\emph{for}-like loops. Each of these instructions takes a code label
+as its single operand.
+\begin{description}
+\item[LOOP] 
+\index{LOOP}
+Decrements ECX, if ECX $\neq$ 0, branches to label
+\item[LOOPE, LOOPZ]
+\index{LOOPE} \index{LOOPZ}
+Decrements ECX (FLAGS register is not modified), if
+                    ECX $\neq$ 0 and ZF = 1, branches
+\item[LOOPNE, LOOPNZ]
+\index{LOOPNE} \index{LOOPNZ}
+Decrements ECX (FLAGS unchanged), if ECX $\neq$ 0
+                      and ZF = 0, branches
+\end{description}
+
+The last two loop instructions are useful for sequential search loops. The
+following pseudo-code:
+\begin{lstlisting}[stepnumber=0]{}
+sum = 0;
+for( i=10; i >0; i-- )
+  sum += i;
+\end{lstlisting}
+\noindent could be translated into assembly as:
+\begin{AsmCodeListing}[frame=none]
+      mov    eax, 0          ; eax is sum
+      mov    ecx, 10         ; ecx is i
+loop_start:
+      add    eax, ecx
+      loop   loop_start
+\end{AsmCodeListing}
+
+\section{Translating Standard Control Structures}
+
+This section looks at how the standard control structures of high level
+languages can be implemented in assembly language.
+
+\subsection{If statements \index{if statment|(}}
+The following pseudo-code:
+\begin{lstlisting}[stepnumber=0]{}
+if ( condition )
+  then_block;
+else
+  else_block;
+\end{lstlisting}
+\noindent could be implemented as:
+\begin{AsmCodeListing}[frame=none]
+      ; code to set FLAGS
+      jxx    else_block    ; select xx so that branches if condition false
+      ; code for then block
+      jmp    endif
+else_block:
+      ; code for else block
+endif:
+\end{AsmCodeListing}
+
+If there is no else, then the {\code else\_block} branch can be replaced by
+a branch to {\code endif}.
+\begin{AsmCodeListing}[frame=none]
+      ; code to set FLAGS
+      jxx    endif          ; select xx so that branches if condition false
+      ; code for then block
+endif:
+\end{AsmCodeListing}
+\index{if statment|)}
+
+\subsection{While loops \index{while loop|(}}
+The \emph{while} loop is a top tested loop:
+\begin{lstlisting}[stepnumber=0]{}
+while( condition ) {
+  body of loop;
+}
+\end{lstlisting}
+\noindent This could be translated into:
+\begin{AsmCodeListing}[frame=none]
+while:
+      ; code to set FLAGS based on condition
+      jxx    endwhile       ; select xx so that branches if false
+      ; body of loop
+      jmp    while
+endwhile:
+\end{AsmCodeListing}
+\index{while loop|)}
+
+\subsection{Do while loops \index{do while loop|(}}
+The \emph{do while} loop is a bottom tested loop:
+\begin{lstlisting}[stepnumber=0]{}
+do {
+  body of loop;
+} while( condition );
+\end{lstlisting}
+\noindent This could be translated into:
+\begin{AsmCodeListing}[frame=none]
+do:
+      ; body of loop
+      ; code to set FLAGS based on condition
+      jxx    do          ; select xx so that branches if true
+\end{AsmCodeListing}
+\index{do while loop|)}
+
+
+\begin{figure}[t]
+\begin{lstlisting}[frame=tlrb]{}
+  unsigned guess;   /* current guess for prime      */
+  unsigned factor;  /* possible factor of guess     */
+  unsigned limit;   /* find primes up to this value */
+
+  printf("Find primes up to: ");
+  scanf("%u", &limit);
+  printf("2\n");    /* treat first two primes as  */
+  printf("3\n");    /* special case               */
+  guess = 5;        /* initial guess */
+  while ( guess <= limit ) {
+    /* look for a factor of guess */
+    factor = 3;
+    while ( factor*factor < guess &&
+            guess % factor != 0 )
+     factor += 2;
+    if ( guess % factor != 0 )
+      printf("%d\n", guess);
+    guess += 2;    /* only look at odd numbers */
+  }
+\end{lstlisting}
+\caption{}\label{fig:primec}
+\end{figure}
+
+\section{Example: Finding Prime Numbers}
+This section looks at a program that finds prime numbers. Recall that
+prime numbers are evenly divisible by only 1 and themselves. There is
+no formula for doing this. The basic method this program uses is to
+find the factors of all odd numbers\footnote{2 is the only even prime
+number.} below a given limit. If no factor can be found for an odd
+number, it is prime.  Figure~\ref{fig:primec} shows the basic
+algorithm written in C.
+
+Here's the assembly version:
+\index{prime.asm|(}
+\begin{AsmCodeListing}[label=prime.asm]
+%include "asm_io.inc"
+segment .data
+Message         db      "Find primes up to: ", 0
+
+segment .bss
+Limit           resd    1               ; find primes up to this limit
+Guess           resd    1               ; the current guess for prime
+
+segment .text
+        global  _asm_main
+_asm_main:
+        enter   0,0               ; setup routine
+        pusha
+
+        mov     eax, Message
+        call    print_string
+        call    read_int             ; scanf("%u", & limit );
+        mov     [Limit], eax
+
+        mov     eax, 2               ; printf("2\n");
+        call    print_int
+        call    print_nl
+        mov     eax, 3               ; printf("3\n");
+        call    print_int
+        call    print_nl
+
+        mov     dword [Guess], 5     ; Guess = 5;
+while_limit:                         ; while ( Guess <= Limit )
+        mov     eax,[Guess]
+        cmp     eax, [Limit]
+        jnbe    end_while_limit      ; use jnbe since numbers are unsigned
+
+        mov     ebx, 3               ; ebx is factor = 3;
+while_factor:
+        mov     eax,ebx
+        mul     eax                  ; edx:eax = eax*eax
+        jo      end_while_factor     ; if answer won't fit in eax alone
+        cmp     eax, [Guess]
+        jnb     end_while_factor     ; if !(factor*factor < guess)
+        mov     eax,[Guess]
+        mov     edx,0
+        div     ebx                  ; edx = edx:eax % ebx
+        cmp     edx, 0
+        je      end_while_factor     ; if !(guess % factor != 0)
+
+        add     ebx,2                ; factor += 2;
+        jmp     while_factor
+end_while_factor:
+        je      end_if               ; if !(guess % factor != 0)
+        mov     eax,[Guess]          ; printf("%u\n")
+        call    print_int
+        call    print_nl
+end_if:
+        add     dword [Guess], 2     ; guess += 2
+        jmp     while_limit
+end_while_limit:
+
+        popa
+        mov     eax, 0            ; return back to C
+        leave                     
+        ret
+\end{AsmCodeListing}
+\index{prime.asm|)}

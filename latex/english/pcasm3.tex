@@ -1,0 +1,926 @@
+% -*-latex-*-
+\chapter{Bit Operations}
+\section{Shift Operations\index{bit operations!shifts|(}}
+
+Assembly language allows the programmer to manipulate the individual bits
+of data. One common bit operation is called a \emph{shift}. A shift operation
+moves the position of the bits of some data. Shifts can be either toward the
+left (\emph{i.e.} toward the most significant bits) or toward the right
+(the least significant bits).
+
+\subsection{Logical shifts\index{bit operations!shifts!logical shifts|(}}
+
+A logical shift is the simplest type of shift. It shifts in a very 
+straightforward manner. Figure~\ref{fig:logshifts} shows an example of a
+shifted single byte number.
+
+\begin{figure}[h]
+\centering
+\begin{tabular}{l|c|c|c|c|c|c|c|c|}
+\cline{2-9}
+Original      & 1 & 1 & 1 & 0 & 1 & 0 & 1 & 0 \\
+\cline{2-9}
+Left shifted  & 1 & 1 & 0 & 1 & 0 & 1 & 0 & 0 \\
+\cline{2-9}
+Right shifted & 0 & 1 & 1 & 1 & 0 & 1 & 0 & 1 \\
+\cline{2-9}
+\end{tabular}
+\caption{Logical shifts \label{fig:logshifts}}
+\end{figure}
+
+Note that new, incoming bits are always zero. The {\code SHL}
+\index{SHL} and {\code SHR} \index{SHR} instructions are used to
+perform logical left and right shifts respectively.  These
+instructions allow one to shift by any number of positions. The number
+of positions to shift can either be a constant or can be stored in the
+{\code CL} register. The last bit shifted out of the data is stored in
+the carry flag. Here are some code examples:
+\begin{AsmCodeListing}[frame=none]
+      mov    ax, 0C123H
+      shl    ax, 1           ; shift 1 bit to left,   ax = 8246H, CF = 1
+      shr    ax, 1           ; shift 1 bit to right,  ax = 4123H, CF = 0
+      shr    ax, 1           ; shift 1 bit to right,  ax = 2091H, CF = 1
+      mov    ax, 0C123H
+      shl    ax, 2           ; shift 2 bits to left,  ax = 048CH, CF = 1
+      mov    cl, 3
+      shr    ax, cl          ; shift 3 bits to right, ax = 0091H, CF = 1
+\end{AsmCodeListing}
+
+\subsection{Use of shifts}
+
+Fast multiplication and division are the most common uses of a shift
+operations. Recall that in the decimal system, multiplication and
+division by a power of ten are simple, just shift digits. The same is
+true for powers of two in binary. For example, to double the binary
+number $1011_2$ (or 11 in decimal), shift once to the left to get
+$10110_2$ (or 22). The quotient of a division by a power of two is the
+result of a right shift. To divide by just 2, use a single right
+shift; to divide by 4 ($2^2$), shift right 2 places; to divide by 8
+($2^3$), shift 3 places to the right, \emph{etc.} Shift instructions
+are very basic and are \emph{much} faster than the corresponding
+{\code MUL} \index{MUL} and {\code DIV} \index{DIV} instructions!
+
+Actually, logical shifts can be used to multiply and divide unsigned
+values. They do not work in general for signed values. Consider the
+2-byte value FFFF (signed $-1$). If it is logically right shifted
+once, the result is 7FFF which is $+32,767$! Another type of shift can
+be used for signed values.  
+\index{bit operations!shifts!logical shifts|)}
+
+\subsection{Arithmetic shifts\index{bit operations!shifts!arithmetic shifts|(}}
+
+These shifts are designed to allow signed numbers to be quickly multiplied
+and divided by powers of 2. They insure that the sign bit is treated 
+correctly.
+\begin{description}
+\item[SAL] \index{SAL} Shift Arithmetic Left - This instruction is just a synonym for
+           {\code SHL}. It is assembled into the exactly the same machine
+           code as {\code SHL}. As long as the sign bit is not changed by
+           the shift, the result will be correct.
+\item[SAR] \index{SAR} Shift Arithmetic Right - This is a new instruction that does
+           not shift the sign bit (\emph{i.e.} the msb) of its operand. The
+           other bits are shifted as normal except that the new bits that 
+           enter from the left are copies of the sign bit (that is, if the 
+           sign bit is 1, the new bits are also 1). Thus, if a byte is shifted
+           with this instruction, only the lower 7 bits are shifted. As for
+           the other shifts, the last bit shifted out is stored in the
+           carry flag.
+\end{description}
+
+\begin{AsmCodeListing}[frame=none]
+      mov    ax, 0C123H
+      sal    ax, 1           ; ax = 8246H, CF = 1
+      sal    ax, 1           ; ax = 048CH, CF = 1
+      sar    ax, 2           ; ax = 0123H, CF = 0
+\end{AsmCodeListing}
+\index{bit operations!shifts!arithmetic shifts|)}
+
+\subsection{Rotate shifts\index{bit operations!shifts!rotates|(}}
+
+The rotate shift instructions work like logical shifts except that
+bits lost off one end of the data are shifted in on the other
+side. Thus, the data is treated as if it is a circular structure. The
+two simplest rotate instructions are {\code ROL} \index{ROL} and
+{\code ROR} \index{ROR} which make left and right rotations,
+respectively. Just as for the other shifts, these shifts leave the a
+copy of the last bit shifted around in the carry flag.
+\begin{AsmCodeListing}[frame=none]
+      mov    ax, 0C123H
+      rol    ax, 1           ; ax = 8247H, CF = 1
+      rol    ax, 1           ; ax = 048FH, CF = 1
+      rol    ax, 1           ; ax = 091EH, CF = 0
+      ror    ax, 2           ; ax = 8247H, CF = 1
+      ror    ax, 1           ; ax = C123H, CF = 1
+\end{AsmCodeListing}
+
+There are two additional rotate instructions that shift the bits in
+the data and the carry flag named {\code RCL} \index{RCL} and {\code
+RCR}. \index{RCR} For example, if the {\code AX} register is rotated
+with these instructions, the 17-bits made up of {\code AX} and the
+carry flag are rotated.
+\begin{AsmCodeListing}[frame=none]
+      mov    ax, 0C123H
+      clc                    ; clear the carry flag (CF = 0)
+      rcl    ax, 1           ; ax = 8246H, CF = 1
+      rcl    ax, 1           ; ax = 048DH, CF = 1
+      rcl    ax, 1           ; ax = 091BH, CF = 0
+      rcr    ax, 2           ; ax = 8246H, CF = 1
+      rcr    ax, 1           ; ax = C123H, CF = 0
+\end{AsmCodeListing}
+\index{bit operations!shifts!rotates|)}
+
+\subsection{Simple application\label{sect:AddBitsExample}}
+
+Here is a code snippet that counts the number of bits that are ``on''
+(\emph{i.e.}~1) in the EAX register.
+%TODO: show how the ADC instruction could be used to remove the jnc
+\begin{AsmCodeListing}
+      mov    bl, 0           ; bl will contain the count of ON bits
+      mov    ecx, 32         ; ecx is the loop counter
+count_loop:
+      shl    eax, 1          ; shift bit into carry flag
+      jnc    skip_inc        ; if CF == 0, goto skip_inc
+      inc    bl
+skip_inc:
+      loop   count_loop
+\end{AsmCodeListing}
+The above code destroys the original value of {\code EAX} ({\code EAX} is zero
+at the end of the loop). If one wished to retain the value of {\code EAX},
+line~4 could be replaced with {\code rol  eax, 1}.
+\index{bit operations!shifts|)}
+
+\section{Boolean Bitwise Operations}
+
+There are four common boolean operators: \emph{AND}, \emph{OR}, \emph{XOR} and
+\emph{NOT}. A \emph{truth table} shows the result of each operation for each
+possible value of its operands.
+
+\subsection{The \emph{AND} operation\index{bit operations!AND}}
+
+\begin{table}[t]
+\centering
+\begin{tabular}{|c|c|c|}
+\hline
+\emph{X} & \emph{Y} & \emph{X} AND \emph{Y} \\
+\hline \hline
+0 & 0 & 0 \\
+0 & 1 & 0 \\
+1 & 0 & 0 \\
+1 & 1 & 1 \\
+\hline
+\end{tabular}
+\caption{The AND operation \label{tab:and} \index{AND}}
+\end{table}
+
+The result of the \emph{AND} of two bits is only 1 if both bits are 1, else
+the result is 0 as the truth table in Table~\ref{tab:and} shows.
+
+\begin{figure}[t]
+\centering
+\begin{tabular}{rcccccccc}
+    & 1 & 0 & 1 & 0 & 1 & 0 & 1 & 0 \\
+AND & 1 & 1 & 0 & 0 & 1 & 0 & 0 & 1 \\
+\hline
+    & 1 & 0 & 0 & 0 & 1 & 0 & 0 & 0
+\end{tabular}
+\caption{ANDing a byte \label{fig:and}}
+\end{figure}
+
+Processors support these operations as instructions that act 
+independently on all the bits of data in parallel. For example, if the contents
+of {\code AL} and {\code BL} are \emph{AND}ed together, the basic \emph{AND}
+operation is applied to each of the 8 pairs of corresponding bits in the
+two registers as Figure~\ref{fig:and} shows. Below is a code example:
+\begin{AsmCodeListing}[frame=none]
+      mov    ax, 0C123H
+      and    ax, 82F6H          ; ax = 8022H
+\end{AsmCodeListing}
+
+\subsection{The \emph{OR} operation\index{bit operations!OR}}
+
+\begin{table}[t]
+\centering
+\begin{tabular}{|c|c|c|}
+\hline
+\emph{X} & \emph{Y} & \emph{X} OR \emph{Y} \\
+\hline \hline
+0 & 0 & 0 \\
+0 & 1 & 1 \\
+1 & 0 & 1 \\
+1 & 1 & 1 \\
+\hline
+\end{tabular}
+\caption{The OR operation \label{tab:or} \index{OR}}
+\end{table}
+
+
+The inclusive \emph{OR} of 2 bits is 0 only if both bits are 0, else
+the result is 1 as the truth table in Table~\ref{tab:or} shows. Below
+is a code example:
+
+\begin{AsmCodeListing}[frame=none]
+      mov    ax, 0C123H
+      or     ax, 0E831H          ; ax = E933H
+\end{AsmCodeListing}
+
+\subsection{The \emph{XOR} operation\index{bit operations!XOR}}
+
+\begin{table}
+\centering
+\begin{tabular}{|c|c|c|}
+\hline
+\emph{X} & \emph{Y} & \emph{X} XOR \emph{Y} \\
+\hline \hline
+0 & 0 & 0 \\
+0 & 1 & 1 \\
+1 & 0 & 1 \\
+1 & 1 & 0 \\
+\hline
+\end{tabular}
+\caption{The XOR operation \label{tab:xor}\index{XOR}}
+\end{table}
+
+
+The exclusive \emph{OR} of 2 bits is 0 if and only if both bits
+are equal, else the result is 1 as the truth table in
+Table~\ref{tab:xor} shows. Below is a code example:
+
+\begin{AsmCodeListing}[frame=none]
+      mov    ax, 0C123H
+      xor    ax, 0E831H          ; ax = 2912H
+\end{AsmCodeListing}
+
+\subsection{The \emph{NOT} operation\index{bit operations!NOT}}
+
+\begin{table}[t]
+\centering
+\begin{tabular}{|c|c|}
+\hline
+\emph{X} & NOT \emph{X} \\
+\hline \hline
+0 & 1 \\
+1 & 0 \\
+\hline
+\end{tabular}
+\caption{The NOT operation \label{tab:not}\index{NOT}}
+\end{table}
+
+The \emph{NOT} operation is a \emph{unary} operation (\emph{i.e.} it
+acts on one operand, not two like \emph{binary} operations such as
+\emph{AND}).  The \emph{NOT} of a bit is the opposite value of the bit
+as the truth table in Table~\ref{tab:not} shows. Below is a code
+example:
+
+\begin{AsmCodeListing}[frame=none]
+      mov    ax, 0C123H
+      not    ax                 ; ax = 3EDCH
+\end{AsmCodeListing}
+
+Note that the \emph{NOT} finds the one's complement. Unlike the other
+bitwise operations, the {\code NOT} instruction does not change any of
+the bits in the {\code FLAGS} register.
+
+\subsection{The {\code TEST} instruction\index{TEST}}
+
+The {\code TEST} instruction performs an \emph{AND} operation, but
+does not store the result. It only sets the {\code FLAGS} register
+based on what the result would be (much like how the {\code CMP}
+instruction performs a subtraction but only sets {\code FLAGS}). For
+example, if the result would be zero, {\code ZF} would be set.
+
+\begin{table}
+\begin{tabular}{lp{3in}}
+Turn on bit \emph{i} & \emph{OR} the number with $2^i$ (which is
+                              the binary number with just bit \emph{i} on) \\
+Turn off bit \emph{i} & \emph{AND} the number with the binary number with
+                              only bit \emph{i} off. This operand is often
+                  	      called a \emph{mask} \\
+Complement bit \emph{i} & \emph{XOR} the number with $2^i$
+\end{tabular}
+\caption{Uses of boolean operations \label{tab:bool}}
+\end{table}
+
+\subsection{Uses of bit operations\index{bit operations!assembly|(}}
+
+Bit operations are very useful for manipulating individual bits of data
+without modifying the other bits. Table~\ref{tab:bool} shows three common
+uses of these operations. Below is some example code, implementing these
+ideas.
+\begin{AsmCodeListing}[frame=none]
+      mov    ax, 0C123H
+      or     ax, 8           ; turn on bit 3,   ax = C12BH
+      and    ax, 0FFDFH      ; turn off bit 5,  ax = C10BH
+      xor    ax, 8000H       ; invert bit 15,   ax = 410BH
+      or     ax, 0F00H       ; turn on nibble,  ax = 4F0BH
+      and    ax, 0FFF0H      ; turn off nibble, ax = 4F00H
+      xor    ax, 0F00FH      ; invert nibbles,  ax = BF0FH
+      xor    ax, 0FFFFH      ; 1's complement,  ax = 40F0H
+\end{AsmCodeListing}
+
+The \emph{AND} operation can also be used to find the remainder of a
+division by a power of two. To find the remainder of a division by
+$2^i$, \emph{AND} the number with a mask equal to $2^i - 1$. This mask will
+contain ones from bit 0 up to bit $i-1$. It is just these bits that contain
+the remainder. The result of the \emph{AND} will keep these bits and
+zero out the others. Next is a snippet of code that finds the quotient and
+remainder of the division of 100 by 16.
+\begin{AsmCodeListing}[frame=none]
+      mov    eax, 100        ; 100 = 64H
+      mov    ebx, 0000000FH  ; mask = 16 - 1 = 15 or F
+      and    ebx, eax        ; ebx = remainder = 4
+      shr    eax, 4          ; eax = quotient of eax/2^4 = 6
+\end{AsmCodeListing}
+Using the {\code CL} register it is possible to modify arbitrary bits of data.
+Next is an example that sets (turns on) an arbitrary bit in {\code EAX}. The
+number of the bit to set is stored in {\code BH}.
+\begin{AsmCodeListing}[frame=none]
+      mov    cl, bh          ; first build the number to OR with
+      mov    ebx, 1
+      shl    ebx, cl         ; shift left cl times
+      or     eax, ebx        ; turn on bit
+\end{AsmCodeListing}
+Turning a bit off is just a little harder.
+\begin{AsmCodeListing}[frame=none]
+      mov    cl, bh          ; first build the number to AND with
+      mov    ebx, 1
+      shl    ebx, cl         ; shift left cl times
+      not    ebx             ; invert bits
+      and    eax, ebx        ; turn off bit
+\end{AsmCodeListing}
+Code to complement an arbitrary bit is left as an exercise for the reader.
+
+It is not uncommon to see the following puzzling instruction in a 80x86
+program:
+\begin{AsmCodeListing}[frame=none,numbers=none]
+      xor    eax, eax         ; eax = 0
+\end{AsmCodeListing}
+A number \emph{XOR}'ed with itself always results in zero. This instruction
+is used because its machine code is smaller than the corresponding 
+{\code MOV} instruction.
+\index{bit operations!assembly|)}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}
+      mov    bl, 0           ; bl will contain the count of ON bits
+      mov    ecx, 32         ; ecx is the loop counter
+count_loop:
+      shl    eax, 1          ; shift bit into carry flag
+      adc    bl, 0           ; add just the carry flag to bl
+      loop   count_loop
+\end{AsmCodeListing}
+\caption{Counting bits with {\code ADC}\label{fig:countBitsAdc}}
+\end{figure}
+
+\section{Avoiding Conditional Branches}
+\index{branch prediction|(} 
+
+Modern processors use very sophisticated techniques to execute code as
+quickly as possible. One common technique is known as
+\emph{speculative execution}\index{speculative execution}. This
+technique uses the parallel processing capabilities of the CPU to
+execute multiple instructions at once. Conditional branches present a
+problem with this idea. The processor, in general, does not know
+whether the branch will be taken or not. If it is taken, a different
+set of instructions will be executed than if it is not
+taken. Processors try to predict whether the branch will be taken. If
+the prediciton is wrong, the processor has wasted its time executing
+the wrong code.
+
+\index{branch prediction|)}
+
+One way to avoid this problem is to avoid using conditional branches
+when possible. The sample code in \ref{sect:AddBitsExample} provides a
+simple example of where one could do this. In the previous example, the
+``on'' bits of the EAX register are counted. It uses a branch to skip
+the {\code INC} instruction. Figure~\ref{fig:countBitsAdc} shows how
+the branch can be removed by using the {\code ADC}\index{ADC}
+instruction to add the carry flag directly.
+
+The {\code SET\emph{xx}}\index{SET\emph{xx}} instructions provide a
+way to remove branches in certain cases. These instructions set the
+value of a byte register or memory location to zero or one based on
+the state of the FLAGS register.  The characters after {\code SET} are
+the same characters used for conditional branches. If the
+corresponding condition of the {\code SET\emph{xx}} is true, the result stored
+is a one, if false a zero is stored. For example,
+\begin{AsmCodeListing}[frame=none,numbers=none]
+      setz   al        ; AL = 1 if Z flag is set, else 0
+\end{AsmCodeListing}
+Using these instructions, one can develop some clever techniques that
+calculate values without branches.
+
+For example, consider the problem of finding the maximum of two values.
+The standard approach to solving this problem would be to use a {\code
+CMP} and use a conditional branch to act on which value was larger. The
+example program below shows how the maximum can be found without any 
+branches.
+
+\begin{AsmCodeListing}
+; file: max.asm
+%include "asm_io.inc"
+segment .data
+
+message1 db "Enter a number: ",0
+message2 db "Enter another number: ", 0
+message3 db "The larger number is: ", 0
+
+segment .bss
+
+input1  resd    1        ; first number entered
+
+segment .text
+        global  _asm_main
+_asm_main:
+        enter   0,0               ; setup routine
+        pusha
+
+        mov     eax, message1     ; print out first message
+        call    print_string
+        call    read_int          ; input first number
+        mov     [input1], eax
+
+        mov     eax, message2     ; print out second message
+        call    print_string
+        call    read_int          ; input second number (in eax)
+
+        xor     ebx, ebx          ; ebx = 0
+        cmp     eax, [input1]     ; compare second and first number
+        setg    bl                ; ebx = (input2 > input1) ?          1 : 0
+        neg     ebx               ; ebx = (input2 > input1) ? 0xFFFFFFFF : 0
+        mov     ecx, ebx          ; ecx = (input2 > input1) ? 0xFFFFFFFF : 0
+        and     ecx, eax          ; ecx = (input2 > input1) ?     input2 : 0
+        not     ebx               ; ebx = (input2 > input1) ?          0 : 0xFFFFFFFF
+        and     ebx, [input1]     ; ebx = (input2 > input1) ?          0 : input1
+        or      ecx, ebx          ; ecx = (input2 > input1) ?     input2 : input1
+
+        mov     eax, message3     ; print out result
+        call    print_string
+        mov     eax, ecx
+        call    print_int
+        call    print_nl
+
+        popa
+        mov     eax, 0            ; return back to C
+        leave                     
+        ret
+\end{AsmCodeListing}
+
+The trick is to create a bit mask that can be used to select the
+correct value for the maximum. The {\code SETG}\index{SETG}
+instruction in line~30 sets BL to 1 if the second input is the maximum
+or 0 otherwise. This is not quite the bit mask desired. To create the
+required bit mask, line~31 uses the {\code NEG}\index{NEG} instruction
+on the entire EBX register. (Note that EBX was zeroed out earlier.)
+If EBX is 0, this does nothing; however, if EBX is 1, the result is
+the two's complement representation of -1 or 0xFFFFFFFF. This is just
+the bit mask required. The remaining code uses this bit mask to select
+the correct input as the maximum.
+
+An alternative trick is to use the {\code DEC} statement. In the above
+code, if the {\code NEG} is replaced with a {\code DEC}, again the result
+will either be 0 or 0xFFFFFFFF. However, the values are reversed than
+when using the {\code NEG} instruction.
+
+
+\section{Manipulating bits in C\index{bit operations!C|(}}
+
+\subsection{The bitwise operators of C}
+
+Unlike some high-level languages, C does provide operators for bitwise
+operations. The \emph{AND} operation is represented by the binary
+{\code \&} operator\footnote{This operator is different from the
+binary {\code \&\&} and unary {\code \&} operators!}. The \emph{OR}
+operation is represented by the binary {\code |} operator. The
+\emph{XOR} operation is represented by the binary {\code \verb|^| 
+}operator. And the \emph{NOT} operation is represented by the unary
+{\code \verb|~| }operator.
+
+The shift operations are performed by C's {\code <<} and {\code >>}
+binary operators. The {\code <<} operator performs left shifts and the 
+{\code >>} operator performs right shifts. These operators take two
+operands. The left operand is the value to shift and the right operand is
+the number of bits to shift by. If the value to shift is an unsigned type,
+a logical shift is made. If the value is a signed type (like {\code int}),
+then an arithmetic shift is used. Below is some example C code using these
+operators:
+\begin{lstlisting}{}
+short int s;          /* assume that short int is 16-bit */
+short unsigned u;
+s = -1;               /* s = 0xFFFF (2's complement) */
+u = 100;              /* u = 0x0064 */
+u = u | 0x0100;       /* u = 0x0164 */
+s = s & 0xFFF0;       /* s = 0xFFF0 */
+s = s ^ u;            /* s = 0xFE94 */
+u = u << 3;           /* u = 0x0B20 (logical shift) */
+s = s >> 2;           /* s = 0xFFA5 (arithmetic shift) */
+\end{lstlisting}
+
+\subsection{Using bitwise operators in C}
+
+The bitwise operators are used in C for the same purposes as they are used
+in assembly language. They allow one to manipulate individual bits of data
+and can be used for fast multiplication and division. In fact, a smart C
+compiler will use a shift for a multiplication like, {\code x *= 2}, 
+automatically.
+\begin{table}
+\centering
+\begin{tabular}{|c|l|}
+\hline
+Macro & \multicolumn{1}{c|}{Meaning} \\
+\hline \hline
+{\code S\_IRUSR} & user can read \\
+{\code S\_IWUSR} & user can write \\
+{\code S\_IXUSR} & user can execute \\
+\hline
+{\code S\_IRGRP} & group can read \\
+{\code S\_IWGRP} & group can write \\
+{\code S\_IXGRP} & group can execute \\
+\hline
+{\code S\_IROTH} & others can read \\
+{\code S\_IWOTH} & others can write \\
+{\code S\_IXOTH} & others can execute \\
+\hline
+\end{tabular}
+\caption{POSIX File Permission Macros \label{tab:posix}}
+\end{table}
+
+Many operating system API\footnote{Application Programming
+Interface}'s (such as \emph{POSIX}\footnote{stands for Portable
+Operating System Interface for Computer Environments. A standard
+developed by the IEEE based on UNIX.} and Win32) contain
+functions which use operands that have data encoded as bits. For
+example, POSIX systems maintain file permissions for three different
+types of users: \emph{user} (a better name would be \emph{owner}),
+\emph{group} and \emph{others}. Each type of user can be granted permission 
+to read, write and/or execute a file. To change the permissions of a file
+requires the C programmer to manipulate individual bits. POSIX defines
+several macros to help (see Table~\ref{tab:posix}). The {\code chmod}
+function can be used to set the permissions of file. This function
+takes two parameters, a string with the name of the file to act on and
+an integer\footnote{Actually a parameter of type {\code mode\_t} which
+is a typedef to an integral type.} with the appropriate bits set for
+the desired permissions. For example, the code below sets the
+permissions to allow the owner of the file to read and write to it,
+users in the group to read the file and others have no access.
+\begin{lstlisting}[stepnumber=0]{}
+chmod("foo", S_IRUSR | S_IWUSR | S_IRGRP );
+\end{lstlisting}
+
+The POSIX {\code stat} function can be used to find out the current 
+permission bits for the file. Used with the {\code chmod} function, it
+is possible to modify some of the permissions without changing others.
+Here is an example that removes write access to others and adds read
+access to the owner of the file. The other permissions are not altered.
+\begin{lstlisting}{}
+struct stat file_stats;    /* struct used by stat() */
+stat("foo", &file_stats);  /* read file info. 
+                              file_stats.st_mode holds permission bits */
+chmod("foo", (file_stats.st_mode & ~S_IWOTH) | S_IRUSR);
+\end{lstlisting}
+\index{bit operations!C|)}
+
+\section{Big and Little Endian Representations\index{endianess|(}}
+
+Chapter~1 introduced the concept of big and little endian
+representations of multibyte data. However, the author has found
+that this subject confuses many people. This section covers the
+topic in more detail. 
+
+The reader will recall that endianness refers to the order that the
+individual bytes (\emph{not} bits) of a multibyte data element is
+stored in memory. Big endian is the most straightforward method. It
+stores the most significant byte first, then the next significant byte
+and so on. In other words the \emph{big} bits are stored first. Little
+endian stores the bytes in the opposite order (least significant first).
+The x86 family of processors use little endian representation.
+
+As an example, consider the double word representing $12345678_{16}$. In
+big endian representation, the bytes would be stored as 12~34~56~78. In
+little endian represenation, the bytes would be stored as 78~56~34~12.
+
+The reader is probably asking himself right now, why any sane chip
+designer would use little endian representation? Were the engineers at
+Intel sadists for inflicting this confusing representations on
+multitudes of programmers? It would seem that the CPU has to do extra
+work to store the bytes backward in memory like this (and to unreverse
+them when read back in to memory). The answer is that the CPU does not
+do any extra work to write and read memory using little endian format.
+One has to realize that the CPU is composed of many electronic
+circuits that simply work on bit values. The bits (and bytes) are not
+in any necessary order in the CPU.
+
+Consider the 2-byte {\code AX} register. It can be decomposed into the
+single byte registers: {\code AH} and {\code AL}. There are circuits
+in the CPU that maintain the values of {\code AH} and {\code
+AL}. Circuits are not in any order in a CPU. That is, the circuits for
+{\code AH} are not before or after the circuits for {\code AL}. A
+{\code mov} instruction that copies the value of {\code AX} to memory
+copies the value of {\code AL} then {\code AH}. This is not any harder
+for the CPU to do than storing {\code AH} first.
+
+\begin{figure}[t]
+\begin{lstlisting}[stepnumber=0,frame=tblr]{}
+  unsigned short word = 0x1234;   /* assumes sizeof(short) == 2 */
+  unsigned char * p = (unsigned char *) &word;
+
+  if ( p[0] == 0x12 )
+    printf("Big Endian Machine\n");
+  else
+    printf("Little Endian Machine\n");
+\end{lstlisting}
+\caption{How to Determine Endianness \label{fig:determineEndian}}
+\end{figure}
+
+The same argument applies to the individual bits in a byte. They are
+not really in any order in the circuits of the CPU (or memory for that
+matter). However, since individual bits can not be addressed in the
+CPU or memory, there is no way to know (or care about) what order they
+seem to be kept internally by the CPU.
+
+The C code in Figure~\ref{fig:determineEndian} shows how the
+endianness of a CPU can be determined.  The \lstinline|p| pointer
+treats the \lstinline|word| variable as a two element character
+array. Thus, \lstinline|p[0]| evaluates to the first byte of
+\lstinline|word| in memory which depends on the endianness of the CPU.
+
+\subsection{When to Care About Little and Big Endian}
+
+For typical programming, the endianness of the CPU is not
+significant. The most common time that it is important is when binary
+data is transferred between different computer systems. This is
+usually either using some type of physical data media (such as a disk)
+or a network. \MarginNote{With the advent of multibyte character sets,
+like UNICODE\index{UNICODE}, endianness is important for even text data. UNICODE
+supports either endianness and has a mechanism for specifying which
+endianness is being used to represent the data.} Since ASCII data
+is single byte, endianness is not an issue for it.
+
+All internal TCP/IP headers store integers in big endian format
+(called \emph{network byte order}). TCP/IP \index{TCP/IP}libraries provide C
+functions for dealing with endianness issues in a portable way.  For
+example, the \lstinline|htonl()| function converts a double word (or
+long integer) from \emph{host} to \emph{network} format. The
+\lstinline|ntohl()| function performs the opposite
+transformation.\footnote{Actually, reversing the endianness of an
+integer simply reverses the bytes; thus, converting from big to little
+or little to big is the same operation. So both of these functions do
+the same thing.} For a big endian system, the two functions just
+return their input unchanged. This allows one to write network
+programs that will compile and run correctly on any system
+irrespective of its endianness. For more information, about endianness
+and network programming see W. Richard Steven's excellent book, 
+\emph{UNIX Network Programming}.
+
+\begin{figure}[t]
+\begin{lstlisting}[frame=tlrb]{}
+unsigned invert_endian( unsigned x )
+{
+  unsigned invert;
+  const unsigned char * xp = (const unsigned char *) &x;
+  unsigned char * ip = (unsigned char *) & invert;
+
+  ip[0] = xp[3];   /* reverse the individual bytes */
+  ip[1] = xp[2];
+  ip[2] = xp[1];
+  ip[3] = xp[0];
+
+  return invert;   /* return the bytes reversed */
+}
+\end{lstlisting}
+\caption{invert\_endian Function \label{fig:invertEndian}\index{endianess!invert\_endian}}
+\end{figure}
+
+Figure~\ref{fig:invertEndian} shows a C function that inverts the
+endianness of a double word. The 486 processor introduced a new
+machine instruction named {\code BSWAP} \index{BSWAP} that reverses
+the bytes of any 32-bit register. For example,
+\begin{AsmCodeListing}[frame=none,numbers=none]
+      bswap   edx          ; swap bytes of edx
+\end{AsmCodeListing}
+The instruction can not be used on 16-bit registers. However, the
+{\code XCHG} \index{XCHG} instruction can be used to swap the bytes of
+the 16-bit registers that can be decomposed into 8-bit registers. For
+example:
+\begin{AsmCodeListing}[frame=none,numbers=none]
+      xchg    ah,al        ; swap bytes of ax
+\end{AsmCodeListing}
+\index{endianess|)}
+
+\section{Counting Bits\index{counting bits|(}}
+
+Earlier a straightforward technique was given for counting the number of bits
+that are ``on'' in a double word. This section looks at other less direct
+methods of doing this as an exercise using the bit operations discussed in
+this chapter.
+
+
+\begin{figure}[t]
+\begin{lstlisting}[frame=tblr]{}
+int count_bits( unsigned int data )
+{
+  int cnt = 0;
+
+  while( data != 0 ) {
+    data = data & (data - 1);
+    cnt++;
+  }
+  return cnt;
+}
+\end{lstlisting}
+\caption{Bit Counting: Method One \label{fig:meth1}}
+\end{figure}
+
+\subsection{Method one\index{counting bits!method one|(}}
+
+The first method is very simple, but not obvious. Figure~\ref{fig:meth1} shows the code.
+
+How does this method work? In every iteration of the loop, one bit is turned
+off in {\code data}. When all the bits are off (\emph{i.e.} when {\code data}
+is zero), the loop stops. The number of iterations required to make 
+{\code data} zero is equal to the number of bits in the original value of
+{\code data}.
+
+Line~6 is where a bit of {\code data} is turned off. How does this work?
+Consider the general form of the binary representation of {\code data} and
+the rightmost 1 in this representation. By definition, every bit after this
+1 must be zero. Now, what will be the binary representation of {\code data
+- 1}? The bits to the left of the rightmost 1 will be the same as for
+{\code data}, but at the point of the rightmost 1 the bits will be the 
+complement of the original bits of {\code data}. For example:\\
+\begin{tabular}{lcl}
+{\code data}     & = & xxxxx10000 \\
+{\code data - 1} & = & xxxxx01111
+\end{tabular}\\
+where the x's are the same for both numbers. When {\code data} is
+\emph{AND}'ed with {\code data - 1}, the result will zero the rightmost
+1 in {\code data} and leave all the other bits unchanged.
+
+\begin{figure}[t]
+\begin{lstlisting}[frame=tlrb]{}
+static unsigned char byte_bit_count[256];  /* lookup table */
+
+void initialize_count_bits()
+{
+  int cnt, i, data;
+
+  for( i = 0; i < 256; i++ ) {
+    cnt = 0;
+    data = i;
+    while( data != 0 ) {	/* method one */
+      data = data & (data - 1);
+      cnt++;
+    }
+    byte_bit_count[i] = cnt;
+  }
+}
+
+int count_bits( unsigned int data )
+{
+  const unsigned char * byte = ( unsigned char *) & data;
+
+  return byte_bit_count[byte[0]] + byte_bit_count[byte[1]] +
+         byte_bit_count[byte[2]] + byte_bit_count[byte[3]];
+}
+\end{lstlisting}
+\caption{Method Two \label{fig:meth2}}
+\end{figure}
+\index{counting bits!method one|)}
+
+\subsection{Method two\index{counting bits!method two|(}}
+
+A lookup table can also be used to count the bits of an arbitrary double
+word. The straightforward approach would be to precompute the number of bits
+for each double word and store this in an array. However, there are two
+related problems with this approach. There are roughly \emph{4 billion}
+double word values! This means that the array will be very big and that
+initializing it will also be very time consuming. (In fact, unless one is 
+going to actually use the array more than 4 billion times, more time will
+be taken to initialize the array than it would require to just compute the
+bit counts using method one!)
+
+A more realistic method would precompute the bit counts for all possible
+byte values and store these into an array. Then the double word can be
+split up into four byte values. The bit counts of these four byte values
+are looked up from the array and sumed to find the bit count of the 
+original double word. Figure~\ref{fig:meth2} shows the to code implement
+this approach.
+
+The {\code initialize\_count\_bits} function must be called before the
+first call to the {\code count\_bits} function. This function initializes
+the global {\code byte\_bit\_count} array. The {\code count\_bits} function
+looks at the {\code data} variable not as a double word, but as an array
+of four bytes. The {\code dword} pointer acts as a pointer to this
+four byte array. Thus, {\code dword[0]} is one of the bytes in {\code
+data} (either the least significant or the most significant byte depending 
+on if the hardware is little or big endian, respectively.) Of course, one
+could use a construction like:
+\begin{lstlisting}[stepnumber=0]{}
+(data >> 24) & 0x000000FF
+\end{lstlisting}
+\noindent to find the most significant byte value and similar ones for the 
+other bytes; however, these constructions will be slower than an array
+reference.
+
+One last point, a {\code for} loop could easily be used to compute the
+sum on lines~22 and 23. But, a {\code for} loop would include the
+overhead of initializing a loop index, comparing the index after each
+iteration and incrementing the index. Computing the sum as the
+explicit sum of four values will be faster. In fact, a smart compiler
+would convert the {\code for} loop version to the explicit sum. This
+process of reducing or eliminating loop iterations is a compiler
+optimization technique known as \emph{loop unrolling}.
+\index{counting bits!method two|)}
+
+\subsection{Method three\index{counting bits!method three|(}}
+
+\begin{figure}[t]
+\begin{lstlisting}[frame=tlrb]{}
+int count_bits(unsigned int x )
+{
+  static unsigned int mask[] = { 0x55555555,
+                                 0x33333333,
+                                 0x0F0F0F0F,
+                                 0x00FF00FF,
+                                 0x0000FFFF };
+  int i;
+  int shift;   /* number of positions to shift to right */
+
+  for( i=0, shift=1; i < 5; i++, shift *= 2 )
+    x = (x & mask[i]) + ( (x >> shift) & mask[i] );
+  return x;
+}
+\end{lstlisting}
+\caption{Method 3 \label{fig:method3}}
+\end{figure}
+
+There is yet another clever method of counting the bits that are on in
+data. This method literally adds the one's and zero's of the data together.
+This sum must equal the number of one's in the data. For example, consider
+counting the one's in a byte stored in a variable named {\code data}. The
+first step is to perform the following operation:
+\begin{lstlisting}[stepnumber=0]{}
+data = (data & 0x55) + ((data >> 1) & 0x55);
+\end{lstlisting}
+What does this do? The hex constant {\code 0x55} is $01010101$ in
+binary. In the first operand of the addition, {\code data} is
+\emph{AND}'ed with this, bits at the odd bit positions are pulled
+out. The second operand {\code ((data >> 1) \& 0x55)} first moves all
+the bits at the even positions to an odd position and uses the same
+mask to pull out these same bits. Now, the first operand contains the
+odd bits and the second operand the even bits of {\code data}. When
+these two operands are added together, the even and odd bits of {\code
+data} are added together.  For example, if {\code data} is
+$10110011_2$, then:\\
+\begin{tabular}{rcr|l|l|l|l|}
+\cline{4-7}
+{\code data \&} $01010101_2$          &    &   & 00 & 01 & 00 & 01 \\
++ {\code (data >> 1) \&} $01010101_2$ & or & + & 01 & 01 & 00 & 01 \\
+\cline{1-1} \cline{3-7}
+                                      &    &   & 01 & 10 & 00 & 10 \\
+\cline{4-7}
+\end{tabular}
+
+The addition on the right shows the actual bits added together. The bits of
+the byte are divided into four 2-bit fields to show that actually there are
+four independent additions being performed. Since the most these sums can be is
+two, there is no possibility that the sum will overflow its field and corrupt
+one of the other field's sums.
+
+Of course, the total number of bits have not been computed yet. However, the
+same technique that was used above can be used to compute the total in a
+series of similar steps. The next step would be:
+\begin{lstlisting}[stepnumber=0]{}
+data = (data & 0x33) + ((data >> 2) & 0x33);
+\end{lstlisting}
+Continuing the above example (remember that {\code data} now is
+$01100010_2$):\\
+\begin{tabular}{rcr|l|l|}
+\cline{4-5}
+{\code data \&} $00110011_2$          &    &   & 0010 & 0010 \\
++ {\code (data >> 2) \&} $00110011_2$ & or & + & 0001 & 0000 \\
+\cline{1-1} \cline{3-5}
+                                      &    &   & 0011 & 0010 \\
+\cline{4-5}
+\end{tabular}\\
+Now there are two 4-bit fields to that are independently added. 
+
+The next step is to add these two bit sums together to form the final
+result:
+\begin{lstlisting}[stepnumber=0]{}
+data = (data & 0x0F) + ((data >> 4) & 0x0F);
+\end{lstlisting} 
+
+Using the example above (with {\code data} equal to $00110010_2$):\\
+\begin{tabular}{rcrl}
+{\code data \&} $00001111_2$          &    &   & 00000010 \\
++ {\code (data >> 4) \&} $00001111_2$ & or & + & 00000011 \\
+\cline{1-1} \cline{3-4}
+                                      &    &   & 00000101 \\
+\end{tabular}\\
+Now {\code data} is 5 which is the correct result. Figure~\ref{fig:method3}
+shows an implementation of this method that counts the bits in a double word.
+It uses a {\code for} loop to compute the sum. It would be faster to 
+unroll the loop; however, the loop makes it clearer how the method
+generalizes to different sizes of data.
+\index{counting bits!method three|)}
+\index{counting bits|)}

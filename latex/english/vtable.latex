@@ -1,0 +1,49 @@
+\setlength{\unitlength}{3947sp}%
+%
+\begingroup\makeatletter\ifx\SetFigFont\undefined%
+\gdef\SetFigFont#1#2#3#4#5{%
+  \reset@font\fontsize{#1}{#2pt}%
+  \fontfamily{#3}\fontseries{#4}\fontshape{#5}%
+  \selectfont}%
+\fi\endgroup%
+\begin{picture}(3237,2067)(76,-1516)
+{\color[rgb]{0,0,0}\thinlines
+\put(1051,239){\circle*{60}}
+}%
+{\color[rgb]{0,0,0}\put(301,-1261){\framebox(900,1800){}}
+}%
+{\color[rgb]{0,0,0}\put(301,-61){\line( 1, 0){900}}
+}%
+{\color[rgb]{0,0,0}\put(301,-661){\line( 1, 0){900}}
+}%
+{\color[rgb]{0,0,0}\put(2401,-61){\line( 1, 0){900}}
+}%
+{\color[rgb]{0,0,0}\put(1051,239){\vector( 1, 0){1350}}
+}%
+{\color[rgb]{0,0,0}\put(2401,-661){\framebox(900,1200){}}
+}%
+\put(616,-1006){\makebox(0,0)[lb]{\smash{\SetFigFont{12}{14.4}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,0}bd}%
+}}}
+\put(691,-1516){\makebox(0,0)[lb]{\smash{\SetFigFont{12}{14.4}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,0}b1}%
+}}}
+\put( 76,239){\makebox(0,0)[lb]{\smash{\SetFigFont{12}{14.4}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,0}0}%
+}}}
+\put( 76,-436){\makebox(0,0)[lb]{\smash{\SetFigFont{12}{14.4}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,0}4}%
+}}}
+\put( 76,-1036){\makebox(0,0)[lb]{\smash{\SetFigFont{12}{14.4}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,0}8}%
+}}}
+\put(2176,-436){\makebox(0,0)[lb]{\smash{\SetFigFont{12}{14.4}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,0}4}%
+}}}
+\put(601,-436){\makebox(0,0)[lb]{\smash{\SetFigFont{12}{14.4}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,0}ad}%
+}}}
+\put(2476,164){\makebox(0,0)[lb]{\smash{\SetFigFont{12}{14.4}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,0}\&B::m1()}%
+}}}
+\put(2476,-361){\makebox(0,0)[lb]{\smash{\SetFigFont{12}{14.4}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,0}\&A::m2()}%
+}}}
+\put(2551,-1036){\makebox(0,0)[lb]{\smash{\SetFigFont{12}{14.4}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,0}vtable}%
+}}}
+\put(376,164){\makebox(0,0)[lb]{\smash{\SetFigFont{12}{14.4}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,0}vtablep}%
+}}}
+\put(2176,314){\makebox(0,0)[lb]{\smash{\SetFigFont{12}{14.4}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,0}0}%
+}}}
+\end{picture}

@@ -1,0 +1,1483 @@
+% -*-latex-*-
+\chapter{Structures and C++}
+
+\section{Structures\index{structures|(}}
+
+\subsection{Introduction}
+
+Structures are used in C to group together related data into a composite 
+variable. This technique has several advantages:
+\begin{enumerate}
+\item It clarifies the code by showing that the data defined in the structure
+      are intimately related.
+\item It simplifies passing the data to functions. Instead of passing
+      multiple variables separately, they can be passed as a single unit.
+\item It increases the \index{locality}\emph{locality}\footnote{See the virtual memory 
+management section of any Operating System text book for discussion of
+this term.} of the code.
+\end{enumerate}
+
+From the assembly standpoint, a structure can be considered as an
+array with elements of \emph{varying} size. The elements of real
+arrays are always the same size and type. This property is what allows
+one to calculate the address of any element by knowing the starting
+address of the array, the size of the elements and the desired
+element's index.
+
+A structure's elements do not have to be the same size (and usually
+are not). Because of this each element of a structure must be
+explicitly specified and is given a \emph{tag} (or name) instead of a
+numerical index.
+
+In assembly, the element of a structure will be accessed in a similar
+way as an element of an array. To access an element, one must know the
+starting address of the structure and the \emph{relative offset} of
+that element from the beginning of the structure. However, unlike an
+array where this offset can be calculated by the index of the element, 
+the element of a structure is assigned an offset by the compiler.
+
+For example, consider the following structure:
+\begin{lstlisting}[stepnumber=0]{}
+struct S {
+  short int x;    /* 2-byte integer */
+  int       y;    /* 4-byte integer */
+  double    z;    /* 8-byte float   */
+};
+\end{lstlisting}
+
+\begin{figure}
+\centering
+\begin{tabular}{r|c|}
+\multicolumn{1}{c}{Offset} & \multicolumn{1}{c}{ Element } \\
+\cline{2-2}
+0 & {\code x} \\
+\cline{2-2}
+2 & \\
+  & {\code y} \\
+\cline{2-2}
+6 & \\
+  & \\
+  & {\code z} \\
+  & \\
+\cline{2-2}
+\end{tabular}
+\caption{Structure S \label{fig:structPic1}}
+\end{figure}
+
+Figure~\ref{fig:structPic1} shows how a variable of type {\code S}
+might look in the computer's memory. The ANSI C standard states that
+the elements of a structure are arranged in the memory in the same
+order as they are defined in the {\code struct} definition. It also
+states that the first element is at the very beginning of the
+structure (\emph{i.e.} offset zero). It also defines another useful
+macro in the {\code stddef.h} header file named {\code
+offsetof()}. \index{structures!offsetof()} This macro computes and
+returns the offset of any element of a structure. The macro takes two
+parameters, the first is the name of the \emph{type} of the structure,
+the second is the name of the element to find the offset of. Thus, the
+result of {\code offsetof(S, y)} would be 2 from
+Figure~\ref{fig:structPic1}.
+
+%TODO: talk about definition of offsetof() ??
+
+\subsection{Memory alignment}
+
+\begin{figure}
+\centering
+\begin{tabular}{r|c|}
+\multicolumn{1}{c}{Offset} & \multicolumn{1}{c}{ Element } \\
+\cline{2-2}
+0 & {\code x} \\
+\cline{2-2}
+2 & \emph{unused} \\
+\cline{2-2}
+4 & \\
+  & {\code y} \\
+\cline{2-2}
+8 & \\
+  & \\
+  & {\code z} \\
+  & \\
+\cline{2-2}
+\end{tabular}
+\caption{Structure S \label{fig:structPic2}}
+
+\end{figure}
+\index{structures!alignment|(}
+If one uses the {\code offsetof} macro to find the offset of {\code y}
+using the \emph{gcc} compiler, they will find that it returns 4, not
+2!  Why?  \MarginNote{Recall that an address is on a double word
+boundary if it is divisible by 4} Because \emph{gcc} (and many other
+compilers) align variables on double word boundaries by default. In
+32-bit protected mode, the CPU reads memory faster if the data starts
+at a double word boundary. Figure~\ref{fig:structPic2} shows how the
+{\code S} structure really looks using \emph{gcc}. The compiler
+inserts two unused bytes into the structure to align {\code y} (and
+{\code z}) on a double word boundary. This shows why it is a good idea
+to use {\code offsetof} to compute the offsets instead of calculating
+them oneself when using structures defined in C.
+
+Of course, if the structure is only used in assembly, the programmer can 
+determine the offsets himself. However, if one is interfacing C and assembly,
+it is very important that both the assembly code and the C code agree on
+the offsets of the elements of the structure! One complication is that 
+different C compilers may give different offsets to the elements. For example,
+as we have seen, the \emph{gcc} compiler creates an {\code S} structure that
+looks like Figure~\ref{fig:structPic2}; however, Borland's compiler would
+create a structure that looks like Figure~\ref{fig:structPic1}. C compilers
+provide ways to specify the alignment used for data. However, the ANSI C
+standard does not specify how this will be done and thus, different compilers
+do it differently.  
+
+
+
+%Borland's compiler has a flag, {\code -a}, that can be
+%used to define the alignment used for all data. Compiling with {\code -a 4}
+%tells \emph{bcc} to use double word alignment. Microsoft's compiler 
+%provides a {\code \#pragma pack} directive that can be used to set
+%the alignment (consult Microsoft's documentation for details). Borland's
+%compiler also supports Microsoft's pragma 
+
+The \emph{gcc}\index{compiler!gcc!\_\_attribute\_\_} compiler has a flexible and complicated method of
+specifying the alignment. The compiler allows one to specify the
+alignment of any type using a special syntax. For example, the
+following line:
+\begin{lstlisting}[stepnumber=0]{}
+  typedef short int unaligned_int __attribute__((aligned(1)));
+\end{lstlisting}
+\noindent defines a new type named {\code unaligned\_int} that
+is aligned on byte boundaries. (Yes, all the parenthesis after {\code
+\_\_attribute\_\_} are required!)  The 1 in the {\code aligned}
+parameter can be replaced with other powers of two to specify other
+alignments. (2 for word alignment, 4 for double word alignment,
+\emph{etc.}) If the {\code y} element of the structure was changed to be an
+{\code unaligned\_int} type, \emph{gcc} would put {\code y} at offset 2.
+However, {\code z} would still be at offset 8 since doubles are also double
+word aligned by default. The definition of {\code z}'s type would have
+to be changed as well for it to put at offset 6.
+
+\begin{figure}[t]
+\begin{lstlisting}[frame=tlrb,stepnumber=0]{}
+struct S {
+  short int x;    /* 2-byte integer */
+  int       y;    /* 4-byte integer */
+  double    z;    /* 8-byte float   */
+} __attribute__((packed));
+\end{lstlisting}
+\caption{Packed struct using \emph{gcc} \label{fig:packedStruct}\index{compiler!gcc!\_\_attribute\_\_}}
+\end{figure}
+
+The \emph{gcc} compiler also allows one to \emph{pack} a structure. This
+tells the compiler to use the minimum possible space for the structure.
+Figure~\ref{fig:packedStruct} shows how {\code S} could be rewritten this way.
+This form of {\code S} would use the minimum bytes possible, 14 bytes.
+
+Microsoft's and Borland's compilers both support the same method of specifying
+alignment using a {\code \#pragma} directive.\index{compiler!Microsoft!pragma pack}
+\begin{lstlisting}[stepnumber=0]{}
+#pragma pack(1)
+\end{lstlisting}
+The directive above tells the compiler to pack elements of structures
+on byte boundaries (\emph{i.e.}, with no extra padding). The one can
+be replaced with two, four, eight or sixteen to specify alignment on
+word, double word, quad word and paragraph boundaries,
+respectively. The directive stays in effect until overridden by
+another directive. This can cause problems since these directives are
+often used in header files. If the header file is included before
+other header files with structures, these structures may be laid out
+differently than they would by default. This can lead to a very hard to
+find error. Different modules of a program might lay out the elements
+of the structures in \emph{different} places!
+
+\begin{figure}[t]
+\begin{lstlisting}[frame=tlrb,stepnumber=0]{}
+#pragma pack(push)    /* save alignment state */
+#pragma pack(1)       /* set byte alignment   */
+
+struct S {
+  short int x;    /* 2-byte integer */
+  int       y;    /* 4-byte integer */
+  double    z;    /* 8-byte float   */
+};
+
+#pragma pack(pop)     /* restore original alignment */
+\end{lstlisting}
+\caption{Packed struct using Microsoft or Borland \label{fig:msPacked}\index{compiler!Microsoft!pragma pack}}
+\end{figure}
+
+There is a way to avoid this problem. Microsoft and Borland support a
+way to save the current alignment state and restore it
+later. Figure~\ref{fig:msPacked} shows how this would be done.
+\index{structures!alignment|)}
+
+\subsection{Bit Fields\index{structures!bit fields|(}}
+
+\begin{figure}[t]
+\begin{lstlisting}[frame=tlrb,stepnumber=0]{}
+struct S {
+  unsigned f1 : 3;   /* 3-bit field  */
+  unsigned f2 : 10;  /* 10-bit field */
+  unsigned f3 : 11;  /* 11-bit field */
+  unsigned f4 : 8;   /* 8-bit field  */
+};
+\end{lstlisting}
+\caption{Bit Field Example \label{fig:bitStruct}}
+\end{figure}
+
+Bit fields allow one to specify members of a struct that only use a specified
+number of bits. The size of bits does not have to be a multiple of eight. A
+bit field member is defined like an \lstinline|unsigned int| or \lstinline|int|
+member with a colon and bit size appended to it. Figure~\ref{fig:bitStruct}
+shows an example. This defines a 32-bit variable that is decomposed in the 
+following parts:
+\begin{center}
+\begin{tabular}{|c|c|c|c|}
+\multicolumn{1}{c}{8 bits} & \multicolumn{1}{c}{11 bits} 
+& \multicolumn{1}{c}{10 bits} & \multicolumn{1}{c}{3 bits} \\ \hline
+\hspace{2em} f4 \hspace{2em} & \hspace{3em} f3 \hspace{3em}
+& \hspace{3em} f2 \hspace{3em} & f1 \\
+\hline
+\end{tabular}
+\end{center}
+The first bitfield is assigned to the least significant bits of its
+double word.\footnote{Actually, the ANSI/ISO C standard gives the
+compiler some flexibility in exactly how the bits are laid
+out. However, common C compilers (\emph{gcc}, \emph{Microsoft} and
+\emph{Borland}) will lay the fields out like this.}
+
+However, the format is not so simple if one looks at how the bits are actually
+stored in memory. The difficulty occurs when bitfields span byte boundaries.
+Because the bytes on a little endian processor will be reversed in memory. For
+example, the {\code S} struct bitfields will look like this in memory:
+\begin{center}
+\begin{tabular}{|c|c||c|c||c||c|}
+\multicolumn{1}{c}{5 bits} & \multicolumn{1}{c}{3 bits} 
+& \multicolumn{1}{c}{3 bits} & \multicolumn{1}{c}{5 bits} 
+& \multicolumn{1}{c}{8 bits} & \multicolumn{1}{c}{8 bits} \\ \hline
+f2l & f1 &  f3l  & f2m & \hspace{1em} f3m \hspace{1em} 
+& \hspace{1.5em} f4 \hspace{1.5em} \\
+\hline
+\end{tabular}
+\end{center}
+The \emph{f2l} label refers to the last five bits (\emph{i.e.}, the five least
+significant bits) of the \emph{f2} bit field. The \emph{f2m} label refers to the
+five most significant bits of \emph{f2}. The double vertical lines show the byte
+boundaries. If one reverses all the bytes, the pieces of the \emph{f2} and \emph{f3}
+fields will be reunited in the correct place.
+
+\begin{figure}[t]
+\centering
+\begin{tabular}{|c*{8}{|p{1.3em}}|}
+\hline
+Byte $\backslash$ Bit & 7 & 6 & 5 & 4 & 3 & 2 & 1 & 0 \\ \hline
+0 & \multicolumn{8}{c|}{Operation Code (08h) } \\ \hline
+1 & \multicolumn{3}{c|}{Logical Unit \# } & \multicolumn{5}{c|}{msb of LBA} \\ \hline
+2 & \multicolumn{8}{c|}{middle of Logical Block Address} \\ \hline
+3 & \multicolumn{8}{c|}{lsb of Logicial Block Address} \\ \hline
+4 & \multicolumn{8}{c|}{Transfer Length} \\ \hline
+5 & \multicolumn{8}{c|}{Control} \\ \hline
+\end{tabular}
+\caption{SCSI Read Command Format \label{fig:scsi-read}}
+\end{figure}
+
+\begin{figure}[t]
+\begin{lstlisting}[frame=lrtb]{}
+#define MS_OR_BORLAND (defined(__BORLANDC__) \
+                        || defined(_MSC_VER))
+
+#if MS_OR_BORLAND
+#  pragma pack(push)
+#  pragma pack(1)
+#endif
+
+struct SCSI_read_cmd {
+  unsigned opcode : 8;
+  unsigned lba_msb : 5;
+  unsigned logical_unit : 3;
+  unsigned lba_mid : 8;    /* middle bits */
+  unsigned lba_lsb : 8;
+  unsigned transfer_length : 8;
+  unsigned control : 8;
+}
+#if defined(__GNUC__)
+   __attribute__((packed))
+#endif
+;
+
+#if MS_OR_BORLAND
+#  pragma pack(pop)
+#endif
+\end{lstlisting}
+\caption{SCSI Read Command Format Structure\label{fig:scsi-read-struct}\index{compiler!gcc!\_\_attribute\_\_}
+         \index{compiler!Microsoft!pragma pack}}
+\end{figure}
+
+The physical memory layout is not usually important unless the data is being 
+transfered in or out of the program (which is actually quite common with bit fields).
+It is common for hardware devices interfaces to use odd number of bits that 
+bitfields could be useful to represent. 
+
+
+\begin{figure}[t]
+\centering
+\begin{tabular}{|c||c||c||c||c|c||c|}
+\multicolumn{1}{c}{8 bits} & \multicolumn{1}{c}{8 bits} 
+& \multicolumn{1}{c}{8 bits} & \multicolumn{1}{c}{8 bits} 
+& \multicolumn{1}{c}{3 bits} & \multicolumn{1}{c}{5 bits} 
+& \multicolumn{1}{c}{8 bits} \\ \hline
+control & transfer\_length & lba\_lsb  & lba\_mid &  
+logical\_unit  & lba\_msb & opcode \\
+\hline
+\end{tabular}
+\caption{Mapping of {\code SCSI\_read\_cmd} fields \label{fig:scsi-read-map}}
+\end{figure}
+\index{SCSI|(}
+One example is SCSI\footnote{Small Computer Systems Interface, an industry standard 
+for hard disks, \emph{etc.}}. A direct read command for a SCSI device is specified
+by sending a six byte message to the device in the format specified in 
+Figure~\ref{fig:scsi-read}. The difficulty representing this using bitfields is the
+\emph{logical block address} which spans 3 different bytes of the command. From
+Figure~\ref{fig:scsi-read}, one sees that the data is stored in big endian format.
+Figure~\ref{fig:scsi-read-struct} shows a definition that attempts to work with
+all compilers. The first two lines define a macro that is true if the code is
+compiled with the Microsoft or Borland compilers. The potentially confusing parts
+are lines 11 to 14. First one might wonder why the \lstinline|lba_mid| and
+\lstinline|lba_lsb| fields are defined separately and not as a single 16-bit
+field? The reason is that the data is in big endian order. A 16-bit
+field would be stored in little endian order by the compiler. Next,
+the \lstinline|lba_msb| and \lstinline|logical_unit| fields appear to
+be reversed; however, this is not the case. They have to be put in
+this order. Figure~\ref{fig:scsi-read-map} shows how the fields are
+mapped as a 48-bit entity. (The byte boundaries are again denoted by
+the double lines.) When this is stored in memory in little endian
+order, the bits are arranged in the desired format
+(Figure~\ref{fig:scsi-read}).
+
+\begin{figure}[t]
+\begin{lstlisting}[frame=lrtb]{}
+struct SCSI_read_cmd {
+  unsigned char opcode;
+  unsigned char lba_msb : 5;
+  unsigned char logical_unit : 3;
+  unsigned char lba_mid;    /* middle bits */
+  unsigned char lba_lsb;
+  unsigned char transfer_length;
+  unsigned char control;
+}
+#if defined(__GNUC__)
+   __attribute__((packed))
+#endif
+;
+\end{lstlisting}
+\caption{Alternate SCSI Read Command Format Structure\label{fig:scsi-read-struct2}
+         \index{compiler!gcc!\_\_attribute\_\_}\index{compiler!Microsoft!pragma pack}}
+\end{figure}
+
+To complicate matters more, the definition for the
+\lstinline|SCSI_read_cmd| does not quite work correctly for Microsoft
+C. If the \lstinline|sizeof(SCSI_read_cmd)| expression is evalutated,
+Microsoft C will return 8, not 6! This is because the Microsoft
+compiler uses the type of the bitfield in determining how to map the
+bits. Since all the bit fields are defined as \lstinline|unsigned|
+types, the compiler pads two bytes at the end of the structure to make
+it an integral number of double words. This can be remedied by making
+all the fields \lstinline|unsigned short| instead. Now, the Microsoft
+compiler does not need to add any pad bytes since six bytes is an
+integral number of two-byte words.\footnote{Mixing different types of
+bit fields leads to very confusing behavior! The reader is invited to
+experiment.} The other compilers also work correctly with this
+change. Figure~\ref{fig:scsi-read-struct2} shows yet another definition
+that works for all three compilers. It avoids all but two of the bit
+fields by using \lstinline|unsigned char|.
+\index{SCSI|)}
+
+The reader should not be discouraged if he found the previous
+discussion confusing.  It is confusing! The author often finds it less
+confusing to avoid bit fields altogether and use bit operations to
+examine and modify the bits manually.
+
+\index{structures!bit fields|)}
+
+%TODO:discuss alignment issues and struct size issues
+
+\subsection{Using structures in assembly}
+
+As discussed above, accessing a structure in assembly is very much
+like accessing an array. For a simple example, consider how one would
+write an assembly routine that would zero out the {\code y} element
+of an {\code S} structure. Assuming the prototype of the routine would be:
+\begin{lstlisting}[stepnumber=0]{}
+void zero_y( S * s_p );
+\end{lstlisting}
+\noindent the assembly routine would be:
+\begin{AsmCodeListing}
+%define      y_offset  4
+_zero_y:
+      enter  0,0
+      mov    eax, [ebp + 8]      ; get s_p (struct pointer) from stack
+      mov    dword [eax + y_offset], 0
+      leave
+      ret
+\end{AsmCodeListing}
+
+C allows one to pass a structure by value to a function; however, this is
+almost always a bad idea. When passed by value, the entire data in the
+structure must be copied to the stack and then retrieved by the routine.
+It is much more efficient to pass a pointer to a structure instead.
+
+C also allows a structure type to be used as the return value of a function.
+Obviously a structure can not be returned in the {\code EAX} register. Different
+compilers handle this situation differently. A common solution that compilers
+use is to internally rewrite the function as one that takes a structure pointer
+as a parameter. The pointer is used to put the return value into a structure
+defined outside of the routine called.
+
+Most assemblers (including NASM) have built-in support for defining structures
+in your assembly code. Consult your documentation for details.
+
+% add section on structure return values for functions
+
+\index{structures|)}
+
+\section{Assembly and C++\index{C++|(}}
+
+The C++ programming language is an extension of the C language. Many of the
+basic rules of interfacing C and assembly language also apply to C++.
+However, some rules need to be modified. Also, some of the extensions
+of C++ are easier to understand with a knowledge of assembly language.
+This section assumes a basic knowledge of C++.
+
+\subsection{Overloading and Name Mangling\index{C++!name mangling|(}}
+\label{subsec:mangling}
+\begin{figure}
+\centering
+\begin{lstlisting}[frame=tlrb]{}
+#include <stdio.h>
+
+void f( int x )
+{
+  printf("%d\n", x);
+}
+
+void f( double x )
+{
+  printf("%g\n", x);
+}
+\end{lstlisting}
+\caption{Two {\code f()} functions \label{fig:twof}}
+\end{figure}
+
+C++ allows different functions (and class member functions) with the same
+name to be defined. When more than one function share the same name, the
+functions are said to be \emph{overloaded}. If two functions are defined
+with the same name in C, the linker will produce an error because it will
+find two definitions for the same symbol in the object files it is linking.
+For example, consider the code in Figure~\ref{fig:twof}. The equivalent
+assembly code would define two labels named {\code \_f} which will obviously
+be an error.
+
+C++ uses the same linking process as C, but avoids this error by
+performing \emph{name mangling} or modifying the symbol used to label
+the function. In a way, C already uses name mangling, too. It adds an
+underscore to the name of the C function when creating the label for
+the function. However, C will mangle the name of both functions in
+Figure~\ref{fig:twof} the same way and produce an error. C++ uses a
+more sophisticated mangling process that produces two different labels
+for the functions. For example, the first function in
+Figure~\ref{fig:twof} would be assigned by DJGPP the label {\code
+\_f\_\_Fi} and the second function, {\code \_f\_\_Fd}. This avoids any
+linker errors.
+% check to make sure that DJGPP does still but an _ at beginning for C++
+
+Unfortunately, there is no standard for how to manage names in C++ and
+different compilers mangle names differently. For example, Borland C++ would
+use the labels {\code @f\$qi} and {\code @f\$qd} for the two functions
+in Figure~\ref{fig:twof}. However, the rules are not completely arbitrary.
+The mangled name encodes the \emph{signature} of the function. The signature
+of a function is defined by the order and the type of its parameters. 
+Notice that the function that takes a single {\code int} argument has an
+\emph{i} at the end of its mangled name (for both DJGPP and Borland) and that
+the one that takes a {\code double} argument has a \emph{d} at the end of
+its mangled name. If there was a function named {\code f} with the
+prototype:
+\begin{lstlisting}[stepnumber=0]{}
+  void f( int x, int y, double z);
+\end{lstlisting}
+\noindent DJGPP would mangle its name to be {\code \_f\_\_Fiid} and Borland to
+{\code @f\$qiid}.
+
+The return type of the function is \emph{not} part of a function's
+signature and is not encoded in its mangled name. This fact explains a
+rule of overloading in C++. Only functions whose signatures are unique
+may be overloaded. As one can see, if two functions with the same name
+and signature are defined in C++, they will produce the same mangled
+name and will create a linker error. By default, all C++ functions are
+name mangled, even ones that are not overloaded. When it is compiling
+a file, the compiler has no way of knowing whether a particular
+function is overloaded or not, so it mangles all names. In fact, it
+also mangles the names of global variables by encoding the type of the
+variable in a similar way as function signatures. Thus, if one defines
+a global variable in one file as a certain type and then tries to use
+it in another file as the wrong type, a linker error will be
+produced. This characteristic of C++ is known as \emph{typesafe
+linking}. \index{C++!typesafe linking}It also exposes another type of
+error, inconsistent prototypes. This occurs when the definition of a
+function in one module does not agree with the prototype used by
+another module. In C, this can be a very difficult problem to debug. C
+does not catch this error. The program will compile and link, but will
+have undefined behavior as the calling code will be pushing different
+types on the stack than the function expects. In C++, it will produce
+a linker error.
+
+When the C++ compiler is parsing a function call, it looks for a
+matching function by looking at the types of the arguments passed to the
+function\footnote{The match does not have to be an exact match, the compiler
+will consider matches made by casting the arguments. The rules for this
+process are beyond the scope of this book. Consult a C++ book for details.}.
+If it finds a match, it then creates a {\code CALL} to the correct function
+using the compiler's name mangling rules.
+
+Since different compilers use different name mangling rules, C++ code
+compiled by different compilers may not be able to be linked
+together. This fact is important when considering using a precompiled
+C++ library! If one wishes to write a function in assembly that will
+be used with C++ code, she must know the name mangling rules for the
+C++ compiler to be used (or use the technique explained below).
+
+The astute student may question whether the code in Figure~\ref{fig:twof}
+will work as expected. Since C++ name mangles all functions, then the
+{\code printf} function will be mangled and the compiler will not produce
+a {\code CALL} to the label {\code \_printf}. This is a valid concern!
+If the prototype for {\code printf} was simply placed at the top of the file,
+this would happen. The prototype is:
+\begin{lstlisting}[stepnumber=0]{}
+  int printf( const char *, ...);
+\end{lstlisting}
+\noindent DJGPP would mangle this to be {\code
+\_printf\_\_FPCce}. (The {\code F} is for \emph{function}, {\code P}
+for \emph{pointer}, {\code C} for \emph{const}, {\code c} for
+\emph{char} and {\code e} for ellipsis.) This would not call the
+regular C library's {\code printf} function! Of course, there must be
+a way for C++ code to call C code. This is very important because
+there is \emph{a lot} of useful old C code around.  In addition to
+allowing one to call legacy C code, C++ also allows one to call
+assembly code using the normal C mangling conventions.
+
+\index{C++!extern ""C""|(}
+C++ extends the {\code extern} keyword to allow it to specify that the
+function or global variable it modifies uses the normal C conventions.
+In C++ terminology, the function or global variable uses \emph{C
+linkage}. For example, to declare {\code printf} to have C linkage,
+use the prototype:
+\begin{lstlisting}[language=C++,stepnumber=0]{}
+extern "C" int printf( const char *, ... );
+\end{lstlisting}
+\noindent This instructs the compiler not to use the C++ name mangling
+rules on this function, but instead to use the C rules. However, by
+doing this, the {\code printf} function may not be overloaded. This provides
+the easiest way to interface C++ and assembly, define the function to
+use C linkage and then use the C calling convention.
+
+For convenience, C++ also allows the linkage of a block of functions
+and global variables to be defined. The block is denoted by the
+usual curly braces.
+\begin{lstlisting}[stepnumber=0,language=C++]{}
+extern "C" {
+  /* C linkage global variables and function prototypes */
+}
+\end{lstlisting}
+
+If one examines the ANSI C header files that come with C/C++ compilers
+today, they will find the following near the top of each header file:
+\begin{lstlisting}[stepnumber=0,language=C++]{}
+#ifdef __cplusplus
+extern "C" {
+#endif
+\end{lstlisting}
+\noindent And a similar construction near the bottom containing a
+closing curly brace.  C++ compilers define the {\code \_\_cplusplus}
+macro (with \emph{two} leading underscores). The snippet above
+encloses the entire header file within an {\code extern~"C"} block if
+the header file is compiled as C++, but does nothing if compiled as C
+(since a C compiler would give a syntax error for {\code extern~"C"}).
+This same technique can be used by any programmer to create a header
+file for assembly routines that can be used with either C or C++.
+\index{C++!extern ""C""|)}
+\index{C++!name mangling|)}
+
+\begin{figure}
+\begin{lstlisting}[language=C++,frame=tlrb]{}
+void f( int & x )     // the & denotes a reference parameter
+{ x++; }
+
+int main()
+{
+  int y = 5;
+  f(y);               // reference to y is passed, note no & here!
+  printf("%d\n", y);  // prints out 6!
+  return 0;
+}
+\end{lstlisting}
+\caption{Reference example \label{fig:refex}}
+\end{figure}
+
+\subsection{References\index{C++!references|(}}
+
+\emph{References} are another new feature of C++. They allow one to
+pass parameters to functions without explicitly using pointers. For
+example, consider the code in Figure~\ref{fig:refex}. Actually,
+reference parameters are pretty simple, they really are just pointers.
+The compiler just hides this from the programmer (just as Pascal compilers
+implement {\code var} parameters as pointers). When the compiler generates
+assembly for the function call on line~7, it passes the \emph{address} of 
+{\code y}. If one was writing function {\code f} in assembly, they would
+act as if the prototype was\footnote{Of course, they might want to
+declare the function with C linkage to avoid name mangling as discussed
+in Section~\ref{subsec:mangling}}:
+\begin{lstlisting}[stepnumber=0]{}
+  void f( int * xp);
+\end{lstlisting}
+
+References are just a convenience that are especially useful for
+operator overloading. This is another feature of C++ that allows one
+to define meanings for common operators on structure or class
+types. For example, a common use is to define the plus ({\code +})
+operator to concatenate string objects. Thus, if {\code a} and {\code
+b} were strings, {\code a~+~b} would return the concatenation of the
+strings {\code a} and {\code b}. C++ would actually call a function to
+do this (in fact, this expression could be rewritten in function
+notation as {\code operator~+(a,b)}).  For efficiency, one would like
+to pass the address of the string objects instead of passing them by
+value. Without references, this could be done as {\code 
+operator~+(\&a,\&b)}, but this would require one to write in operator
+syntax as {\code \&a~+~\&b}. This would be very awkward and confusing.
+However, by using references, one can write it as {\code a~+~b}, which
+looks very natural.
+\index{C++!references|)}
+
+\subsection{Inline functions\index{C++!inline functions|(}}
+
+\emph{Inline functions} are yet another feature of C++\footnote{
+C compilers often support this feature as an extension
+of ANSI C.}. Inline functions are meant to replace the error-prone,
+preprocessor-based macros that take parameters. Recall from C, that
+writing a macro that squares a number might look like:
+\begin{lstlisting}[stepnumber=0]{}
+#define SQR(x) ((x)*(x))
+\end{lstlisting}
+\noindent Because the preprocessor does not understand C and does
+simple substitutions, the parenthesis are required to compute the correct
+answer in most cases. However, even this version will not give the correct
+answer for {\code SQR(x++)}.
+
+\begin{figure}
+\begin{lstlisting}[language=C++,frame=tlrb]{}
+inline int inline_f( int x ) 
+{ return x*x; }
+
+int f( int x ) 
+{ return x*x; }
+
+int main()
+{
+  int y, x = 5;
+  y = f(x);
+  y = inline_f(x);
+  return 0;
+}
+\end{lstlisting}
+\caption{Inlining example \label{fig:InlineFun}}
+\end{figure}
+
+
+Macros are used because they eliminate the overhead of making a
+function call for a simple function. As the chapter on subprograms
+demonstrated, performing a function call involves several steps. For a
+very simple function, the time it takes to make the function call may
+be more than the time to actually perform the operations in the
+function! Inline functions are a much more friendly way to write code
+that looks like a normal function, but that does \emph{not} {\code
+CALL} a common block of code. Instead, calls to inline functions are
+replaced by code that performs the function.  C++ allows a function to
+be made inline by placing the keyword {\code inline} in front of the
+function definition. For example, consider the functions declared in
+Figure~\ref{fig:InlineFun}. The call to function {\code f} on line~10
+does a normal function call (in assembly, assuming {\code x} is at
+address {\code ebp-8} and {\code y} is at {\code ebp-4}):
+\begin{AsmCodeListing}
+      push   dword [ebp-8]
+      call   _f
+      pop    ecx
+      mov    [ebp-4], eax
+\end{AsmCodeListing}
+However, the call to function {\code inline\_f} on line~11 would look like:
+\begin{AsmCodeListing}
+      mov    eax, [ebp-8]
+      imul   eax, eax
+      mov    [ebp-4], eax
+\end{AsmCodeListing}
+
+In this case, there are two advantages to inlining. First, the inline function
+is faster. No parameters are pushed on the stack, no stack frame is
+created and then destroyed, no branch is made. Secondly, the inline function
+call uses less code! This last point is true for this example, but does not
+hold true in all cases.
+
+The main disadvantage of inlining is that inline code is not linked
+and so the code of an inline function must be available to \emph{all}
+files that use it. The previous example assembly code shows this. The
+call of the non-inline function only requires knowledge of the
+parameters, the return value type, calling convention and the name of
+the label for the function.  All this information is available from
+the prototype of the function. However, using the inline function
+requires knowledge of the all the code of the function. This means
+that if \emph{any} part of an inline function is changed, \emph{all}
+source files that use the function must be recompiled. Recall that for
+non-inline functions, if the prototype does not change, often the
+files that use the function need not be recompiled. For all these
+reasons, the code for inline functions are usually placed in header
+files. This practice is contrary to the normal hard and fast rule in C
+that executable code statements are \emph{never} placed in header
+files.
+\index{C++!inline functions|)}
+
+\begin{figure}[t]
+\begin{lstlisting}[language=C++,frame=tlrb]{}
+class Simple {
+public:
+  Simple();                // default constructor
+  ~Simple();               // destructor
+  int get_data() const;    // member functions
+  void set_data( int );
+private:
+  int data;                // member data
+};
+
+Simple::Simple()
+{ data = 0; }
+
+Simple::~Simple()
+{ /* null body */ }
+
+int Simple::get_data() const
+{ return data; }
+
+void Simple::set_data( int x )
+{ data = x; }
+\end{lstlisting}
+\caption{A simple C++ class\label{fig:SimpleClass}}
+\end{figure}
+
+\subsection{Classes\index{C++!classes|(}}
+
+A C++ class describes a type of \emph{object}. An object has both data
+members and function members\footnote{Often called \emph{member
+functions} in C++ or more generally \emph{methods}\index{methods}.}. In other words,
+it's a {\code struct} with data and functions associated with
+it. Consider the simple class defined in
+Figure~\ref{fig:SimpleClass}. A variable of {\code Simple} type would
+look just like a normal C {\code struct} with a single {\code int}
+member. \MarginNote{Actually, C++ uses the {\code this} keyword to
+access the pointer to the object acted on from inside the member
+function.}  The functions are \emph{not} stored in memory assigned to
+the structure. However, member functions are different from other
+functions. They are passed a \emph{hidden} parameter. This parameter
+is a pointer to the object that the member function is acting on.
+
+\begin{figure}[t]
+\begin{lstlisting}[stepnumber=0]{}
+void set_data( Simple * object, int x )
+{
+  object->data = x;
+}
+\end{lstlisting}
+\caption{C Version of Simple::set\_data()\label{fig:SimpleCVer}}
+\end{figure}
+
+
+\begin{figure}[t]
+\begin{AsmCodeListing}
+_set_data__6Simplei:           ; mangled name
+      push   ebp
+      mov    ebp, esp
+
+      mov    eax, [ebp + 8]   ; eax = pointer to object (this)
+      mov    edx, [ebp + 12]  ; edx = integer parameter
+      mov    [eax], edx       ; data is at offset 0
+
+      leave
+      ret
+\end{AsmCodeListing}
+\caption{Compiler output of Simple::set\_data( int ) \label{fig:SimpleAsm}}
+\end{figure}
+
+
+For example, consider the {\code set\_data} method of the {\code
+Simple} class of Figure~\ref{fig:SimpleClass}. If it was written in C,
+it would look like a function that was explicitly passed a
+pointer to the object being acted on as the code in
+Figure~\ref{fig:SimpleCVer} shows.  The {\code -S} switch on the
+\emph{DJGPP} compiler (and the \emph{gcc} and Borland compilers as
+well) tells the compiler to produce an assembly file containing the
+equivalent assembly language for the code produced.  For \emph{DJGPP}
+and \emph{gcc} the assembly file ends in an {\code .s} extension and
+unfortunately uses AT\&T assembly language syntax which is quite
+different from NASM and MASM syntaxes\footnote{The \emph{gcc}
+compiler system includes its own assembler called \emph{gas}\index{gas}. The
+\emph{gas} assembler uses AT\&T syntax and thus the compiler outputs
+the code in the format for \emph{gas}. There are several pages on the
+web that discuss the differences in INTEL and AT\&T formats. There is
+also a free program named {\code a2i}
+({http://www.multimania.com/placr/a2i.html}), that converts AT\&T
+format to NASM format.}. (Borland and MS compilers generate a file
+with a {\code .asm} extension using MASM syntax.)
+Figure~\ref{fig:SimpleAsm} shows the output of \emph{DJGPP} converted
+to NASM syntax and with comments added to clarify the purpose of the
+statements. On the very first line, note that the {\code set\_data}
+method is assigned a mangled label that encodes the name of the
+method, the name of the class and the parameters. The name of the
+class is encoded because other classes might have a method named
+{\code set\_data} and the two methods \emph{must} be assigned
+different labels. The parameters are encoded so that the class can
+overload the {\code set\_data} method to take other parameters just as
+normal C++ functions. However, just as before, different compilers
+will encode this information differently in the mangled label.
+
+Next on lines~2 and 3, the familiar function prologue appears. On
+line~5, the first parameter on the stack is stored into {\code
+EAX}. This is \emph{not} the {\code x} parameter! Instead it is the
+hidden parameter\footnote{As usual, \emph{nothing} is hidden in the
+assembly code!} that points to the object being acted on. Line~6
+stores the {\code x} parameter into {\code EDX} and line~7 stores
+{\code EDX} into the double word that {\code EAX} points to. This is
+the {\code data} member of the {\code Simple} object being acted on,
+which being the only data in the class, is stored at offset 0 in the
+{\code Simple} structure.
+
+\begin{figure}[tp]
+\begin{lstlisting}[frame=tlrb,language=C++]{}
+class Big_int {
+public:
+   /* 
+   * Parameters:
+   *   size           - size of integer expressed as number of 
+   *                    normal unsigned int's
+   *   initial_value  - initial value of Big_int as a normal unsigned int
+   */
+  explicit Big_int( size_t   size,
+                    unsigned initial_value = 0);
+  /*
+   * Parameters:
+   *   size           - size of integer expressed as number of 
+   *                    normal unsigned int's
+   *   initial_value  - initial value of Big_int as a string holding
+   *                    hexadecimal representation of value. 
+   */
+  Big_int( size_t       size,
+           const char * initial_value);
+
+  Big_int( const Big_int & big_int_to_copy);
+  ~Big_int();
+
+  // returns size of Big_int (in terms of unsigned int's)
+  size_t size() const;
+
+  const Big_int & operator = ( const Big_int & big_int_to_copy);
+  friend Big_int operator + ( const Big_int & op1,
+                              const Big_int & op2 );
+  friend Big_int operator - ( const Big_int & op1,
+                              const Big_int & op2);
+  friend bool operator == ( const Big_int & op1,
+                            const Big_int & op2 );
+  friend bool operator < ( const Big_int & op1,
+                           const Big_int & op2);
+  friend ostream & operator << ( ostream &       os,
+                                 const Big_int & op );
+private:
+  size_t      size_;    // size of unsigned array
+  unsigned *  number_;  // pointer to unsigned array holding value
+};
+\end{lstlisting}
+\caption{Definition of Big\_int class\label{fig:BigIntClass}}
+\end{figure}
+
+\begin{figure}[tp]
+\begin{lstlisting}[frame=tlrb,language=C++]{}
+// prototypes for assembly routines
+extern "C" {
+  int add_big_ints( Big_int &       res, 
+                    const Big_int & op1, 
+                    const Big_int & op2);
+  int sub_big_ints( Big_int &       res, 
+                    const Big_int & op1, 
+                    const Big_int & op2);
+}
+
+inline Big_int operator + ( const Big_int & op1, const Big_int & op2)
+{
+  Big_int result(op1.size());
+  int res = add_big_ints(result, op1, op2);
+  if (res == 1)
+    throw Big_int::Overflow();
+  if (res == 2)
+    throw Big_int::Size_mismatch();
+  return result;
+}
+
+inline Big_int operator - ( const Big_int & op1, const Big_int & op2)
+{
+  Big_int result(op1.size());
+  int res = sub_big_ints(result, op1, op2);
+  if (res == 1)
+    throw Big_int::Overflow();
+  if (res == 2)
+    throw Big_int::Size_mismatch();
+  return result;
+}
+\end{lstlisting}
+\caption{Big\_int Class Arithmetic Code\label{fig:BigIntAdd}}
+\end{figure}
+
+\subsubsection{Example}
+\index{C++!Big\_int example|(}
+This section uses the ideas of the chapter to create a C++ class that
+represents an unsigned integer of arbitrary size. Since the integer
+can be any size, it will be stored in an array of unsigned integers
+(double words). It can be made any size by using dynamical
+allocation. The double words are stored in reverse order\footnote{Why?
+Because addition operations will then always start processing at the
+beginning of the array and move forward.}  (\emph{i.e.} the least
+significant double word is at index 0).  Figure~\ref{fig:BigIntClass}
+shows the definition of the {\code Big\_int} class\footnote{See the
+code example source for the complete code for this example. The text
+will only refer to some of the code.}. The size of a {\code Big\_int}
+is measured by the size of the {\code unsigned} array that is used to
+store its data. The {\code size\_} data member of the class is
+assigned offset zero and the {\code number\_} member is assigned
+offset 4.
+
+To simplify these example, only object instances with the same size
+arrays can be added to or subtracted from each other.
+
+The class has three constructors: the first (line~9) initializes the
+class instance by using a normal unsigned integer; the second
+(line~18) initializes the instance by using a string that contains a
+hexadecimal value. The third constructor (line~21) is the \emph{copy
+constructor}\index{C++!copy constructor}.
+
+This discussion focuses on how the addition and subtraction operators
+work since this is where the assembly language is
+used. Figure~\ref{fig:BigIntAdd} shows the relevant parts of the
+header file for these operators. They show how the operators are set
+up to call the assembly routines. Since different compilers use
+radically different mangling rules for operator functions, inline
+operator functions are used to set up calls to C linkage assembly
+routines. This makes it relatively easy to port to different compilers
+and is just as fast as direct calls. This technique also eliminates the
+need to throw an exception from assembly!
+
+Why is assembly used at all here? Recall that to perform multiple
+precision arithmetic, the carry must be moved from one dword to be
+added to the next significant dword. C++ (and C) do not allow the
+programmer to access the CPU's carry flag. Performing the addition could
+only be done by having C++ independently recalculate the carry flag
+and conditionally add it to the next dword. It is much more efficient
+to write the code in assembly where the carry flag can be accessed and
+using the {\code ADC} instruction which automatically adds the carry
+flag in makes a lot of sense.
+
+For brevity, only the {\code add\_big\_ints} assembly routine will be discussed
+here. Below is the code for this routine (from {\code big\_math.asm}):
+\begin{AsmCodeListing}[label=big\_math.asm]
+segment .text
+        global  add_big_ints, sub_big_ints
+%define size_offset 0
+%define number_offset 4
+
+%define EXIT_OK 0
+%define EXIT_OVERFLOW 1
+%define EXIT_SIZE_MISMATCH 2
+
+; Parameters for both add and sub routines
+%define res ebp+8
+%define op1 ebp+12
+%define op2 ebp+16
+
+add_big_ints:
+        push    ebp
+        mov     ebp, esp
+        push    ebx
+        push    esi
+        push    edi
+        ;
+        ; first set up esi to point to op1
+        ;              edi to point to op2
+        ;              ebx to point to res
+        mov     esi, [op1]
+        mov     edi, [op2]
+        mov     ebx, [res]
+        ;
+        ; make sure that all 3 Big_int's have the same size
+        ;
+        mov     eax, [esi + size_offset]
+        cmp     eax, [edi + size_offset]
+        jne     sizes_not_equal                 ; op1.size_ != op2.size_
+        cmp     eax, [ebx + size_offset]
+        jne     sizes_not_equal                 ; op1.size_ != res.size_
+
+        mov     ecx, eax                        ; ecx = size of Big_int's
+        ;
+        ; now, set registers to point to their respective arrays
+        ;      esi = op1.number_
+        ;      edi = op2.number_
+        ;      ebx = res.number_
+        ;
+        mov     ebx, [ebx + number_offset]
+        mov     esi, [esi + number_offset]
+        mov     edi, [edi + number_offset]
+        
+        clc                                     ; clear carry flag
+        xor     edx, edx                        ; edx = 0
+        ;
+        ; addition loop
+add_loop:
+        mov     eax, [edi+4*edx]
+        adc     eax, [esi+4*edx]
+        mov     [ebx + 4*edx], eax
+        inc     edx                             ; does not alter carry flag
+        loop    add_loop
+
+        jc      overflow
+ok_done:
+        xor     eax, eax                        ; return value = EXIT_OK
+        jmp     done
+overflow:
+        mov     eax, EXIT_OVERFLOW
+        jmp     done
+sizes_not_equal:
+        mov     eax, EXIT_SIZE_MISMATCH
+done:
+        pop     edi
+        pop     esi
+        pop     ebx
+        leave
+        ret
+\end{AsmCodeListing}
+
+Hopefully, most of this code should be straightforward to the reader
+by now. Lines~25 to 27 store pointers to the {\code Big\_int} objects
+passed to the function into registers. Remember that references really
+are just pointers.  Lines~31 to 35 check to make sure that the sizes
+of the three objects's arrays are the same. (Note that the offset of
+{\code size\_} is added to the pointer to access the data member.)
+Lines~44 to 46 adjust the registers to point to the array used by the
+respective objects instead of the objects themselves. (Again, the
+offset of the {\code number\_} member is added to the object pointer.)
+
+\begin{figure}[tp]
+\begin{lstlisting}[language=C++, frame=tlrb]{}
+#include "big_int.hpp"
+#include <iostream>
+using namespace std;
+
+int main()
+{
+  try {
+    Big_int b(5,"8000000000000a00b");
+    Big_int a(5,"80000000000010230");
+    Big_int c = a + b;
+    cout << a << " + " << b << " = " << c << endl;
+    for( int i=0; i < 2; i++ ) {
+      c = c + a;
+      cout << "c = " << c << endl;
+    }
+    cout << "c-1 = " << c - Big_int(5,1) << endl;
+    Big_int d(5, "12345678");
+    cout << "d = " << d << endl;
+    cout << "c == d " << (c == d) << endl;
+    cout << "c > d " << (c > d) << endl;
+  }
+  catch( const char * str ) {
+    cerr << "Caught: " << str << endl;
+  }
+  catch( Big_int::Overflow ) {
+    cerr << "Overflow" << endl;
+  }
+  catch( Big_int::Size_mismatch ) {
+    cerr << "Size mismatch" << endl;
+  }
+  return 0;
+}
+\end{lstlisting}
+\caption{ Simple Use of {\code Big\_int} \label{fig:BigIntEx}}
+\end{figure}
+
+The loop in lines~52 to 57 adds the integers stored in the arrays together
+by adding the least significant dword first, then the next least significant
+dwords, \emph{etc.} The addition must be done in this sequence for extended
+precision arithmetic (see Section~\ref{sec:ExtPrecArith}). Line~59 checks
+for overflow, on overflow the carry flag will be set by the last addition
+of the most significant dword. Since the dwords in the array are stored in
+little endian order, the loop starts at the beginning of the array and
+moves forward toward the end.
+
+Figure~\ref{fig:BigIntEx} shows a short example using the {\code Big\_int}
+class. Note that {\code Big\_int} constants must be declared explicitly as
+on line~16. This is necessary for two reasons. First, there is no conversion
+constructor that will convert an unsigned int to a {\code Big\_int}. Secondly,
+only {\code Big\_int}'s of the same size can be added. This makes conversion
+problematic since it would be difficult to know what size to convert to. A
+more sophisticated implementation of the class would allow any size to be
+added to any other size. The author did not wish to over complicate this
+example by implementing this here. (However, the reader is encouraged to
+do this.)
+\index{C++!Big\_int example|)}
+
+\begin{figure}[tp]
+\begin{lstlisting}[language=C++, frame=tlrb]{}
+#include <cstddef>
+#include <iostream>
+using namespace std;
+
+class A {
+public:
+  void __cdecl m() { cout << "A::m()" << endl; }
+  int ad;
+};
+
+class B : public A {
+public:
+  void __cdecl m() { cout << "B::m()" << endl; }
+  int bd;
+};
+
+void f( A * p )
+{
+  p->ad = 5;
+  p->m();
+}
+
+int main()
+{
+  A a;
+  B b;
+  cout << "Size of a: " << sizeof(a)
+       << " Offset of ad: " << offsetof(A,ad) << endl;
+  cout << "Size of b: " << sizeof(b)
+       << " Offset of ad: " << offsetof(B,ad)
+       << " Offset of bd: " << offsetof(B,bd) << endl;
+  f(&a);
+  f(&b);
+  return 0;
+}
+\end{lstlisting}
+\caption{ Simple Inheritance \label{fig:SimpInh}}
+\end{figure}
+
+
+\subsection{Inheritance and Polymorphism\index{C++!inheritance|(}}}
+
+
+\begin{figure}[tp]
+\begin{AsmCodeListing}
+_f__FP1A:                       ; mangled function name
+      push   ebp
+      mov    ebp, esp
+      mov    eax, [ebp+8]       ; eax points to object
+      mov    dword [eax], 5     ; using offset 0 for ad
+      mov    eax, [ebp+8]       ; passing address of object to A::m()
+      push   eax
+      call   _m__1A             ; mangled method name for A::m()
+      add    esp, 4
+      leave
+      ret
+\end{AsmCodeListing}
+\caption{Assembly Code for Simple Inheritance \label{fig:FAsm1}}
+\end{figure}
+
+\emph{Inheritance} allows one class to inherit the data and methods of another.
+For example, consider the code in Figure~\ref{fig:SimpInh}. It shows two 
+classes, {\code A} and {\code B}, where class {\code B} inherits from {\code A}.
+The output of the program is:
+\begin{verbatim}
+Size of a: 4 Offset of ad: 0
+Size of b: 8 Offset of ad: 0 Offset of bd: 4
+A::m()
+A::m()
+\end{verbatim}
+Notice that the {\code ad} data members of both classes ({\code B}
+inherits it from {\code A}) are at the same offset. This is important
+since the {\code f} function may be passed a pointer to either an
+{\code A} object or any object of a type derived (\emph{i.e.}
+inherited from) {\code A}.  Figure~\ref{fig:FAsm1} shows the (edited)
+asm code for the function (generated by \emph{gcc}).
+
+\begin{figure}[tp]
+\begin{lstlisting}[language=C++, frame=tlrb]{}
+class A {
+public:
+  virtual void __cdecl m() { cout << "A::m()" << endl; }
+  int ad;
+};
+
+class B : public A {
+public:
+  virtual void __cdecl m() { cout << "B::m()" << endl; }
+  int bd;
+};
+\end{lstlisting}
+\caption{ Polymorphic Inheritance \label{fig:VirtInh}}
+\end{figure}
+
+\index{C++!polymorphism|(}
+Note that in the output that {\code A}'s {\code m} method was called
+for both the {\code a} and {\code b} objects. From the assembly, one
+can see that the call to {\code A::m()} is hard-coded into the
+function. For true object-oriented programming, the method called
+should depend on what type of object is passed to the function. This
+is known as \emph{polymorphism}. C++ turns this feature off by
+default. One uses the \emph{virtual} \index{C++!virtual} keyword to enable
+it. Figure~\ref{fig:VirtInh} shows how the two classes would be
+changed. None of the other code needs to be changed.  Polymorphism can
+be implemented many ways. Unfortunately, \emph{gcc}'s implementation
+is in transition at the time of this writing and is becoming
+significantly more complicated than its initial implementation.  In
+the interest of simplifying this discussion, the author will only
+cover the implementation of polymorphism which the Windows based
+Microsoft and Borland compilers use. This implementation has not
+changed in many years and probably will not change in the foreseeable
+future. 
+
+With these changes, the output of the program changes:
+\begin{verbatim}
+Size of a: 8 Offset of ad: 4
+Size of b: 12 Offset of ad: 4 Offset of bd: 8
+A::m()
+B::m()
+\end{verbatim}
+
+
+\begin{figure}[tp]
+\begin{AsmCodeListing}[commentchar=!]
+?f@@YAXPAVA@@@Z:
+      push   ebp
+      mov    ebp, esp
+
+      mov    eax, [ebp+8]
+      mov    dword [eax+4], 5  ; p->ad = 5;
+
+      mov    ecx, [ebp + 8]    ; ecx = p
+      mov    edx, [ecx]        ; edx = pointer to vtable
+      mov    eax, [ebp + 8]    ; eax = p
+      push   eax               ; push "this" pointer
+      call   dword [edx]       ; call first function in vtable
+      add    esp, 4            ; clean up stack
+
+      pop    ebp
+      ret
+\end{AsmCodeListing}
+\caption{Assembly Code for {\code f()} Function \label{fig:FAsm2}}
+\end{figure}
+
+\begin{figure}[tp]
+\begin{lstlisting}[language=C++, frame=tlrb]{}
+class A {
+public:
+  virtual void __cdecl m1() { cout << "A::m1()" << endl; }
+  virtual void __cdecl m2() { cout << "A::m2()" << endl; }
+  int ad;
+};
+
+class B : public A {    // B inherits A's m2()
+public:
+  virtual void __cdecl m1() { cout << "B::m1()" << endl; }
+  int bd;
+};
+/* prints the vtable of given object */
+void print_vtable( A * pa )
+{
+  // p sees pa as an array of dwords
+  unsigned * p = reinterpret_cast<unsigned *>(pa);
+  // vt sees vtable as an array of pointers
+  void ** vt = reinterpret_cast<void **>(p[0]);
+  cout << hex << "vtable address = " << vt << endl;
+  for( int i=0; i < 2; i++ )
+    cout << "dword " << i << ": " << vt[i] << endl;
+
+  // call virtual functions in EXTREMELY non-portable way!
+  void (*m1func_pointer)(A *);   // function pointer variable
+  m1func_pointer = reinterpret_cast<void (*)(A*)>(vt[0]);
+  m1func_pointer(pa);            // call method m1 via function pointer
+
+  void (*m2func_pointer)(A *);   // function pointer variable
+  m2func_pointer = reinterpret_cast<void (*)(A*)>(vt[1]);
+  m2func_pointer(pa);            // call method m2 via function pointer
+}
+
+int main()
+{
+  A a;   B b1;  B b2;
+  cout << "a: " << endl;   print_vtable(&a);
+  cout << "b1: " << endl;  print_vtable(&b1);
+  cout << "b2: " << endl;  print_vtable(&b2);
+  return 0;
+}
+\end{lstlisting}
+\caption{ More complicated example \label{fig:2mEx}}
+\end{figure}
+
+
+\begin{figure}[tp]
+\centering
+%\epsfig{file=vtable}
+\input{vtable.latex}
+\caption{Internal representation of {\code b1}\label{fig:vtable}}
+\end{figure}
+
+Now the second call to {\code f} calls the {\code B::m()} method because it
+is passed a {\code B} object. This is not the only change however. The size
+of an {\code A} is now 8 (and {\code B} is 12). Also, the offset of {\code
+ad} is 4, not 0. What is at offset 0? The answer to these questions are related
+to how polymorphism is implemented. 
+
+\index{C++!vtable|(} A C++ class that has any virtual methods is given
+an extra hidden field that is a pointer to an array of method
+pointers\footnote{For classes without virtual methods C++ compilers
+always make the class compatible with a normal C struct with the same
+data members.}. This table is often called the \emph{vtable}. For the
+{\code A} and {\code B} classes this pointer is stored at offset 0.
+The Windows compilers always put this pointer at the beginning of the
+class at the top of the inheritance tree. Looking at the assembly code
+(Figure~\ref{fig:FAsm2}) generated for function {\code f} (from
+Figure~\ref{fig:SimpInh}) for the virtual method version of the
+program, one can see that the call to method {\code m} is not to a
+label. Line~9 finds the address of the vtable from the object. The
+address of the object is pushed on the stack in line~11. Line~12 calls
+the virtual method by branching to the first address in the
+vtable\footnote{Of course, this value is already in the {\code ECX}
+register. It was put there in line~8 and line~10 could be removed and
+the next line changed to push {\code ECX}. The code is not very
+efficient because it was generated without compiler optimizations
+turned on.}. This call does not use a label, it branches to the code
+address pointed to by {\code EDX}. This type of call is an example of
+\emph{late binding}\index{C++!late binding}. Late binding delays the
+decision of which method to call until the code is running. This
+allows the code to call the appropriate method for the object. The
+normal case (Figure~\ref{fig:FAsm1}) hard-codes a call to a certain
+method and is called \emph{early binding}\index{C++!early binding}
+(since here the method is bound early, at compile time).
+
+The attentive reader will be wondering why the class methods in
+Figure~\ref{fig:VirtInh} are explicitly declared to use the C calling
+convention by using the {\code \_\_cdecl} keyword. By default, Microsoft
+uses a different calling convention for C++ class methods than the
+standard C convention. It passes the pointer to the object acted on by
+the method in the {\code ECX} register instead of using the stack. The
+stack is still used for the other explicit parameters of the
+method. The {\code \_\_cdecl} modifier tells it to use the standard C
+calling convention. Borland~C++ uses the C calling convention by default.
+
+\begin{figure}[tp]
+\fbox{ \parbox{\textwidth}{\code
+a: \\
+vtable address = 004120E8\\
+dword 0: 00401320\\
+dword 1: 00401350\\
+A::m1()\\
+A::m2()\\
+b1:\\
+vtable address = 004120F0\\
+dword 0: 004013A0\\
+dword 1: 00401350\\
+B::m1()\\
+A::m2()\\
+b2:\\
+vtable address = 004120F0\\
+dword 0: 004013A0\\
+dword 1: 00401350\\
+B::m1()\\
+A::m2()\\
+} }
+\caption{Output of program in Figure~\ref{fig:2mEx} \label{fig:2mExOut}}
+\end{figure}
+
+
+Next let's look at a slightly more complicated example
+(Figure~\ref{fig:2mEx}). In it, the classes {\code A} and {\code B}
+each have two methods: {\code m1} and {\code m2}. Remember that since
+class {\code B} does not define its own {\code m2} method, it
+inherits the {\code A} class's method.  Figure~\ref{fig:vtable} shows
+how the {\code b} object appears in memory. Figure~\ref{fig:2mExOut}
+shows the output of the program. First, look at the address of the
+vtable for each object.  The two {\code B} objects's addresses are the
+same and thus, they share the same vtable.  A vtable is a property of
+the class not an object (like a {\code static} data member). Next,
+look at the addresses in the vtables. From looking at assembly output,
+one can determine that the {\code m1} method pointer is at offset~0
+(or dword~0) and {\code m2} is at offset~4 (dword~1). The {\code m2}
+method pointers are the same for the {\code A} and {\code B} class
+vtables because class {\code B} inherits the {\code m2} method from
+the {\code A} class.
+
+Lines~25 to 32 show how one could call a virtual function by reading
+its address out of the vtable for the object\footnote{Remember this
+code only works with the MS and Borland compilers, not \emph{gcc}.}.
+The method address is stored into a C-type function pointer with an
+explicit \emph{this} pointer.  From the output in
+Figure~\ref{fig:2mExOut}, one can see that it does work. However,
+please do \emph{not} write code like this! This is only used to
+illustrate how the virtual methods use the vtable.
+
+%Looking at the output of Figure~\ref{fig:2mExOut} does demonstrate several
+%features of the implementation of polymorphism.  The {\code b1} and {\code b2}
+%variables have the same vtable address; however the {\code a} variable
+%has a different vtable address. The vtable is a property of the class not
+%a variable of the class. All class variables share a common vtable. The two
+%{\code dword} values in the table are the pointers to the virtual methods.
+%The first one (number 0) is for {\code m1}. Note that it is different for the
+%{\code A} and {\code B} classes. This makes sense since the A and B classes
+%have different {\code m1} methods. However, the second method pointer is 
+%the same for both classes, since class {\code B} inherits the {\code m2}
+%method from its base class, {\code A}.
+
+There are some practical lessons to learn from this. One important
+fact is that one would have to be very careful when reading and writing
+class variables to a binary file. One can not just use a binary read
+or write on the entire object as this would read or write out the
+vtable pointer to the file!  This is a pointer to where the vtable
+resides in the program's memory and will vary from program to
+program. This same problem can occur in C with structs, but in C,
+structs only have pointers in them if the programmer explicitly puts
+them in. There are no obvious pointers defined in either the {\code A}
+or {\code B} classes.
+
+
+Again, it is important to realize that different compilers implement
+virtual methods differently. In Windows, COM (Component Object Model)
+\index{COM} class objects use vtables to implement COM
+interfaces\footnote{COM classes also use the {\code \_\_stdcall}
+\index{calling convention!stdcall} calling convention, not the
+standard C one.}. Only compilers that implement virtual method vtables
+as Microsoft does can create COM classes. This is why Borland uses the
+same implementation as Microsoft and one of the reasons why \emph{gcc}
+can not be used to create COM classes.
+
+The code for the virtual method looks exactly like a non-virtual one. Only
+the code that calls it is different. If the compiler can be absolutely sure
+of what virtual method will be called, it can ignore the vtable and call
+the method directly (\emph{e.g.}, use early binding).
+\index{C++!vtable|)}
+\index{C++!polymorphism|)}
+\index{C++!inheritance|)}
+\index{C++!classes|)}
+\index{C++|)}
+
+\subsection{Other C++ features}
+
+The workings of other C++ features (\emph{e.g.}, RunTime Type
+Information, exception handling and multiple inheritance) are beyond
+the scope of this text. If the reader wishes to go further, a good
+starting point is \emph{The Annotated C++ Reference Manual} by Ellis
+and Stroustrup and \emph{The Design and Evolution of C++} by
+Stroustrup.
+

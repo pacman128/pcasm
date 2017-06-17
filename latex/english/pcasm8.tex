@@ -1,0 +1,124 @@
+%-*- latex -*-
+\chapter{Dynamic Link Libraries}
+
+\section{Using the Window's API and Dynamic Link Libraries}
+
+UNIX systems provide a simple C based Application Programming
+Interface (API).  In contrast, Microsoft Windows\texttrademark
+\hspace{0.5em} packages its API in Dynamic Link Libraries that load in
+each executables address space before its use. From the C/C++
+programmers perspective, it appears as a normal C function call;
+however, at the assembly level, it is different.
+
+\subsection{Standard Call Calling Convention}
+The Windows API uses the \emph{Standard Call}\index{calling
+convention!standard call} calling convention. As stated eariler, this
+convention pushes the arguments in reverse order just as the standard
+C calling convention. However, there are two important
+differences. First, the subroutine is responsible for clearing the
+parameters from the stack. Secondly, the label of the function is
+generated differently. An underscore is prepended the name as before,
+but in addition the \emph{@} character is added to the end of the
+function name along a number equal to the number of bytes on the stack
+for the parameters of the function (in decimal).
+
+\index{CloseHandle|(}
+For example, consider the {\code CloseHandle} Windows API function. It's prototype
+looks like:
+\begin{lstlisting}[stepnumber=0]{}
+BOOL WINAPI CloseHandle( HANDLE hObject );
+\end{lstlisting}
+Since a {\code HANDLE} is a double word in 32-bit Windows, the label
+for this function would be {\code \_CloseHandle@4}. The {\code WINAPI}\index{WINAPI}
+in the prototype is a C macro defined to be {\code \_\_stdcall}. Below
+is a sample call to the function assuming that the {\code hObject}
+value is in {\code EBX}.
+\begin{AsmCodeListing}[frame=single]
+  push  ebx             ; Push hObject on stack
+  call  _CloseHandle@4
+  mov   esi, eax        ; Save return value in ESI
+\end{AsmCodeListing}
+The stack does not have to adjusted after the function call, {\code CloseHandle}
+fixes the stack automatically.
+\index{CloseHandle|)}
+
+\subsection{Static and Shared Libraries}
+
+\index{static library|(}
+A \emph{static library} is a collection of object files that can be
+linked to an executable when it is created. The object code is
+inserted directly into the executable just like an ordinary object
+file. The library file is just a convenience. It allows a single file
+to be included in the link step of the build process. All the object
+code is probably not stored in the final executable. The linker will
+look at which object modules are needed and only include the required
+ones. Static libraries are created using the {\code LIB} program under
+Windows or the {\code ar} program under UNIX. Windows libraries end in
+a {\code .lib} extension and UNIX libraries end in a {\code .a}
+extension.
+\index{static library|)}
+
+\index{shared library|(}
+A shared library (or DLL in Windows) as its name implies shares code
+among executables. When the executable is run, the OS finds all the 
+shared libraries it requires and loads them into the processes memory
+so the executable can use the code in them. Using the virtual memory
+mapping capabilities on a protected mode operating system, shared
+library code used by two or more concurrently running processes is
+only loaded into physical memory once. 
+
+There are advantages and disadvantages to shared libraries. The first
+advantage is that executable sizes can be greatly reduced. If a large
+library is used by many executables. Only one copy of the code (in the
+shared library) is on the system (and in physical memory). If the
+library was included statically, each executable would include a copy
+of the code.
+
+Another advantage is that if a bug is found in the shared library,
+then the library can be replaced with one with the bug fixed. The
+executables will automatically use the new fixed code without
+recompiling the executable. However, this only works if the interface
+of the functions in the shared library remain unchanged.
+
+Shared libraries are also used to allow code written in different
+languages to interoperate. For example, C++ can be interfaced to
+Visual Basic\index{Visual Basic}, DotNet\index{DotNet} and
+Java\index{Java} using shared libraries under Windows.
+
+The disadvantages of shared libraries are that they can be more complicated
+to maintain. One of the most common problems is that a new version of the
+library breaks older code because it behaves slightly differently. Then
+some executables need one version and others need a different one. In Windows,
+this condition is known as \emph{DLL hell}\index{DLL hell}.
+\index{shared library|)}
+
+\index{DLL|(}
+\subsection{Windows DLLs}
+
+A Windows DLL is constructed much like an executable program. Object files are linked
+together to create a DLL file. Unlike an executable, a DLL can have many entry points.
+An entry point is just a function that can be called externally to the DLL. Only
+functions that have been \emph{exported}\index{export} can be called externally.
+
+A function (or global variable) may be exported by either entering its
+name in the definition file\index{DLL!definition file} for the DLL or
+by using Microsoft specific keywords.
+
+\begin{figure}[t]
+\begin{Verbatim}[frame=single,commandchars=\\\{\}]
+LIBRARY \textit{library root name}
+DESCRIPTION '\textit{short text description}'
+EXPORTS
+\textit{list of exported functions (one per line)}
+\end{Verbatim}
+\caption{Windows DLL definition file\label{fig:DefFile}}
+\end{figure}
+
+\subsubsection{Definition file}
+This is a text file with a {\code .def} extension that lists all the
+functions that the DLL exports. This file is used during the link step
+of the DLL creation process. Figure~\ref{fig:DefFile} shows the
+general format of a definition file.
+
+
+\index{DLL|)}

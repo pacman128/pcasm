@@ -1,0 +1,1352 @@
+% -*-latex-*-
+\chapter{Introduction}
+\section{Number Systems}
+
+Memory in a computer consists of numbers. Computer memory does not
+store these numbers in decimal (base 10). Because it greatly
+simplifies the hardware, computers store all information in a binary
+(base 2) format. First let's review the decimal system.
+
+\subsection{Decimal\index{decimal}}
+
+Base 10 numbers are composed of 10 possible digits (0-9). Each digit
+of a number has a power of 10 associated with it based on its position
+in the number. For example:
+\begin{displaymath}
+234 = 2 \times 10^2 + 3 \times 10^1 + 4 \times 10^0
+\end{displaymath}
+
+\subsection{Binary\index{binary|(}}
+
+Base 2 numbers are composed of 2 possible digits (0 and 1). Each digit
+of a number has a power of 2 associated with it based on its position
+in the number. (A single binary digit is called a bit.) For
+example\footnote{The 2 subscript is used to show that the number is
+represented in binary, not decimal}:
+\begin{eqnarray*}
+11001_2 & = & 1 \times 2^4 + 1 \times 2^3 + 0 \times 2^2 + 0 \times 2^1 
+              + 1 \times 2^0 \\
+ & = & 16 + 8 + 1 \\
+ & = & 25 
+\end{eqnarray*}
+
+This shows how binary may be converted to decimal. Table~\ref{tab:dec-bin}
+shows how the first few numbers are represented in binary.
+\begin{table}[t]
+\begin{center}
+\begin{tabular}{||c|c||cc||c|c||}
+\hline
+Decimal & Binary & & & Decimal & Binary \\
+\hline
+0       & 0000   & & & 8       & 1000 \\
+\hline
+1       & 0001   & & & 9       & 1001 \\
+\hline
+2       & 0010   & & & 10      & 1010 \\
+\hline
+3       & 0011   & & & 11      & 1011 \\
+\hline
+4       & 0100   & & & 12      & 1100 \\
+\hline
+5       & 0101   & & & 13      & 1101 \\
+\hline
+6       & 0110   & & & 14      & 1110 \\
+\hline
+7       & 0111   & & & 15      & 1111 \\
+\hline
+\end{tabular}
+\caption{Decimal 0 to 15 in Binary\label{tab:dec-bin}}
+\end{center}
+\end{table}
+
+
+\begin{figure}[h]
+\begin{center}
+\begin{tabular}{|rrrrrrrrp{.1cm}|p{.1cm}rrrrrrrr|}
+\hline
+& \multicolumn{7}{c}{No previous carry} & & & \multicolumn{7}{c}{Previous carry} & \\
+\hline
+&  0 & &  0 & &  1 & &  1 & & &  0 & &  0 & &  1 & & 1  & \\
+& +0 & & +1 & & +0 & & +1 & & & +0 & & +1 & & +0 & & +1 &  \\
+\cline{2-2} \cline{4-4} \cline{6-6} \cline{8-8} \cline{11-11} \cline{13-13} \cline{15-15} \cline{17-17}
+& 0  & & 1  & & 1  & & 0  & & & 1  & & 0  & & 0  & & 1 & \\
+&    & &    & &    & & c  & & &    & & c  & & c  & & c & \\
+\hline
+\end{tabular}
+
+\caption{Binary addition (c stands for \emph{carry})\label{fig:bin-add}}
+%TODO: Change this so that it is clear that single bits are being added,
+%not 4-bit numbers. Ideas: Table or do sums horizontally.
+\index{binary!addition}
+\end{center}
+\end{figure}
+
+Figure~\ref{fig:bin-add} shows how individual binary digits ({\em
+i.e.}, bits) are added. Here's an example:
+
+\begin{tabular}{r}
+ $11011_2$ \\
++$10001_2$ \\
+\hline
+$101100_2$ \\
+\end{tabular}
+
+If one considers the following decimal division:
+\[ 1234 \div 10 = 123\; r\; 4 \]
+he can see that this division strips off the rightmost decimal digit of 
+the number and shifts the other decimal digits one position to the right.
+Dividing by two performs a similar operation, but for the binary digits
+of the number. Consider the following binary division:
+\[ 1101_2 \div 10_2 = 110_2\; r\; 1 \]
+This fact can be used to convert a decimal
+number to its equivalent binary representation as
+Figure~\ref{fig:dec-convert} shows. This method finds the rightmost
+digit first, this digit is called the \emph{least significant bit} (lsb). 
+The leftmost digit is called the \emph{most significant bit} (msb). 
+The basic unit of memory consists of 8 bits and is called a \emph{byte}.
+\index{binary|)}
+
+\begin{figure}[t]
+\centering
+\fbox{\parbox{\textwidth}{
+\begin{eqnarray*}
+\mathrm{Decimal} & \mathrm{Binary} \\
+25 \div 2 = 12\;r\;1 & 11001 \div 10 = 1100\;r\;1 \\
+12 \div 2 = 6\;r\;0  & 1100 \div 10 = 110\;r\;0 \\
+6 \div 2 = 3\;r\;0   & 110 \div 10 = 11\;r\;0 \\
+3 \div 2 = 1\;r\;1   & 11 \div 10 = 1\;r\;1 \\
+1 \div 2 = 0\;r\;1   & 1 \div 10 = 0\;r\;1 \\
+\end{eqnarray*}
+
+\centering
+Thus $25_{10} = 11001_{2}$
+}}
+\caption{Decimal conversion \label{fig:dec-convert}}
+\end{figure}
+
+\subsection{Hexadecimal\index{hexadecimal|(}}
+
+Hexadecimal numbers use base 16. Hexadecimal (or \emph{hex} for short) can be
+used as a shorthand for binary numbers. Hex has 16 possible
+digits. This creates a problem since there are no symbols to use for
+these extra digits after 9. By convention, letters are used for these
+extra digits. The 16 hex digits are 0-9 then A, B, C, D, E and F. The
+digit A is equivalent to 10 in decimal, B is 11, etc. Each digit of a
+hex number has a power of 16 associated with it. Example:
+\begin{eqnarray*}
+\rm
+2BD_{16} & = & 2 \times 16^2 + 11 \times 16^1 + 13 \times 16^0 \\
+         & = & 512 + 176 + 13 \\
+         & = & 701 \\
+\end{eqnarray*}
+To convert from decimal to hex, use the same idea that was used for
+binary conversion except divide by 16. See Figure~\ref{fig:hex-conv} for
+an example.
+
+\begin{figure}[t]
+\centering
+\fbox{\parbox{\textwidth}{
+\begin{eqnarray*}
+589 \div 16 & = & 36\;r\;13 \\
+36 \div 16 & = & 2\;r\;4 \\
+2 \div 16 & = & 0\;r\;2 \\
+\end{eqnarray*}
+
+\centering
+Thus $589 = 24\mathrm{D}_{16}$
+}}
+\caption{\label{fig:hex-conv}}
+\end{figure}
+
+The reason that hex is useful is that there is a very simple way to
+convert between hex and binary. Binary numbers get large and
+cumbersome quickly. Hex provides a much more compact way to represent
+binary.
+
+To convert a hex number to binary, simply convert each hex digit to a
+4-bit binary number. For example, $\mathrm{24D}_{16}$ is converted to
+\mbox{$0010\;0100\; 1101_2$}. Note that the leading zeros of the
+4-bits are important! If the leading zero for the middle digit of
+$\mathrm{24D}_{16}$ is not used the result is wrong. Converting from
+binary to hex is just as easy. One does the process in reverse. Convert
+each 4-bit segments of the binary to hex. Start from the
+right end, not the left end of the binary number. This ensures that
+the process uses the correct 4-bit segments\footnote{If it is not
+clear why the starting point makes a difference, try converting the
+example starting at the left.}. Example:\newline
+
+\begin{tabular}{cccccc}
+$110$ & $0000$ & $0101$ & $1010$ & $0111$ & $1110_2$ \\
+  $6$ & $0$    &   $5$  &   A  &  $7$   &    $\mathrm{E}_{16}$ \\
+\end{tabular}\newline
+
+A 4-bit number is called a \emph{nibble} \index{nibble}. Thus each hex
+digit corresponds to a nibble. Two nibbles make a byte and so a byte
+can be represented by a 2-digit hex number. A byte's value ranges from
+0 to 11111111 in binary, 0 to FF in hex and 0 to 255 in decimal.
+\index{hexadecimal|)}
+
+\section{Computer Organization}
+
+\subsection{Memory\index{memory|(}}
+
+The basic unit of memory is a byte. \index{byte} \MarginNote{Memory is
+measured in units of kilobytes (~$2^{10} = 1,024$ bytes), megabytes
+(~$2^{20} = 1,048,576$ bytes) and gigabytes (~$2^{30} = 1,073,741,824$
+bytes).}A computer with 32 megabytes of memory can hold roughly 32
+million bytes of information. Each byte in memory is labeled by a
+unique number known as its address as Figure~\ref{fig:memory} shows.
+
+\begin{figure}[ht]
+\begin{center}
+\begin{tabular}{rcccccccc}
+Address & 0 & 1 & 2 & 3 & 4 & 5 & 6 & 7 \\
+\cline{2-9}
+Memory & \multicolumn{1}{|c}{2A}  & \multicolumn{1}{|c}{45}  
+       & \multicolumn{1}{|c}{B8} & \multicolumn{1}{|c}{20} 
+       & \multicolumn{1}{|c}{8F} & \multicolumn{1}{|c}{CD} 
+       & \multicolumn{1}{|c}{12} & \multicolumn{1}{|c|}{2E} \\
+\cline{2-9}
+\end{tabular}
+\caption{ Memory Addresses \label{fig:memory} }
+\end{center}
+\end{figure}
+
+\begin{table}
+\begin{center}
+\begin{tabular}{|l|l|}
+\hline
+word & 2 bytes \\ \hline
+double word & 4 bytes \\ \hline
+quad word & 8 bytes \\ \hline
+paragraph & 16 bytes \\ \hline
+\end{tabular}
+\caption{ Units of Memory \label{tab:mem_units} }
+\end{center}
+\end{table}
+
+Often memory is used in larger chunks than single bytes. On
+the PC architecture, names have been given to these larger sections of
+memory as Table~\ref{tab:mem_units} shows.
+
+All data in memory is numeric. Characters are stored by using a
+\emph{character code} that maps numbers to characters. One of the 
+most common character codes is known as \emph{ASCII} (American
+Standard Code for Information Interchange). A new, more complete code
+that is supplanting ASCII is Unicode. One key difference between the
+two codes is that ASCII uses one byte to encode a character, but
+Unicode uses multiple bytes. There are several different forms of Unicode.
+On x86 C/C++ compilers, Unicode is represented in code using the 
+{\code wchar\_t} type and the UTF-16 encoding which uses 16 bits (or a 
+\emph{word}) per character. For example, ASCII maps the byte $41_{16}$ 
+($65_{10}$) to the character capital \emph{A}; UTF-16 maps it to the 
+word $0041_{16}$. Since ASCII uses a byte, it is limited to only 256 
+different characters\footnote{In fact, ASCII only uses the lower 7-bits 
+and so only has 128 different values to use.}. Unicode extends the ASCII 
+values and allows many more characters to be represented. This is important 
+for representing characters for all the languages of the world.
+\index{memory|)}
+
+\subsection{The CPU\index{CPU|(}}
+
+The Central Processing Unit (CPU) is the physical device that performs
+instructions. The instructions that CPUs perform are generally very
+simple. Instructions may require the data they act on to be in special
+storage locations in the CPU itself called
+\emph{registers}. \index{register} The CPU can access data in registers
+much faster than data in memory. However, the number of registers in a
+CPU is limited, so the programmer must take care to keep only
+currently used data in registers.
+
+The instructions a type of CPU executes make up the CPU's
+\emph{machine language}. \index{machine language} Machine programs
+have a much more basic structure than higher-level languages. Machine
+language instructions are encoded as raw numbers, not in friendly text
+formats. A CPU must be able to decode an instruction's purpose very
+quickly to run efficiently. Machine language is designed with this
+goal in mind, not to be easily deciphered by humans. Programs written
+in other languages must be converted to the native machine language of
+the CPU to run on the computer. A \emph{compiler} \index{compiler} is
+a program that translates programs written in a programming language
+into the machine language of a particular computer architecture. In
+general, every type of CPU has its own unique machine language. This
+is one reason why programs written for a Mac can not run on an
+IBM-type PC.
+
+Computers use a \emph{clock} \index{clock} to synchronize the
+execution of the \MarginNote{\emph{GHz} stands for gigahertz or one
+billion cycles per second.  A 1.5 GHz CPU has 1.5 billion clock pulses
+per second.} instructions.  The clock pulses at a fixed frequency
+(known as the \emph{clock speed}). When you buy a 1.5 GHz computer,
+1.5 GHz is the frequency of this clock\footnote{Actually, clock pulses
+are used in many different components of a computer. The other
+components often use different clock speeds than the CPU.}. The clock
+does not keep track of minutes and seconds. It simply beats at a
+constant rate. The electronics of the CPU uses the beats to perform
+their operations correctly, like how the beats of a metronome help one
+play music at the correct rhythm.  The number of beats (or as they are
+usually called \emph{cycles}) an instruction requires depends on the
+CPU generation and model. The number of cycles depends on the
+instructions before it and other factors as well.
+
+
+\subsection{The 80x86 family of CPUs\index{CPU!80x86}}
+
+IBM-type PC's contain a CPU from Intel's 80x86 family (or a clone of one).
+The CPU's in this family all have some common features including a base
+machine language. However, the more recent members greatly enhance the
+features.
+\begin{description}
+
+\item[8088,8086:] These CPU's from the programming standpoint are
+identical. They were the CPU's used in the earliest PC's. They provide
+several 16-bit registers: AX, BX, CX, DX, SI, DI, BP, SP, CS, DS, SS,
+ES, IP, FLAGS. They only support up to one megabyte of memory and only
+operate in \emph{real mode}.  In this mode, a program may access any
+memory address, even the memory of other programs! This makes
+debugging and security very difficult! Also, program memory has to be
+divided into \emph{segments}. Each segment can not be larger than
+64K.
+
+\item[80286:] This CPU was used in AT class PC's. It adds some new
+instructions to the base machine language of the 8088/86.  However,
+its main new feature is \emph{16-bit protected mode}.  In this mode,
+it can access up to 16 megabytes and protect programs from accessing
+each other's memory. However, programs are still divided into
+segments that could not be bigger than 64K.
+
+\item[80386:] This CPU greatly enhanced the 80286. First, it extends many
+of the registers to hold 32-bits (EAX, EBX, ECX, EDX, ESI, EDI, EBP, ESP,
+EIP) and adds two new 16-bit registers FS and GS. It also adds a new
+\emph{32-bit protected mode}. In this mode, it can access up to 4 gigabytes.
+Programs are again divided into segments, but now each segment can also be
+up to 4 gigabytes in size!
+
+\item[80486/Pentium/Pentium Pro:] These members of the 80x86 family add
+very few new features. They mainly speed up the execution of the
+instructions.
+
+\item[Pentium MMX:] This processor adds the MMX (MultiMedia eXtensions)
+instructions to the Pentium. These instructions can speed up common graphics
+operations.
+
+\item[Pentium II:] This is the Pentium Pro processor with the MMX instructions
+added. (The Pentium III is essentially just a faster Pentium II.)
+
+\end{description}
+\index{CPU|)}
+
+\subsection{8086 16-bit Registers\index{register|(}}
+
+The original 8086 CPU provided four 16-bit general purpose registers:
+AX, BX, CX and DX. Each of these registers could be decomposed into
+two 8-bit registers. For example, the AX register could be decomposed
+into the AH and AL registers as Figure~\ref{fig:AX_reg} shows. The AH
+register contains the upper (or high) 8 bits of AX and AL contains the
+lower 8 bits of AX. Often AH and AL are used as independent one byte
+registers; however, it is important to realize that they are not
+independent of AX. Changing AX's value will change AH and AL and
+{\em vice versa}\/. The general purpose registers are used in many of
+the data movement and arithmetic instructions.
+
+\begin{figure}
+\begin{center}
+\begin{tabular}{cc}
+\multicolumn{2}{c}{AX} \\
+\hline
+\multicolumn{1}{||c|}{AH} & \multicolumn{1}{c||}{AL} \\
+\hline
+\end{tabular}
+\caption{The AX register \label{fig:AX_reg} }
+\end{center}
+\end{figure}
+
+There are two 16-bit index registers\index{register!index}: SI and
+DI. They are often used as pointers, but can be used for many of the
+same purposes as the general registers. However, they can not be
+decomposed into 8-bit registers.
+
+The 16-bit BP and SP registers are used to point to data in the
+machine language stack and are called the Base Pointer\index{register!base pointer} 
+and Stack Pointer\index{register!stack pointer}, respectively. These will be discussed later. 
+
+The 16-bit CS, DS, SS and ES registers are \emph{segment
+registers}. \index{register!segment} They denote what memory is used
+for different parts of a program. CS stands for Code Segment, DS for
+Data Segment, SS for Stack Segment and ES for Extra Segment. ES is
+used as a temporary segment register. The details of these registers
+are in Sections~\ref{real_mode} and \ref{16prot_mode}.
+
+The Instruction Pointer (IP) \index{register!IP} register is used with
+the CS register to keep track of the address of the next instruction
+to be executed by the CPU. Normally, as an instruction is executed, IP
+is advanced to point to the next instruction in memory.
+
+The FLAGS \index{register!FLAGS} register stores important information
+about the results of a previous instruction. These results are stored
+as individual bits in the register. For example, the Z bit is 1 if the
+result of the previous instruction was zero or 0 if not zero. Not all
+instructions modify the bits in FLAGS, consult the table in the
+appendix to see how individual instructions affect the FLAGS register.
+
+\subsection{80386 32-bit registers\index{register!32-bit}}
+
+The 80386 and later processors have extended registers. For example, the
+16-bit AX register is extended to be 32-bits. To be backward compatible, AX
+still refers to the 16-bit register and EAX is used to refer to the extended
+32-bit register. AX is the lower 16-bits of EAX just as AL is the lower 8-bits
+of AX (and EAX). There is no way to access the upper 16-bits of EAX directly.
+The other extended registers are EBX, ECX, EDX, ESI and EDI. 
+
+Many of the other registers are extended as well. BP becomes
+EBP\index{register!base pointer}; SP becomes ESP\index{register!stack
+pointer}; FLAGS becomes EFLAGS\index{register!EFLAGS} and IP becomes
+EIP\index{register!EIP}. However, unlike the index and general purpose
+registers, in 32-bit protected mode (discussed below) only the
+extended versions of these registers are used.
+
+The segment registers are still 16-bit in the 80386. There are also
+two new segment registers: FS and GS\index{register!segment}. Their
+names do not stand for anything. They are extra temporary segment
+registers (like ES).
+
+One of definitions of the term \emph{word} \index{word} refers to the
+size of the data registers of the CPU. For the 80x86 family, the term
+is now a little confusing. In Table~\ref{tab:mem_units}, one sees that
+\emph{word} is defined to be 2 bytes (or 16 bits). It was given this
+meaning when the 8086 was first released. When the 80386 was
+developed, it was decided to leave the definition of \emph{word}
+unchanged, even though the register size changed.
+\index{register|)}
+
+\subsection{Real Mode \label{real_mode} \index{real mode|(}}
+
+In \MarginNote{So where did the infamous DOS 640K limit come from? The BIOS 
+required some of the 1M for its code and for hardware devices like the video 
+screen.} real mode, memory is limited to only one megabyte ($2^{20}$ bytes). 
+Valid
+address range from (in hex) 00000 to FFFFF.\@  % \@ means end of sentence
+These addresses require a 20-bit number. Obviously, a 20-bit number will not
+fit into any of the 8086's 16-bit registers. Intel solved this problem, by
+using two 16-bit values to determine an address. The first 16-bit value is called
+the \emph{selector}. Selector values must be stored in segment registers. The
+second 16-bit value is called the \emph{offset}. The physical address 
+referenced by a 32-bit \emph{selector:offset} pair is computed by the formula
+\[ 16 * {\rm selector} + {\rm offset} \]
+Multiplying by 16 in hex is easy, just add a 0 to the right of the number. For
+example, the physical addresses referenced by 047C:0048 is given by:
+\begin{center}
+\begin{tabular}{r}
+047C0 \\
++0048 \\
+\hline
+04808 \\
+\end{tabular}
+\end{center}
+In effect, the selector value is a paragraph number
+(see Table~\ref{tab:mem_units}).
+
+Real segmented addresses have disadvantages:
+\begin{itemize}
+\item A single selector value can only reference 64K of memory (the
+upper limit of the 16-bit offset). What if a program has more than 64K
+of code? A single value in CS can not be used for the entire execution
+of the program.  The program must be split up into sections (called
+\emph{segments}\index{memory!segments}) less than 64K in size. When
+execution moves from one segment to another, the value of CS must be
+changed. Similar problems occur with large amounts of data and the DS
+register. This can be very awkward!
+
+\item Each byte in memory does not have a unique segmented address. The 
+physical address 04808 can be referenced by 047C:0048, 047D:0038, 047E:0028
+or 047B:0058.\@ This can complicate the comparison of segmented addresses.
+
+\end{itemize}
+\index{real mode|)}
+
+\subsection{16-bit Protected Mode \label{16prot_mode} \index{protected mode!16-bit|(}}
+
+In the 80286's 16-bit protected mode, selector values are interpreted
+completely differently than in real mode. In real mode, a selector
+value is a paragraph number of physical memory. In protected mode, a
+selector value is an \emph{index} into a \emph{descriptor table}. In
+both modes, programs are divided into
+segments\index{memory:segments}. In real mode, these segments are at
+fixed positions in physical memory and the selector value denotes the
+paragraph number of the beginning of the segment. In protected mode,
+the segments are not at fixed positions in physical memory. In fact,
+they do not have to be in memory at all!
+
+Protected mode uses a technique called \emph{virtual memory}
+\index{memory!virtual}. The basic idea of a virtual memory system is
+to only keep the data and code in memory that programs are currently
+using. Other data and code are stored temporarily on disk until they
+are needed again.  In 16-bit protected mode, segments are moved
+between memory and disk as needed. When a segment is returned to
+memory from disk, it is very likely that it will be put into a
+different area of memory that it was in before being moved to
+disk. All of this is done transparently by the operating system. The
+program does not have to be written differently for virtual memory to
+work.
+
+In protected mode, each segment is assigned an entry in a descriptor table.
+This entry has all the information that the system needs to know about the
+segment. This information includes: is it currently in memory; if in memory,
+where is it; access permissions ({\em e.g.\/}, read-only). The index of the
+entry of the segment is the selector value that is stored in segment registers.
+
+One \MarginNote{One well-known PC columnist called the 286 CPU ``brain
+dead.''} big disadvantage of 16-bit protected mode is that offsets
+are still 16-bit quantities. As a consequence of this, segment sizes
+are still limited to at most 64K. This makes the use of large arrays
+problematic!
+\index{protected mode!16-bit|)}
+
+\subsection{32-bit Protected Mode\index{protected mode!32-bit|(}}
+
+The 80386 introduced 32-bit protected mode. There are two major differences
+between 386 32-bit and 286 16-bit protected modes:
+\begin{enumerate}
+\item
+
+Offsets are expanded to be 32-bits. This allows an offset to range up
+to 4 billion. Thus, segments can have sizes up to 4 gigabytes.
+
+\item
+
+Segments\index{memory!segments} can be divided into smaller 4K-sized
+units called \emph{pages}\index{memory!pages}. The virtual
+memory\index{memory!virtual} system works with pages now instead of
+segments. This means that only parts of segment may be in memory at
+any one time. In 286 16-bit mode, either the entire segment is in
+memory or none of it is. This is not practical with the larger
+segments that 32-bit mode allows.
+
+\end{enumerate}
+
+\index{protected mode!32-bit|)}
+
+In Windows 3.x, \emph{standard mode} referred to 286 16-bit protected mode and
+\emph{enhanced mode} referred to 32-bit mode. Windows 9X, Windows NT/2000/XP, OS/2
+and Linux all run in paged 32-bit protected mode.
+
+\subsection{Interrupts\index{interrupt}}
+
+Sometimes the ordinary flow of a program must be interrupted to process events
+that require prompt response. The hardware of a computer provides a mechanism
+called \emph{interrupts} to handle these events. For example, when a mouse is
+moved, the mouse hardware interrupts the current program to handle the mouse
+movement (to move the mouse cursor, {\em etc.\/}) Interrupts cause control to
+be passed to an \emph{interrupt handler}. Interrupt handlers are routines that
+process the interrupt. Each type of interrupt is assigned an integer number.
+At the beginning of physical memory, a table of \emph{interrupt vectors}
+resides that contain the segmented addresses of the interrupt handlers. The
+number of interrupt is essentially an index into this table.
+
+External interrupts are raised from outside the CPU. (The mouse is an
+example of this type.) Many I/O devices raise interrupts ({\em
+e.g.\/}, keyboard, timer, disk drives, CD-ROM and sound
+cards). Internal interrupts are raised from within the CPU, either
+from an error or the interrupt instruction. Error interrupts are also
+called \emph{traps}. Interrupts generated from the interrupt
+instruction are called \emph{software interrupts}. DOS uses these types of
+interrupts to implement its API (Application Programming Interface). More
+modern operating systems (such as Windows and UNIX) use a C based interface.
+\footnote{However, they may use a lower level interface at the kernel level.}
+
+Many interrupt handlers return control back to the interrupted program
+when they finish. They restore all the registers to the same values
+they had before the interrupt occurred. Thus, the interrupted program
+runs as if nothing happened (except that it lost some CPU
+cycles). Traps generally do not return. Often they abort the program.
+
+\section{Assembly Language}
+
+\subsection{Machine language\index{machine language}}
+
+Every type of CPU understands its own machine language. Instructions
+in machine language are numbers stored as bytes in memory. Each
+instruction has its own unique numeric code called its \emph{operation
+code} or \emph{opcode} \index{opcode} for short. The 80x86 processor's
+instructions vary in size.  The opcode is always at the beginning of
+the instruction. Many instructions also include data ({\em e.g.\/},
+constants or addresses) used by the instruction.
+
+Machine language is very difficult to program in directly. Deciphering the
+meanings of the numerical-coded instructions is tedious for humans. For
+example, the instruction that says to add the EAX and EBX registers together
+and store the result back into EAX is encoded by the following hex codes:
+\begin{quote}
+   03 C3
+\end{quote}
+This is hardly obvious. Fortunately, a program called an
+\emph{assembler} \index{assembler} can do this tedious work for the
+programmer.
+
+\subsection{Assembly language\index{assembly language|(}}
+
+An assembly language program is stored as text (just as a higher level language
+program). Each assembly instruction represents exactly one machine instruction.
+For example, the addition instruction described above would be represented
+in assembly language as:
+\begin{CodeQuote}
+   add eax, ebx
+\end{CodeQuote}
+Here the meaning of the instruction is \emph{much} clearer than in
+machine code. The word {\code add} is a \emph{mnemonic}
+\index{mnemonic} for the addition instruction.  The general form of an
+assembly instruction is:
+\begin{CodeQuote}
+  {\em mnemonic operand(s)}
+\end{CodeQuote}
+
+An \emph{assembler} \index{assembler} is a program that reads a text
+file with assembly instructions and converts the assembly into machine
+code.  \emph{Compilers} \index{compiler} are programs that do similar
+conversions for high-level programming languages. An assembler is much
+simpler than a compiler. \MarginNote{It took several years for
+computer scientists to figure out how to even write a compiler!} Every
+assembly language statement directly represents a single machine
+instruction. High-level language statements are \emph{much} more
+complex and may require many machine instructions.
+
+Another important difference between assembly and high-level languages is that
+since every different type of CPU has its own machine language, it also has
+its own assembly language. Porting assembly programs between different computer
+architectures is \emph{much} more difficult than in a high-level language.
+
+This book's examples uses the Netwide Assembler or NASM \index{NASM}
+for short. It is freely available off the Internet (see the preface
+for the URL). More common assemblers are Microsoft's Assembler (MASM)
+\index{MASM} or Borland's Assembler (TASM). \index{TASM} There are
+some differences in the assembly syntax for MASM/TASM and NASM.
+
+\subsection{Instruction operands}
+
+Machine code instructions have varying number and type of operands; however,
+in general, each instruction itself will have a fixed number of operands (0
+to 3). Operands can have the following types:
+\begin{description}
+\item[register:]
+These operands refer directly to the contents of the CPU's registers.
+\item[memory:]
+These refer to data in memory. The address of the data may be a constant
+hardcoded into the instruction or may be computed using values of registers.
+Address are always offsets from the beginning of a segment.
+\item[immediate:]
+\index{immediate}
+These are fixed values that are listed in the instruction itself. They are
+stored in the instruction itself (in the code segment), not in the data
+segment.
+\item[implied:]
+These operands are not explicitly shown. For example, the increment 
+instruction adds one to a register or memory. The one is implied.
+\end{description}
+\index{assembly language|)}
+
+\subsection{Basic instructions}
+
+The most basic instruction is the {\code MOV} \index{MOV} instruction. It moves
+data from one location to another (like the assignment operator in a
+high-level language). It takes two operands:
+\begin{CodeQuote}
+  mov {\em dest, src}
+\end{CodeQuote}
+The data specified by {\em src} is copied to {\em dest\/}. One restriction
+is that both operands may not be memory operands. This points out another
+quirk of assembly. There are often somewhat arbitrary rules about how the
+various instructions are used. The operands must also be the same size. The
+value of AX can not be stored into BL.
+
+Here is an example (semicolons start a comment\index{comment}):
+\begin{AsmCodeListing}[frame=none, numbers=none]
+      mov    eax, 3   ; store 3 into EAX register (3 is immediate operand) 
+      mov    bx, ax   ; store the value of AX into the BX register 
+\end{AsmCodeListing}
+
+The {\code ADD} \index{ADD} instruction is used to add integers.
+\begin{AsmCodeListing}[frame=none, numbers=none]
+      add    eax, 4   ; eax = eax + 4
+      add    al, ah   ; al = al + ah 
+\end{AsmCodeListing}
+
+The {\code SUB} \index{SUB} instruction subtracts integers.
+\begin{AsmCodeListing}[frame=none, numbers=none]
+      sub    bx, 10   ; bx = bx - 10
+      sub    ebx, edi ; ebx = ebx - edi
+\end{AsmCodeListing}
+
+The {\code INC} \index{INC} and {\code DEC} \index{DEC} instructions
+increment or decrement values by one. Since the one is an implicit
+operand, the machine code for {\code INC} and {\code DEC} is smaller
+than for the equivalent {\code ADD} and {\code SUB} instructions.
+\begin{AsmCodeListing}[frame=none, numbers=none]
+      inc    ecx      ; ecx++
+      dec    dl       ; dl--
+\end{AsmCodeListing}
+
+\subsection{Directives\index{directive|(}}
+
+A \emph{directive} is an artifact of the assembler not the CPU. They are
+generally used to either instruct the assembler to do something or inform
+the assembler of something. They are not translated into machine code. Common
+uses of directives are:
+\begin{list}{$\bullet$}{\setlength{\itemsep}{0pt}}
+\item define constants
+\item define memory to store data into
+\item group memory into segments
+\item conditionally include source code
+\item include other files
+\end{list}
+
+NASM code passes through a preprocessor just like C. It has many of the
+same preprocessor commands as C. However, NASM's preprocessor directives 
+start with a \% instead of a \# as in C.
+
+\subsubsection{The equ directive\index{directive!equ}}
+
+The {\code equ} directive can be used to define a \emph{symbol}. Symbols are
+named constants that can be used in the assembly program. The format is:
+\begin{quote}
+  \code {\em symbol} equ {\em value}
+\end{quote}
+Symbol values can \emph{not} be redefined later.
+
+\subsubsection{The \%define directive\index{directive!\%define}}
+
+This directive is similar to C's {\code \#define} directive. It is
+most commonly used to define constant macros just as in C.
+\begin{AsmCodeListing}[frame=none, numbers=none]
+%define SIZE 100
+      mov    eax, SIZE
+\end{AsmCodeListing}
+The above code defines a macro named {\code SIZE} and shows its use in
+a {\code MOV} instruction. Macros are more flexible than symbols in
+two ways. Macros can be redefined and can be more than simple constant
+numbers.
+
+\subsubsection{Data directives\index{directive!data|(}}
+
+\begin{table}[t]
+\centering
+\begin{tabular}{||c|c||} \hline
+{\bf Unit} & {\bf Letter} \\
+\hline
+byte & B \\
+word & W \\
+double word & D \\
+quad word & Q \\
+ten bytes & T \\
+\hline
+\end{tabular}
+\caption{Letters for {\code RESX} and {\code DX} Directives 
+         \label{tab:size-letters} }
+\end{table}
+
+Data directives are used in data segments to define room for
+memory. There are two ways memory can be reserved. The first way only
+defines room for data; the second way defines room and an initial
+value. The first method uses one of the {\code RES{\em
+X}}\index{directive!RES\emph{X}} directives. The {\em X} is replaced
+with a letter that determines the size of the object (or objects) that
+will be stored. Table~\ref{tab:size-letters} shows the possible
+values.
+
+The second method (that defines an initial value, too) uses one of the
+{\code D{\em X}} directives\index{directive!D\emph{X}}. The {\em X}
+letters are the same as those in the {\code RES{\em X}} directives.
+
+It is very common to mark memory locations with
+\emph{labels}. \index{label} Labels allow one to easily refer to
+memory locations in code. Below are several examples:
+\begin{AsmCodeListing}[frame=none, numbers=none]
+L1    db     0        ; byte labeled L1 with initial value 0
+L2    dw     1000     ; word labeled L2 with initial value 1000
+L3    db     110101b  ; byte initialized to binary 110101 (53 in decimal)
+L4    db     12h      ; byte initialized to hex 12 (18 in decimal)
+L5    db     17o      ; byte initialized to octal 17 (15 in decimal)
+L6    dd     1A92h    ; double word initialized to hex 1A92
+L7    resb   1        ; 1 uninitialized byte
+L8    db     "A"      ; byte initialized to ASCII code for A (65)
+\end{AsmCodeListing}
+
+Double quotes and single quotes are treated the same. Consecutive data
+definitions are stored sequentially in memory. That is, the word L2 is
+stored immediately after L1 in memory. Sequences of memory may also be
+defined.
+\begin{AsmCodeListing}[frame=none, numbers=none]
+L9    db     0, 1, 2, 3              ; defines 4 bytes
+L10   db     "w", "o", "r", 'd', 0   ; defines a C string = "word"
+L11   db     'word', 0               ; same as L10
+\end{AsmCodeListing}
+
+The {\code DD}\index{directive!DD} directive can be used to define
+both integer and single precision floating point\footnote{Single
+precision floating point is equivalent to a {\code float} variable in
+C.} constants. However, the {\code DQ}\index{directive!DQ} can only
+be used to define double precision floating point constants.
+
+For large sequences, NASM's {\code TIMES} \index{directive!TIMES}
+directive is often useful. This directive repeats its operand a
+specified number of times. For example,
+\begin{AsmCodeListing}[frame=none, numbers=none]
+L12   times 100 db 0                 ; equivalent to 100 (db 0)'s
+L13   resw   100                     ; reserves room for 100 words
+\end{AsmCodeListing}
+\index{directive!data|)}
+\index{directive|)}
+
+\index{label|(}
+Remember that labels  can be used to refer to data in code. There are
+two ways that a label can be used. If a plain label is used, it is
+interpreted as the address (or offset) of the data. If the label is
+placed inside square brackets ({\code []}), it is interpreted as the data at
+the address. In other words, one should think of a label as a \emph{pointer}
+to the data and the square brackets dereferences the pointer just as
+the asterisk does in C. (MASM/TASM follow a different convention.) 
+In 32-bit mode, addresses are 32-bit. Here are some examples:
+\begin{AsmCodeListing}[frame=none]
+      mov    al, [L1]      ; copy byte at L1 into AL
+      mov    eax, L1       ; EAX = address of byte at L1
+      mov    [L1], ah      ; copy AH into byte at L1
+      mov    eax, [L6]     ; copy double word at L6 into EAX
+      add    eax, [L6]     ; EAX = EAX + double word at L6
+      add    [L6], eax     ; double word at L6 += EAX
+      mov    al, [L6]      ; copy first byte of double word at L6 into AL
+\end{AsmCodeListing}
+Line 7 of the examples shows an important property of NASM. The assembler does
+\emph{not} keep track of the type of data that a label refers to. It is up
+to the programmer to make sure that he (or she) uses a label correctly. Later
+it will be common to store addresses of data in registers and use the register
+like a pointer variable in C. Again, no checking is made that a pointer is
+used correctly. In this way, assembly is much more error prone than even C.
+
+Consider the following instruction:
+\begin{AsmCodeListing}[frame=none, numbers=none]
+      mov    [L6], 1             ; store a 1 at L6
+\end{AsmCodeListing}
+This statement produces an {\code operation size not specified} error. Why?
+Because the assembler does not know whether to store the 1 as a byte, word
+or double word. To fix this, add a size specifier:
+\begin{AsmCodeListing}[frame=none, numbers=none]
+      mov    dword [L6], 1       ; store a 1 at L6
+\end{AsmCodeListing}
+\index{DWORD}This tells the assembler to store an 1 at the double word that starts at
+{\code L6}. Other size specifiers are: {\code BYTE}\index{BYTE}, {\code WORD}\index{WORD},
+{\code QWORD}\index{QWORD} and {\code TWORD}\footnote{{\code TWORD} defines a ten byte
+area of memory. The floating point coprocessor uses this data type.}\index{TWORD}.
+\index{label|)}
+
+\subsection{Input and Output \index{I/O|(}}
+
+Input and output are very system dependent activities. It involves
+interfacing with the system's hardware. High level languages, like C,
+provide standard libraries of routines that provide a simple, uniform
+programming interface for I/O.  Assembly languages provide no standard
+libraries. They must either directly access hardware (which is a privileged
+operation in protected mode) or use whatever low level routines that the
+operating system provides.
+
+\index{I/O!asm\_io library|(} 
+It is very common for assembly routines to be interfaced with C. One
+advantage of this is that the assembly code can use the standard C
+library I/O routines.  However, one must know the rules for passing
+information between routines that C uses. These rules are too
+complicated to cover here. (They are covered later!) To simplify I/O,
+the author has developed his own routines that hide the complex C
+rules and provide a much more simple interface.  Table~\ref{tab:asmio}
+describes the routines provided. All of the routines preserve the
+value of all registers, except for the read routines. These routines
+do modify the value of the EAX register. To use these routines, one
+must include a file with information that the assembler needs to use
+them.  To include a file in NASM, use the {\code \%include}
+preprocessor directive. The following line includes the file needed by
+the author's I/O routines\footnote{The {\code asm\_io.inc} (and the
+{\code asm\_io} object file that {\code asm\_io.inc} requires) are in
+the example code downloads on the web page for this tutorial, {\code
+http://www.drpaulcarter.com/pcasm}}:
+\begin{AsmCodeListing}[frame=none, numbers=none]
+%include "asm_io.inc"
+\end{AsmCodeListing}
+
+\begin{table}[t]
+\centering
+\begin{tabular}{lp{3.5in}}
+{\bf print\_int} & prints out to the screen the value of the integer stored 
+                  in EAX \\
+{\bf print\_char} & prints out to the screen the character whose
+                    ASCII value stored in AL \\
+{\bf print\_string} & prints out to the screen the contents of the string
+                     at the {\em address} stored in EAX. The string must be
+                     a C-type string ({\em i.e.} null terminated). \\
+{\bf print\_nl} & prints out to the screen a new line character. \\
+{\bf read\_int} & reads an integer from the keyboard and stores it into the
+                 EAX register. \\
+{\bf read\_char} & reads a single character from the keyboard and stores its
+                  ASCII code into the EAX register. \\
+\end{tabular}
+\caption{Assembly I/O Routines \label{tab:asmio} \index{I/O!asm\_io library!print\_int}
+\index{I/O!asm\_io library!print\_char} \index{I/O!asm\_io library!print\_string} 
+\index{I/O!asm\_io library!print\_nl} \index{I/O!asm\_io library!read\_int}
+\index{I/O!asm\_io library!read\_char}}
+\end{table}
+
+To use one of the print routines, one loads EAX with the correct value and
+uses a {\code CALL} instruction to invoke it. The {\code CALL} instruction
+is equivalent to a function call in a high level language. It jumps execution
+to another section of code, but returns back to its origin after the routine
+is over. The example program below shows several examples of calls to these
+I/O routines.
+
+\subsection{Debugging\index{debugging|(}}
+
+The author's library also contains some useful routines for debugging 
+programs. These debugging routines display information about the state of
+the computer without modifying the state. These routines are really
+\emph{macros} that preserve the current state of the CPU and then make a
+subroutine call. The macros are defined in the {\code asm\_io.inc} file
+discussed above. Macros are used like ordinary instructions. Operands of
+macros are separated by commas.
+
+There are four debugging routines named {\code dump\_regs}, {\code
+dump\_mem}, {\code dump\_stack} and {\code dump\_math}; they display
+the values of registers, memory, stack and the math coprocessor,
+respectively.
+\begin{description}
+
+\item[dump\_regs]
+\index{I/O!asm\_io library!dump\_regs} 
+This macro prints out the values of the registers (in hexadecimal) of
+the computer to {\code stdout} (\emph{i.e.} the screen). It also
+displays the bits set in the FLAGS\footnote{Chapter~2 discusses this
+register} register. For example, if the zero flag is 1, \emph{ZF} is
+displayed. If it is 0, it is not displayed. It takes a single integer
+argument that is printed out as well. This can be used to distinguish
+the output of different {\code dump\_regs} commands.
+
+\item[dump\_mem]
+\index{I/O!asm\_io library!dump\_mem} 
+This macro prints out the values of a region of memory (in
+hexadecimal) and also as ASCII characters. It takes three comma delimited
+arguments. The first is an integer that is used to label the
+output (just as {\code dump\_regs} argument). The second argument is
+the address to display. (This can be a label.) The last argument is
+the number of 16-byte paragraphs to display after the address. The
+memory displayed will start on the first paragraph boundary before the
+requested address.
+
+\item[dump\_stack]
+\index{I/O!asm\_io library!dump\_stack} 
+This macro prints out the values on the CPU stack. (The stack will be
+covered in Chapter~4.) The stack is organized as double words and this
+routine displays them this way. It takes three comma delimited
+arguments. The first is an integer label (like {\code
+dump\_regs}). The second is the number of double words to display
+\emph{below} the address that the {\code EBP} register holds and the
+third argument is the number of double words to display \emph{above}
+the address in {\code EBP}.
+
+\item[dump\_math]
+\index{I/O!asm\_io library!dump\_math} 
+This macro prints out the values of the registers of the math coprocessor.
+It takes a single integer argument that is used to label the output just as
+the argument of {\code dump\_regs} does.
+\end{description}
+\index{debugging|)}
+\index{I/O!asm\_io library|)} 
+\index{I/O|)}
+
+\section{Creating a Program}
+
+Today, it is unusual to create a stand alone program written
+completely in assembly language. Assembly is usually used to key certain
+critical routines. Why? It is \emph{much} easier to program in a higher level 
+language than in assembly. Also, using assembly makes a program very hard to
+port to other platforms. In fact, it is rare to use assembly at all.
+
+So, why should anyone learn assembly at all?
+\begin{enumerate}
+\item Sometimes code written in assembly can be faster and smaller than
+      compiler generated code.
+\item Assembly allows access to direct hardware features of the system that
+      might be difficult or impossible to use from a higher level language.
+\item Learning to program in assembly helps one gain a deeper understanding of
+      how computers work.
+\item Learning to program in assembly helps one understand better how compilers
+      and high level languages like C work.
+\end{enumerate}
+These last two points demonstrate that learning assembly can be useful even if
+one never programs in it later. In fact, the author rarely programs in
+assembly, but he uses the ideas he learned from it everyday.
+
+\subsection{First program}
+
+\begin{figure}[t]
+\begin{lstlisting}[frame=tlrb]{}
+int main()
+{
+  int ret_status;
+  ret_status = asm_main();
+  return ret_status;
+}
+\end{lstlisting}
+\caption{{\code driver.c} code\label{fig:driverProg} \index{C driver}}
+\end{figure}
+
+The early programs in this text will all start from the simple C
+driver program in Figure~\ref{fig:driverProg}. It simply calls
+another function named {\code asm\_main}. This is really a routine
+that will be written in assembly. There are several advantages in
+using the C driver routine. First, this lets the C system set up the
+program to run correctly in protected mode. All the segments and their
+corresponding segment registers will be initialized by C. The assembly
+code need not worry about any of this. Secondly, the C library will
+also be available to be used by the assembly code. The author's I/O
+routines take advantage of this. They use C's I/O functions ({\code
+printf}, {\em etc.}).  The following shows a simple assembly program.
+
+\begin{AsmCodeListing}[label=first.asm]
+; file: first.asm
+; First assembly program. This program asks for two integers as
+; input and prints out their sum.
+;
+; To create executable using djgpp:
+; nasm -f coff first.asm
+; gcc -o first first.o driver.c asm_io.o
+
+%include "asm_io.inc"
+;
+; initialized data is put in the .data segment
+;
+segment .data
+;
+; These labels refer to strings used for output
+;
+prompt1 db    "Enter a number: ", 0       ; don't forget null terminator
+prompt2 db    "Enter another number: ", 0
+outmsg1 db    "You entered ", 0
+outmsg2 db    " and ", 0
+outmsg3 db    ", the sum of these is ", 0
+
+;
+; uninitialized data is put in the .bss segment
+;
+segment .bss
+;
+; These labels refer to double words used to store the inputs
+;
+input1  resd 1
+input2  resd 1
+
+;
+; code is put in the .text segment
+;
+segment .text
+        global  _asm_main
+_asm_main:
+        enter   0,0               ; setup routine
+        pusha
+
+        mov     eax, prompt1      ; print out prompt
+        call    print_string
+
+        call    read_int          ; read integer
+        mov     [input1], eax     ; store into input1
+
+        mov     eax, prompt2      ; print out prompt
+        call    print_string
+
+        call    read_int          ; read integer
+        mov     [input2], eax     ; store into input2
+
+        mov     eax, [input1]     ; eax = dword at input1
+        add     eax, [input2]     ; eax += dword at input2
+        mov     ebx, eax          ; ebx = eax
+
+        dump_regs 1                ; print out register values
+        dump_mem  2, outmsg1, 1    ; print out memory
+;
+; next print out result message as series of steps
+;
+        mov     eax, outmsg1
+        call    print_string      ; print out first message
+        mov     eax, [input1]     
+        call    print_int         ; print out input1
+        mov     eax, outmsg2
+        call    print_string      ; print out second message
+        mov     eax, [input2]
+        call    print_int         ; print out input2
+        mov     eax, outmsg3
+        call    print_string      ; print out third message
+        mov     eax, ebx
+        call    print_int         ; print out sum (ebx)
+        call    print_nl          ; print new-line
+
+        popa
+        mov     eax, 0            ; return back to C
+        leave                     
+        ret
+\end{AsmCodeListing}
+
+Line~13 of the program defines a section of the program that specifies
+memory to be stored in the data segment (whose name is {\code
+.data})\index{data segment}. Only initialized data should be defined
+in this segment. On lines~17 to 21, several strings are declared. They
+will be printed with the C library and so must be terminated with a
+\emph{null} character (ASCII code 0).  Remember there is a big
+difference between {\code 0} and {\code '0'}.
+
+Uninitialized data should be declared in the bss segment (named {\code
+.bss} on line 26)\index{bss segment}. This segment gets its name from an early UNIX-based
+assembler operator that meant ``block started by symbol.'' There is
+also a stack segment too. It will be discussed later.
+
+The code segment \index{code segment} is named {\code .text}
+historically. It is where instructions are placed. Note that the code
+label for the main routine (line~38) has an underscore prefix.  This
+is part of the \emph{C calling convention}. \index{calling
+convention!C} This convention specifies the rules C uses when compiling
+code. It is very important to know this convention when interfacing C
+and assembly. Later the entire convention will be presented; however,
+for now, one only needs to know that all C symbols ({\em i.e.},
+functions and global variables) have a underscore prefix appended to
+them by the C compiler. (This rule is specifically for DOS/Windows,
+the Linux C compiler does not prepend anything to C symbol names.)
+
+The {\code global} {\index{directive!global} directive on line 37
+tells the assembler to make the {\code \_asm\_main} label
+global. Unlike in C, labels have \emph{internal scope} by
+default. This means that only code in the same module can use the
+label. The {\code global} directive gives the specified label (or
+labels) \emph{external scope}. This type of label can be accessed by
+any module in the program. The {\code asm\_io} module declares the
+{\code print\_int}, {\em et.al.\/} labels to be global. This is why
+one can use them in the {\code first.asm} module.
+
+\subsection{Compiler dependencies}
+
+The assembly code above is specific to the free GNU\footnote{GNU is a
+project of the Free Software Foundation ({\code
+http://www.fsf.org})}-based DJGPP \index{compiler!DJGPP} C/C++
+compiler.\footnote{\code http://www.delorie.com/djgpp} This compiler
+can be freely downloaded from the Internet. It requires a 386-based PC
+or better and runs under DOS, Windows 95/98 or NT. This compiler uses
+object files in the COFF (Common Object File Format) format. To
+assemble to this format use the {\code -f~coff} switch with {\code
+nasm} (as shown in the comments of the above code). The extension of
+the resulting object file will be {\code o}.
+
+The Linux C compiler is a GNU compiler also. \index{compiler!gcc} To
+convert the code above to run under Linux, simply remove the
+underscore prefixes in lines~37 and 38. Linux uses the ELF (Executable
+and Linkable Format) format for object files. Use the {\code -f~elf}
+switch for Linux. It also produces an object with an {\code o}
+extension.\MarginNote{The compiler specific example files, available
+from the author's web site, have already been modified to work with
+the appropriate compiler.}
+
+Borland C/C++ \index{compiler!Borland} is another popular compiler. It
+uses the Microsoft OMF format for object files. Use the {\code -f~obj}
+switch for Borland compilers. The extension of the object file will be
+{\code obj}. The OMF format uses different {\code segment} directives
+than the other object formats. The data segment (line~13) must be
+changed to:
+\begin{CodeQuote}
+segment \_DATA public align=4 class=DATA use32
+\end{CodeQuote}
+The bss segment (line 26) must be changed to:
+\begin{CodeQuote}
+segment \_BSS public align=4 class=BSS use32
+\end{CodeQuote}
+The text segment (line 36) must be changed to:
+\begin{CodeQuote}
+segment \_TEXT public align=1 class=CODE use32
+\end{CodeQuote}
+In addition a new line should be added before line 36:
+\begin{CodeQuote}
+group DGROUP \_BSS \_DATA
+\end{CodeQuote}
+
+The Microsoft C/C++ \index{compiler!Microsoft} compiler can use either
+the OMF format or the Win32 format for object files. (If given a OMF
+format, it converts the information to Win32 format internally.) Win32
+format allows segments to be defined just as for DJGPP and Linux. Use
+the {\code -f~win32} switch to output in this mode. The extension of
+the object file will be {\code obj}.
+
+\subsection{Assembling the code}
+
+The first step is to assemble the code. From the command line, type:
+\begin{CodeQuote}
+nasm -f {\em object-format} first.asm
+\end{CodeQuote}
+where {\em object-format} is either {\em coff\/}, {\em elf\/}, {\em obj} or
+{\em win32} depending on what C compiler will be used. (Remember that the
+source file must be changed for both Linux and Borland as well.)
+
+
+\subsection{Compiling the C code}
+
+Compile the {\code driver.c} file using a C compiler. For DJGPP, use:
+\begin{CodeQuote}
+gcc -c driver.c
+\end{CodeQuote}
+The {\code -c} switch means to just compile, do not attempt to link yet. This
+same switch works on Linux, Borland and Microsoft compilers as well.
+
+\subsection{Linking the object files \label{seq:linking} \index{linking|(}}
+
+Linking is the process of combining the machine code and data in
+object files and library files together to create an executable
+file. As will be shown below, this process is complicated.
+
+C code requires the standard C library and special \emph{startup code}
+\index{startup code} to run.  It is \emph{much} easier to let the C
+compiler call the linker with the correct parameters, than to try to
+call the linker directly. For example, to link the code for the first
+program using DJGPP, \index{compiler!DJGPP} use:
+\begin{CodeQuote}
+gcc -o first driver.o first.o asm\_io.o
+\end{CodeQuote}
+This creates an executable called {\code first.exe} (or just {\code first}
+under Linux). 
+
+With Borland, \index{compiler!Borland} one would use:
+\begin{CodeQuote}
+bcc32 first.obj driver.obj asm\_io.obj
+\end{CodeQuote}
+Borland uses the name of the first file listed to determine the executable
+name. So in the above case, the program would be named {\code first.exe}.
+
+It is possible to combine the compiling and linking step. For example,
+\begin{CodeQuote}
+gcc -o first {\em driver.c} first.o asm\_io.o
+\end{CodeQuote}
+Now {\code gcc} will compile {\code driver.c} and then link.
+\index{linking|)}
+
+\subsection{Understanding an assembly listing file \index{listing file|(}}
+
+The {\code -l {\em listing-file}} switch can be used to tell {\code
+nasm} to create a listing file of a given name. This file shows how
+the code was assembled. Here is how lines~17 and 18 (in the data
+segment) appear in the listing file. (The line numbers are in the
+listing file; however notice that the line numbers in the source file
+may not be the same as the line numbers in the listing file.)
+\begin{Verbatim}[xleftmargin=\AsmMargin]
+48 00000000 456E7465722061206E-     prompt1 db    "Enter a number: ", 0
+49 00000009 756D6265723A2000
+50 00000011 456E74657220616E6F-     prompt2 db    "Enter another number: ", 0
+51 0000001A 74686572206E756D62-
+52 00000023 65723A2000
+ \end{Verbatim}
+The first column in each line is the line number and the second is the
+offset (in hex) of the data in the segment. The third column shows the
+raw hex values that will be stored. In this case the hex data
+correspond to ASCII codes. Finally, the text from the source file is
+displayed on the line. The offsets listed in the second column are
+very likely \emph{not} the true offsets that the data will be placed
+at in the complete program.  Each module may define its own labels in
+the data segment (and the other segments, too). In the link step (see
+section~\ref{seq:linking}), all these data segment label definitions
+are combined to form one data segment. The new final offsets are then
+computed by the linker.
+
+Here is a small section (lines~54 to 56 of the source file) of the
+text segment in the listing file:
+\begin{Verbatim}[xleftmargin=\AsmMargin]
+94 0000002C A1[00000000]          mov     eax, [input1]
+95 00000031 0305[04000000]        add     eax, [input2]
+96 00000037 89C3                  mov     ebx, eax
+\end{Verbatim}
+The third column shows the machine code generated by the
+assembly. Often the complete code for an instruction can not be
+computed yet. For example, in line~94 the offset (or address) of
+{\code input1} is not known until the code is linked. The assembler
+can compute the op-code for the {\code mov} instruction (which from
+the listing is A1), but it writes the offset in square brackets
+because the exact value can not be computed yet. In this case, a
+temporary offset of 0 is used because {\code input1} is at the
+beginning of the part of the bss segment defined in this
+file. Remember this does \emph{not} mean that it will be at the
+beginning of the final bss segment of the program. When the code is linked,
+the linker will insert the correct offset into the position. Other 
+instructions, like line~96, do not reference any labels. Here the assembler
+can compute the complete machine code.
+\index{listing file|)}
+
+\subsubsection{Big and Little Endian Representation \index{endianess|(}}
+If one looks closely at line~95, something seems very strange about
+the offset in the square brackets of the machine code. The {\code
+input2} label is at offset 4 (as defined in this file); however, the
+offset that appears in memory is not 00000004, but 04000000. Why? Different
+processors store multibyte integers in different orders in
+memory. There are two popular methods of storing integers: \emph{big
+endian} and \emph{little endian}. \MarginNote{Endian is pronounced
+like \emph{indian}.} Big endian is the method that seems the most
+natural. The biggest (\emph{i.e.} most significant) byte is stored
+first, then the next biggest, \emph{etc.} For example, the dword
+00000004 would be stored as the four bytes 00~00~00~04.  IBM
+mainframes, most RISC processors and Motorola processors all use this
+big endian method. However, Intel-based processors use the little
+endian method! Here the least significant byte is stored first. So,
+00000004 is stored in memory as 04~00~00~00. This format is hardwired
+into the CPU and can not be changed. Normally, the programmer does not
+need to worry about which format is used. However, there are
+circumstances where it is important.
+\begin{enumerate}
+\item When binary data is transfered between different computers (either from
+      files or through a network).
+\item When binary data is written out to memory as a multibyte integer and
+      then read back as individual bytes or \emph{vice versa}.
+\end{enumerate}
+
+Endianness does not apply to the order of array elements. The first
+element of an array is always at the lowest address. This applies to
+strings (which are just character arrays). Endianness still
+applies to the individual elements of the arrays. 
+\index{endianess|)}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[label=skel.asm]
+%include "asm_io.inc"
+segment .data
+;
+; initialized data is put in the data segment here
+;
+
+segment .bss
+;
+; uninitialized data is put in the bss segment
+;
+
+segment .text
+        global  _asm_main
+_asm_main:
+        enter   0,0               ; setup routine
+        pusha
+
+;
+; code is put in the text segment. Do not modify the code before
+; or after this comment.
+;
+
+        popa
+        mov     eax, 0            ; return back to C
+        leave                     
+        ret
+\end{AsmCodeListing}
+\caption{Skeleton Program \label{fig:skel}}
+\end{figure}
+
+\section{Skeleton File \index{skeleton file}}
+
+Figure~\ref{fig:skel} shows a skeleton file that can be used as a starting
+point for writing assembly programs.
+
+
+
+
+
+
+

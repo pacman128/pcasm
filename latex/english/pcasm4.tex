@@ -1,0 +1,1403 @@
+%-*- latex -*-
+\chapter{Subprograms}
+
+This chapter looks at using subprograms to make modular programs and to
+interface with high level languages (like C). Functions and procedures are
+high level language examples of subprograms.
+
+The code that calls a subprogram and the subprogram itself must agree
+on how data will be passed between them. These rules on how data will
+be passed are called \emph{calling conventions}. \index{calling
+convention} A large part of this chapter will deal with the standard C
+calling conventions that can be used to interface assembly subprograms
+with C programs. This (and other conventions) often pass the addresses
+of data (\emph{i.e.} pointers) to allow the subprogram to access the
+data in memory.
+
+\section{Indirect Addressing\index{indirect addressing|(}}
+
+Indirect addressing allows registers to act like pointer variables. To
+indicate that a register is to be used indirectly as a pointer, it is
+enclosed in square brackets ({\code []}). For example:
+\begin{AsmCodeListing}[frame=none]
+      mov    ax, [Data]     ; normal direct memory addressing of a word
+      mov    ebx, Data      ; ebx = & Data
+      mov    ax, [ebx]      ; ax = *ebx
+\end{AsmCodeListing}
+Because AX holds a word, line~3 reads a word starting at the address stored 
+in EBX. If AX was replaced with AL, only a single byte would be read. It is
+important to realize that registers do not have types like variables do in
+C. What EBX is assumed to point to is completely determined by what
+instructions are used. Furthermore, even the fact that EBX is a pointer is
+completely determined by the what instructions are used. If EBX is used
+incorrectly, often there will be no assembler error; however, the program
+will not work correctly. This is one of the many reasons that assembly
+programming is more error prone than high level programming.
+
+All the 32-bit general purpose (EAX, EBX, ECX, EDX) and index (ESI, EDI)
+registers can be used for indirect addressing. In general, the 16-bit 
+and 8-bit registers can not be.
+\index{indirect addressing|)}
+
+\section{Simple Subprogram Example\index{subprogram|(}}
+
+A subprogram is an independent unit of code that can be used from different
+parts of a program. In other words, a subprogram is like a function in C. A
+jump can be used to invoke the subprogram, but returning presents a problem.
+If the subprogram is to be used by different parts of the program, it must
+return back to the section of code that invoked it. Thus, the jump back from
+the subprogram can not be hard coded to a label. The code below shows how this
+could be done using the indirect form of the {\code JMP} instruction. This 
+form of the instruction uses the value of a register to determine where to
+jump to (thus, the register acts much like a \emph{function pointer} in C.)
+Here is the first program from chapter~1 rewritten to use a subprogram.
+\begin{AsmCodeListing}[label=sub1.asm]
+; file: sub1.asm
+; Subprogram example program
+%include "asm_io.inc"
+
+segment .data
+prompt1 db    "Enter a number: ", 0       ; don't forget null terminator
+prompt2 db    "Enter another number: ", 0
+outmsg1 db    "You entered ", 0
+outmsg2 db    " and ", 0
+outmsg3 db    ", the sum of these is ", 0
+
+segment .bss
+input1  resd 1
+input2  resd 1
+
+segment .text
+        global  _asm_main
+_asm_main:
+        enter   0,0               ; setup routine
+        pusha
+
+        mov     eax, prompt1      ; print out prompt
+        call    print_string
+
+        mov     ebx, input1       ; store address of input1 into ebx
+        mov     ecx, ret1         ; store return address into ecx
+        jmp     short get_int     ; read integer
+ret1:
+        mov     eax, prompt2      ; print out prompt
+        call    print_string
+
+        mov     ebx, input2
+        mov     ecx, $ + 7        ; ecx = this address + 7
+        jmp     short get_int
+
+        mov     eax, [input1]     ; eax = dword at input1
+        add     eax, [input2]     ; eax += dword at input2
+        mov     ebx, eax          ; ebx = eax
+
+        mov     eax, outmsg1
+        call    print_string      ; print out first message
+        mov     eax, [input1]     
+        call    print_int         ; print out input1
+        mov     eax, outmsg2
+        call    print_string      ; print out second message
+        mov     eax, [input2]
+        call    print_int         ; print out input2
+        mov     eax, outmsg3
+        call    print_string      ; print out third message
+        mov     eax, ebx
+        call    print_int         ; print out sum (ebx)
+        call    print_nl          ; print new-line
+
+        popa
+        mov     eax, 0            ; return back to C
+        leave                     
+        ret
+; subprogram get_int
+; Parameters:
+;   ebx - address of dword to store integer into
+;   ecx - address of instruction to return to
+; Notes:
+;   value of eax is destroyed
+get_int:
+        call    read_int
+        mov     [ebx], eax         ; store input into memory
+        jmp     ecx                ; jump back to caller
+\end{AsmCodeListing}
+
+The {\code get\_int} subprogram uses a simple, register-based calling
+convention. It expects the EBX register to hold the address of the
+DWORD to store the number input into and the ECX register to hold the
+code address of the instruction to jump back to. In lines~25 to 28,
+the {\code ret1} label is used to compute this return address. In
+lines~32 to 34, the {\code \$} operator is used to compute the return
+address. The {\code \$} operator returns the current address for the
+line it appears on. The expression {\code \$ + 7} computes the address
+of the {\code MOV} instruction on line~36.
+
+Both of these return address computations are awkward. The first method
+requires a label to be defined for each subprogram call. The second method
+does not require a label, but does require careful thought. If a near jump
+was used instead of a short jump, the number to add to {\code \$} would not
+be 7! Fortunately, there is a much simpler way to invoke subprograms. This
+method uses the \emph{stack}.
+
+\section{The Stack\index{stack|(}}
+
+Many CPU's have built-in support for a stack. A stack is a Last-In First-Out
+(\emph{LIFO}) list. The stack is an area of memory that is organized in this
+fashion. The {\code PUSH} instruction adds data to the stack and the
+{\code POP} instruction removes data. The data removed is always the last
+data added (that is why it is called a last-in first-out list).
+
+The SS segment register specifies the segment that contains the stack (usually
+this is the same segment data is stored into). The ESP register contains the
+address of the data that would be removed from the stack. This data is said
+to be at the \emph{top} of the stack. Data can only be added in double word
+units. That is, one can not push a single byte on the stack.
+
+The {\code PUSH} instruction inserts a double word\footnote{Actually
+words can be pushed too, but in 32-bit protected mode, it is better to
+work with only double words on the stack.} on the stack by subtracting
+4 from ESP and then stores the double word at {\code [ESP]}. The
+{\code POP} instruction reads the double word at {\code [ESP]} and
+then adds 4 to ESP. The code below demostrates how these instructions
+work and assumes that ESP is initially {\code 1000H}.
+\begin{AsmCodeListing}[frame=none]
+      push   dword 1    ; 1 stored at 0FFCh, ESP = 0FFCh
+      push   dword 2    ; 2 stored at 0FF8h, ESP = 0FF8h
+      push   dword 3    ; 3 stored at 0FF4h, ESP = 0FF4h
+      pop    eax        ; EAX = 3, ESP = 0FF8h
+      pop    ebx        ; EBX = 2, ESP = 0FFCh
+      pop    ecx        ; ECX = 1, ESP = 1000h
+\end{AsmCodeListing}
+
+The stack can be used as a convenient place to store data temporarily. It is
+also used for making subprogram calls, passing parameters and local
+variables.
+
+The 80x86 also provides a {\code PUSHA} instruction that pushes the values
+of EAX, EBX, ECX, EDX, ESI, EDI and EBP registers (not in this order). The
+{\code POPA} instruction can be used to pop them all back off.
+\index{stack|)}
+
+\section{The CALL and RET Instructions\index{subprogram!calling|(}}
+\index{CALL|(}
+\index{RET|(}
+The 80x86 provides two instructions that use the stack to make calling
+subprograms quick and easy. The CALL instruction makes an
+unconditional jump to a subprogram and \emph{pushes} the address of
+the next instruction on the stack. The RET instruction
+\emph{pops off} an address and jumps to that address. When using these
+instructions, it is very important that one manage the stack correctly
+so that the right number is popped off by the RET instruction!
+
+The previous program can be rewritten to use these new instructions by 
+changing lines~25 to 34 to be:
+\begin{AsmCodeListing}[numbers=none]
+      mov    ebx, input1
+      call   get_int
+
+      mov    ebx, input2
+      call   get_int
+\end{AsmCodeListing}
+and change the subprogram {\code get\_int} to:
+\begin{AsmCodeListing}[numbers=none]
+get_int:
+      call   read_int
+      mov    [ebx], eax
+      ret
+\end{AsmCodeListing}
+
+There are several advantages to CALL and RET:
+\begin{itemize}
+\item It is simpler!
+\item It allows subprograms calls to be nested easily. Notice that
+{\code get\_int} calls {\code read\_int}. This call pushes another address
+on the stack. At the end of {\code read\_int}'s code is a RET that pops
+off the return address and jumps back to {\code get\_int}'s code. Then when
+{\code get\_int}'s RET is executed, it pops off the return address that 
+jumps back to {\code asm\_main}. This works correctly because of the LIFO
+property of the stack.
+\end{itemize}
+
+Remember it is \emph{very} important to pop off all data that is pushed
+on the stack. For example, consider the following:
+\begin{AsmCodeListing}[frame=none]
+get_int:
+      call   read_int
+      mov    [ebx], eax
+      push   eax
+      ret                  ; pops off EAX value, not return address!!
+\end{AsmCodeListing}
+This code would not return correctly!
+\index{RET|)}
+\index{CALL|)}
+
+\section{Calling Conventions\index{calling convention|(}}
+
+When a subprogram is invoked, the calling code and the subprogram (the
+\emph{callee}) must agree on how to pass data between them. High-level
+languages have standard ways to pass data known as \emph{calling 
+conventions}. For high-level code to interface with assembly language, the
+assembly language code must use the same conventions as the high-level
+language. The calling conventions can differ from compiler to compiler or
+may vary depending on how the code is compiled (\emph{e.g.} if
+optimizations are on or not). One universal convention is that the code will
+be invoked with a {\code CALL} instruction and return via a {\code RET}.
+
+All PC C compilers support one calling convention that will be
+described in the rest of this chapter in stages. These conventions
+allow one to create subprograms that are \emph{reentrant}. A reentrant
+subprogram may be called at any point of a program safely (even inside
+the subprogram itself).
+
+\subsection{Passing parameters on the stack\index{stack|(}\index{stack!parameters|(}}
+
+Parameters to a subprogram may be passed on the stack. They are pushed onto
+the stack before the {\code CALL} instruction. Just as in C, if the
+parameter is to be changed by the subprogram, the \emph{address} of the 
+data must be passed, not the \emph{value}. If the parameter's size is less
+than a double word, it must be converted to a double word before being pushed.
+
+The parameters on the stack are not popped off by the subprogram, instead
+they are accessed from the stack itself. Why?
+\begin{itemize}
+\item Since they have to be pushed on the stack before the {\code CALL}
+instruction, the return address would have to be popped off first (and
+then pushed back on again).
+\item Often the parameters will have to be used in several places in the
+subprogram. Usually, they can not be kept in a register for the entire
+subprogram and would have to be stored in memory. Leaving them on the
+stack keeps a copy of the data in memory that can be accessed at any
+point of the subprogram.
+\end{itemize}
+
+\begin{figure}
+\centering
+\begin{tabular}{l|c|}
+\cline{2-2}
+&  \\ \cline{2-2}
+ESP + 4 & Parameter \\ \cline{2-2}
+ESP     & Return address \\ \cline{2-2}
+ & \\ \cline{2-2}
+\end{tabular}
+\caption{}
+\label{fig:stack1}
+\end{figure}
+Consider \MarginNote{When using indirect addressing, the 80x86 processor 
+accesses different segments depending on what registers are used in the
+indirect addressing expression. ESP (and EBP) use the stack segment while
+EAX, EBX, ECX and EDX use the data seg\-ment. However, this is usually 
+unimportant for most protected mode programs, because for them the data 
+and stack segments are the same.}
+a subprogram that is passed a single parameter on the stack. When
+the subprogram is invoked, the stack looks like Figure~\ref{fig:stack1}.
+The parameter can be accessed using indirect addressing ({\code [ESP+4]}
+\footnote{It is legal to add a constant to a register when using indirect
+addressing. More complicated expressions are possible too. This topic is covered
+in the next chapter}).
+\begin{figure}
+\centering
+\begin{tabular}{l|c|}
+\cline{2-2}
+&  \\ \cline{2-2}
+ESP + 8 & Parameter \\ \cline{2-2}
+ESP + 4 & Return address \\ \cline{2-2}
+ESP     & subprogram data \\ \cline{2-2}
+\end{tabular}
+\caption{}
+\label{fig:stack2}
+\end{figure}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+subprogram_label:
+      push   ebp           ; save original EBP value on stack
+      mov    ebp, esp      ; new EBP = ESP
+; subprogram code
+      pop    ebp           ; restore original EBP value
+      ret
+\end{AsmCodeListing}
+\caption{General subprogram form \label{fig:subskel1}}
+\end{figure}
+
+If the stack is also used inside the subprogram to store data, the
+number needed to be added to ESP will change. For example,
+Figure~\ref{fig:stack2} shows what the stack looks like if a DWORD is
+pushed the stack. Now the parameter is at {\code ESP + 8} not {\code
+ESP + 4}. Thus, it can be very error prone to use ESP when referencing
+parameters. To solve this problem, the 80386 supplies another register
+to use: EBP. This register's only purpose is to reference data on the
+stack. The C calling convention mandates that a subprogram first save
+the value of EBP on the stack and then set EBP to be equal to ESP.
+This allows ESP to change as data is pushed or popped off the stack
+without modifying EBP. At the end of the subprogram, the original
+value of EBP must be restored (this is why it is saved at the start of
+the subprogram.)  Figure~\ref{fig:subskel1} shows the general form of
+a subprogram that follows these conventions.
+
+\begin{figure}[t]
+\centering
+\begin{tabular}{ll|c|}
+\cline{3-3}
+&  & \\ \cline{3-3}
+ESP + 8 & EBP + 8 & Parameter \\ \cline{3-3}
+ESP + 4 & EBP + 4 & Return address \\ \cline{3-3}
+ESP     & EBP     & saved EBP \\ \cline{3-3}
+\end{tabular}
+\caption{}
+\label{fig:stack3}
+\end{figure}
+
+
+Lines 2 and 3 in Figure~\ref{fig:subskel1} make up the general \emph{prologue}
+of a subprogram. Lines 5 and 6 make up the \emph{epilogue}. 
+Figure~\ref{fig:stack3} shows what the stack looks like immediately
+after the prologue. Now the parameter can be access with {\code [EBP + 8]}
+at any place in the subprogram without worrying about what else has
+been pushed onto the stack by the subprogram.
+
+After the subprogram is over, the parameters that were pushed on the
+stack must be removed. The C calling convention \index{calling
+convention!C} specifies that the caller code must do this. Other
+conventions are different. For example, the Pascal calling convention
+\index{calling convention!Pascal} specifies that the subprogram must
+remove the parameters.  (There is another form of the RET \index{RET}
+instruction that makes this easy to do.) Some C compilers support this
+convention too. The {\code pascal} keyword is used in the prototype
+and definition of the function to tell the compiler to use this
+convention. In fact, the {\code stdcall} convention \index{calling
+convention!stdcall} that the MS Windows API C functions use also works
+this way.  What is the advantage of this way? It is a little more
+efficient than the C convention. Why do all C functions not use this
+convention, then? In general, C allows a function to have varying
+number of arguments (\emph{e.g.}, the {\code printf} and {\code scanf}
+functions). For these types of functions, the operation to remove the
+parameters from the stack will vary from one call of the function to
+the next. The C convention allows the instructions to perform this
+operation to be easily varied from one call to the next. The Pascal
+and stdcall convention makes this operation very difficult. Thus, the
+Pascal convention (like the Pascal language) does not allow this type
+of function. MS Windows can use this convention since none of its API
+functions take varying numbers of arguments.
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+      push   dword 1        ; pass 1 as parameter
+      call   fun
+      add    esp, 4         ; remove parameter from stack
+\end{AsmCodeListing}
+\caption{Sample subprogram call \label{fig:subcall}}
+\end{figure}
+
+Figure~\ref{fig:subcall} shows how a subprogram using the C calling
+convention would be called. Line~3 removes the parameter from the
+stack by directly manipulating the stack pointer. A {\code POP}
+instruction could be used to do this also, but would require the
+useless result to be stored in a register. Actually, for this
+particular case, many compilers would use a {\code POP ECX}
+instruction to remove the parameter. The compiler would use a {\code
+POP} instead of an {\code ADD} because the {\code ADD} requires more
+bytes for the instruction. However, the {\code POP} also changes ECX's
+value! Next is another example program with two subprograms that use
+the C calling conventions discussed above. Line~54 (and other lines)
+shows that multiple data and text segments may be declared in a single
+source file. They will be combined into single data and text segments
+in the linking process. Splitting up the data and code into separate
+segments allow the data that a subprogram uses to be defined close by
+the code of the subprogram.
+\index{stack!parameters|)}
+
+\begin{AsmCodeListing}[label=sub3.asm]
+%include "asm_io.inc"
+
+segment .data
+sum     dd   0
+
+segment .bss
+input   resd 1
+
+;
+; pseudo-code algorithm
+; i = 1;
+; sum = 0;
+; while( get_int(i, &input), input != 0 ) {
+;   sum += input;
+;   i++;
+; }
+; print_sum(num);
+segment .text
+        global  _asm_main
+_asm_main:
+        enter   0,0               ; setup routine
+        pusha
+
+        mov     edx, 1            ; edx is 'i' in pseudo-code
+while_loop:
+        push    edx               ; save i on stack
+        push    dword input       ; push address of input on stack
+        call    get_int
+        add     esp, 8            ; remove i and &input from stack
+
+        mov     eax, [input]
+        cmp     eax, 0
+        je      end_while
+
+        add     [sum], eax        ; sum += input
+
+        inc     edx
+        jmp     short while_loop
+
+end_while:
+        push    dword [sum]       ; push value of sum onto stack
+        call    print_sum
+        pop     ecx               ; remove [sum] from stack
+
+        popa
+        leave                     
+        ret
+
+; subprogram get_int
+; Parameters (in order pushed on stack)
+;   number of input (at [ebp + 12])
+;   address of word to store input into (at [ebp + 8])
+; Notes:
+;   values of eax and ebx are destroyed
+segment .data
+prompt  db      ") Enter an integer number (0 to quit): ", 0
+
+segment .text
+get_int:
+        push    ebp
+        mov     ebp, esp
+
+        mov     eax, [ebp + 12]
+        call    print_int
+
+        mov     eax, prompt
+        call    print_string
+        
+        call    read_int
+        mov     ebx, [ebp + 8]
+        mov     [ebx], eax         ; store input into memory
+
+        pop     ebp
+        ret                        ; jump back to caller
+
+; subprogram print_sum
+; prints out the sum
+; Parameter:
+;   sum to print out (at [ebp+8])
+; Note: destroys value of eax
+;
+segment .data
+result  db      "The sum is ", 0
+
+segment .text
+print_sum:
+        push    ebp
+        mov     ebp, esp
+
+        mov     eax, result
+        call    print_string
+
+        mov     eax, [ebp+8]
+        call    print_int
+        call    print_nl
+
+        pop     ebp
+        ret
+\end{AsmCodeListing}
+
+
+\subsection{Local variables on the stack\index{stack!local variables|(}}
+
+The stack can be used as a convenient location for local variables. This is
+exactly where C stores normal (or \emph{automatic} in C lingo) variables.
+Using the stack for variables is important if one wishes subprograms to be
+reentrant. A reentrant subprogram will work if it is invoked at any place,
+including the subprogram itself. In other words, reentrant subprograms
+can be invoked \emph{recursively}. Using the stack for variables also saves
+memory. Data not stored on the stack is using memory from the beginning of
+the program until the end of the program (C calls these types of variables
+\emph{global} or \emph{static}). Data stored on the stack only use memory
+when the subprogram they are defined for is active.
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+subprogram_label:
+      push   ebp                ; save original EBP value on stack
+      mov    ebp, esp           ; new EBP = ESP
+      sub    esp, LOCAL_BYTES   ; = # bytes needed by locals
+; subprogram code
+      mov    esp, ebp           ; deallocate locals
+      pop    ebp                ; restore original EBP value
+      ret
+\end{AsmCodeListing}
+\caption{General subprogram form with local variables\label{fig:subskel2}}
+\end{figure}
+
+\begin{figure}[t]
+\begin{lstlisting}[frame=tlrb]{}
+void calc_sum( int n, int * sump )
+{
+  int i, sum = 0;
+
+  for( i=1; i <= n; i++ )
+    sum += i;
+  *sump = sum;
+}
+\end{lstlisting}
+\caption{C version of sum \label{fig:Csum}}
+\end{figure}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+cal_sum:
+      push   ebp
+      mov    ebp, esp
+      sub    esp, 4               ; make room for local sum
+
+      mov    dword [ebp - 4], 0   ; sum = 0
+      mov    ebx, 1               ; ebx (i) = 1
+for_loop:
+      cmp    ebx, [ebp+8]         ; is i <= n?
+      jnle   end_for
+
+      add    [ebp-4], ebx         ; sum += i
+      inc    ebx
+      jmp    short for_loop
+
+end_for:
+      mov    ebx, [ebp+12]        ; ebx = sump
+      mov    eax, [ebp-4]         ; eax = sum
+      mov    [ebx], eax           ; *sump = sum;
+
+      mov    esp, ebp
+      pop    ebp
+      ret
+\end{AsmCodeListing}
+\caption{Assembly version of sum\label{fig:Asmsum}}
+\end{figure}
+
+Local variables are stored right after the saved EBP value in the stack.
+They are allocated by subtracting the number of bytes required from ESP
+in the prologue of the subprogram. Figure~\ref{fig:subskel2} shows the 
+new subprogram skeleton. The EBP register is used to access local variables.
+Consider the C function in Figure~\ref{fig:Csum}. Figure~\ref{fig:Asmsum}
+shows how the equivalent subprogram could be written in assembly.
+
+\begin{figure}[t]
+\centering
+\begin{tabular}{ll|c|}
+\cline{3-3}
+ESP + 16 & EBP + 12 & {\code sump} \\ \cline{3-3}
+ESP + 12 & EBP + 8  & {\code n} \\ \cline{3-3}
+ESP + 8  & EBP + 4  & Return address \\ \cline{3-3}
+ESP + 4  & EBP      & saved EBP \\ \cline{3-3}
+ESP      & EBP - 4  & {\code sum} \\ \cline{3-3}
+\end{tabular}
+\caption{}
+\label{fig:SumStack}
+\end{figure}
+
+Figure~\ref{fig:SumStack} shows what the stack looks like after the
+prologue of the program in Figure~\ref{fig:Asmsum}. This section of
+the stack that contains the parameters, return information and local
+variable storage is called a \emph{stack frame}. Every invocation of
+a C function creates a new stack frame on the stack.
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+subprogram_label:
+      enter  LOCAL_BYTES, 0     ; = # bytes needed by locals
+; subprogram code
+      leave
+      ret
+\end{AsmCodeListing}
+\caption{General subprogram form with local variables using 
+{\code ENTER} and {\code LEAVE}\label{fig:subskel3}}
+\end{figure}
+
+\MarginNote{Despite the fact that {\code ENTER} and {\code LEAVE} simplify
+the prologue and epilogue they are not used very often. Why? Because
+they are slower than the equivalent simplier instructions! This is an
+example of when one can not assume that a one instruction sequence is
+faster than a multiple instruction one.} 
+The prologue and epilogue of a subprogram can be simplified by using
+two special instructions that are designed specifically for this
+purpose. The {\code ENTER} instruction performs the prologue code and the
+{\code LEAVE} performs the epilogue. The {\code ENTER} instruction
+takes two immediate operands. For the C calling convention, the second
+operand is always 0. The first operand is the number bytes needed by
+local variables. The {\code LEAVE} instruction has no
+operands. Figure~\ref{fig:subskel3} shows how these instructions are
+used. Note that the program skeleton (Figure~\ref{fig:skel}) also uses
+{\code ENTER} and {\code LEAVE}.
+\index{stack!local variables|)}
+\index{stack|)}
+\index{calling convention|)}
+\index{subprogram!calling|)}
+
+\section{Multi-Module Programs\index{multi-module programs|(}}
+
+A \emph{multi-module program} is one composed of more than one object
+file.  All the programs presented here have been multi-module
+programs. They consisted of the C driver object file and the assembly
+object file (plus the C library object files). Recall that the linker
+combines the object files into a single executable program. The linker
+must match up references made to each label in one module (\emph{i.e.}
+object file) to its definition in another module. In order for module
+A to use a label defined in module B, the {\code extern} directive
+must be used. After the {\code extern} \index{directive!extern}
+directive comes a comma delimited list of labels. The directive tells
+the assembler to treat these labels as \emph{external} to the
+module. That is, these are labels that can be used in this module, but
+are defined in another. The {\code asm\_io.inc} file defines the
+{\code read\_int}, \emph{etc.} routines as external.
+
+In assembly, labels can not be accessed externally by default. If a
+label can be accessed from other modules than the one it is defined
+in, it must be declared \emph{global} in its module. The {\code
+global} \index{directive!global} directive does this. Line~13 of the
+skeleton program listing in Figure~\ref{fig:skel} shows the {\code
+\_asm\_main} label being defined as global. Without this declaration,
+there would be a linker error. Why? Because the C code would not be
+able to refer to the \emph{internal} {\code \_asm\_main} label.
+
+Next is the code for the previous example, rewritten to use two modules. The
+two subprograms ({\code get\_int} and {\code print\_sum}) are in a separate
+source file than the {\code \_asm\_main} routine.
+
+\begin{AsmCodeListing}[label=main4.asm,commandchars=\\\{\}]
+%include "asm_io.inc"
+
+segment .data
+sum     dd   0
+
+segment .bss
+input   resd 1
+
+segment .text
+        global  _asm_main
+\textit{        extern  get_int, print_sum}
+_asm_main:
+        enter   0,0               ; setup routine
+        pusha
+
+        mov     edx, 1            ; edx is 'i' in pseudo-code
+while_loop:
+        push    edx               ; save i on stack
+        push    dword input       ; push address on input on stack
+        call    get_int
+        add     esp, 8            ; remove i and &input from stack
+
+        mov     eax, [input]
+        cmp     eax, 0
+        je      end_while
+
+        add     [sum], eax        ; sum += input
+
+        inc     edx
+        jmp     short while_loop
+
+end_while:
+        push    dword [sum]       ; push value of sum onto stack
+        call    print_sum
+        pop     ecx               ; remove [sum] from stack
+
+        popa
+        leave                     
+        ret
+\end{AsmCodeListing}
+
+\begin{AsmCodeListing}[label=sub4.asm,commandchars=\\\{\}]
+%include "asm_io.inc"
+
+segment .data
+prompt  db      ") Enter an integer number (0 to quit): ", 0
+
+segment .text
+\textit{        global  get_int, print_sum}
+get_int:
+        enter   0,0
+
+        mov     eax, [ebp + 12]
+        call    print_int
+
+        mov     eax, prompt
+        call    print_string
+        
+        call    read_int
+        mov     ebx, [ebp + 8]
+        mov     [ebx], eax         ; store input into memory
+
+        leave
+        ret                        ; jump back to caller
+
+segment .data
+result  db      "The sum is ", 0
+
+segment .text
+print_sum:
+        enter   0,0
+
+        mov     eax, result
+        call    print_string
+
+        mov     eax, [ebp+8]
+        call    print_int
+        call    print_nl
+
+        leave
+        ret
+\end{AsmCodeListing}
+
+The previous example only has global \index{directive!global} code
+labels; however, global data labels work exactly the same way.
+\index{multi-module programs|)}
+
+\section{Interfacing Assembly with C\index{interfacing with C|(}\index{calling convention!C|(}}
+
+Today, very few programs are written completely in assembly. Compilers are
+very good at converting high level code into efficient machine code. Since
+it is much easier to write code in a high level language, it is more popular.
+In addition, high level code is \emph{much} more portable than assembly!
+
+When assembly is used, it is often only used for small parts of the code.
+This can be done in two ways: calling assembly subroutines from C or inline
+assembly. Inline assembly allows the programmer to place assembly statements
+directly into C code. This can be very convenient; however, there are 
+disadvantages to inline assembly. The assembly code must be written
+in the format the compiler uses. No compiler at the moment supports NASM's
+format. Different compilers require different formats. Borland and Microsoft
+require MASM format. DJGPP and Linux's gcc require GAS\footnote{GAS is the
+assembler that all GNU compiler's use. It uses the AT\&T syntax which is
+very different from the relatively similar syntaxes of MASM, TASM and NASM.}
+format. The technique of calling an assembly subroutine is much more
+standardized on the PC.
+
+Assembly routines are usually used with C for the following reasons:
+\begin{itemize}
+\item Direct access is needed to hardware features of the computer that
+      are difficult or impossible to access from C.
+\item The routine must be as fast as possible and the programmer can
+      hand optimize the code better than the compiler can.
+\end{itemize}
+
+The last reason is not as valid as it once was. Compiler technology has
+improved over the years and compilers can often generate very efficient code
+(especially if compiler optimizations are turned on). The disadvantages of
+assembly routines are: reduced portability and readability.
+
+Most of the C calling conventions have already been specified. However, there
+are a few additional features that need to be described.
+
+\subsection{Saving registers\index{calling convention!C!registers|(}}
+First, 
+\MarginNote{The {\code register} keyword can be used in a C variable
+declaration to suggest to the compiler that it use a register for this
+variable instead of a memory location. These are known as register
+variables. Modern compilers do this automatically without requiring any
+suggestions.}
+C assumes that a subroutine maintains the values of the
+following registers: EBX, ESI, EDI, EBP, CS, DS, SS, ES. This does not
+mean that the subroutine can not change them internally. Instead, it
+means that if it does change their values, it must restore their 
+original values before the subroutine returns. The EBX, ESI and EDI values
+must be unmodified because C uses these registers for \emph{register
+variables}. Usually the stack is used to save the original values of these
+registers.
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+segment .data
+x            dd     0
+format       db     "x = %d\n", 0
+
+segment .text
+...
+      push   dword [x]     ; push x's value
+      push   dword format  ; push address of format string
+      call   _printf       ; note underscore!
+      add    esp, 8        ; remove parameters from stack
+\end{AsmCodeListing}
+\caption{Call to {\code printf} \label{fig:Cprintf}}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\begin{tabular}{l|c|}
+\cline{2-2}
+EBP + 12 & value of {\code x} \\ \cline{2-2}
+EBP + 8  & address of format string \\ \cline{2-2}
+EBP + 4  & Return address \\ \cline{2-2}
+EBP      & saved EBP \\ \cline{2-2}
+\end{tabular}
+\caption{Stack inside {\code printf}\label{fig:CprintfStack}}
+\end{figure}
+\index{calling convention!C!registers|)}
+
+\subsection{Labels of functions\index{calling convention!C!labels|(}}
+Most C compilers prepend a single underscore({\code \_}) character at
+the beginning of the names of functions and global/static
+variables. For example, a function named {\code f} will be assigned
+the label {\code \_f}. Thus, if this is to be an assembly routine, it
+\emph{must} be labelled {\code \_f}, not {\code f}. The Linux gcc
+compiler does \emph{not} prepend any character.  Under Linux ELF
+executables, one simply would use the label {\code f} for the C
+function {\code f}.  However, DJGPP's gcc does prepend an
+underscore. Note that in the assembly skeleton program
+(Figure~\ref{fig:skel}), the label for the main routine is {\code
+\_asm\_main}.
+\index{calling convention!C!labels|)}
+
+\subsection{Passing parameters\index{calling convention!C!parameters|(}}
+Under the C calling convention, the arguments of a function are pushed on
+the stack in the \emph{reverse} order that they appear in the function
+call.
+
+Consider the following C statement: \verb|printf("x = %d\n",x);|
+Figure~\ref{fig:Cprintf} shows how this would be compiled (shown in
+the equivalent NASM format). Figure~\ref{fig:CprintfStack} shows what
+the stack looks like after the prologue inside the {\code printf}
+function. The {\code printf} function is one of the C library
+functions that can take any number of arguments. The rules of the C
+calling conventions were specifically written to allow these types of
+functions. \MarginNote{It is not necessary to use assembly to process
+an arbitrary number of arguments in C. The {\code stdarg.h} header
+file defines macros that can be used to process them portably. See any
+good C book for details.} Since the address of the format string is
+pushed last, its location on the stack will \emph{always} be at
+{\code EBP + 8} no matter how many parameters are passed to the
+function. The {\code printf} code can then look at the format string
+to determine how many parameters should have been passed and look for
+them on the stack.
+
+Of course, if a mistake is made, \verb|printf("x = %d\n")|, the
+{\code printf} code will still print out the double word value at 
+{\code [EBP + 12]}. However, this will not be {\code x}'s value!
+\index{calling convention!C!parameters|)}
+
+\subsection{Calculating addresses of local variables\index{stack!local variables|(}}
+
+Finding the address of a label defined in the {\code data} or {\code
+bss} segments is simple. Basically, the linker does this. However,
+calculating the address of a local variable (or parameter) on the
+stack is not as straightforward. However, this is a very common need
+when calling subroutines. Consider the case of passing the address of
+a variable (let's call it {\code x}) to a function (let's call it
+{\code foo}).  If {\code x} is located at EBP $-$ 8 on the stack, one
+cannot just use:
+\begin{AsmCodeListing}[numbers=none,frame=none]
+      mov    eax, ebp - 8
+\end{AsmCodeListing}
+Why? The value that {\code MOV} stores into EAX must be computed by
+the assembler (that is, it must in the end be a constant). However,
+there is an instruction that does the desired calculation. It is
+called \index{LEA|(} {\code LEA}  (for \emph{Load Effective Address}). The following
+would calculate the address of {\code x} and store it into EAX:
+\begin{AsmCodeListing}[numbers=none,frame=none]
+      lea    eax, [ebp - 8]
+\end{AsmCodeListing}
+Now EAX holds the address of {\code x} and could be pushed on the
+stack when calling function {\code foo}. Do not be confused, it looks
+like this instruction is reading the data at
+[EBP\nolinebreak$-$\nolinebreak8]; however, this is \emph{not}
+true. The {\code LEA} instruction \emph{never} reads memory! It only
+computes the address that would be read by another instruction and
+stores this address in its first register operand. Since it does not
+actually read any memory, no memory size designation (\emph{e.g.}
+{\code dword}) is needed or allowed.
+
+\index{LEA|)}
+\index{stack!local variables|)}
+
+\subsection{Returning values\index{calling convention!C!return values|(}}
+
+Non-void C functions return back a value. The C calling conventions
+specify how this is done. Return values are passed via registers. All
+integral types ({\code char}, {\code int}, {\code enum}, \emph{etc.})
+are returned in the EAX register. If they are smaller than 32-bits,
+they are extended to 32-bits when stored in EAX. (How they are
+extended depends on if they are signed or unsigned types.) 64-bit values
+are returned in the EDX:EAX\index{register!EDX:EAX} register pair. Pointer
+values are also stored in EAX. Floating point values are stored in the
+ST0 register of the math coprocessor. (This register is discussed in
+the floating point chapter.)
+\index{calling convention!C!return values|)}
+\index{calling convention!C|)}
+
+\subsection{Other calling conventions\index{calling convention|(}}
+
+The rules above describe the standard C calling convention that is
+supported by all 80x86 C compilers. Often compilers support other
+calling conventions as well. When interfacing with assembly language
+it is \emph{very} important to know what calling convention the
+compiler is using when it calls your function. Usually, the default is
+to use the standard calling convention; however, this is not always
+the case\footnote{The Watcom C\index{compiler!Watcom} compiler is an
+example of one that does \emph{not} use the standard convention by
+default. See the example source code file for Watcom for details}.
+Compilers that use multiple conventions often have command line
+switches that can be used to change the default convention.  They also
+provide extensions to the C syntax to explicitly assign calling
+conventions to individual functions. However, these extensions are not
+standardized and may vary from one compiler to another.
+
+The GCC compiler allows different calling conventions. The convention
+of a function can be explicitly declared by using the {\code
+\_\_attribute\_\_} extension\index{compiler!gcc!\_\_attribute\_\_}. For example,
+to declare a void function that uses the standard calling convention
+\index{calling convention!C} named {\code f} that takes a single
+{\code int} parameter, use the following syntax for its prototype:
+\begin{lstlisting}[stepnumber=0]{}
+void f( int ) __attribute__((cdecl));
+\end{lstlisting}
+GCC also supports the \emph{standard call} \index{calling
+convention!stdcall} calling convention. The function above could be
+declared to use this convention by replacing the {\code cdecl} with
+{\code stdcall}. The difference in {\code stdcall} and {\code cdecl}
+is that {\code stdcall} requires the subroutine to remove the
+parameters from the stack (as the Pascal calling convention
+does). Thus, the {\code stdcall} convention can only be used with
+functions that take a fixed number of arguments (\emph{i.e.} ones not
+like {\code printf} and {\code scanf}).
+
+GCC also supports an additional attribute called {\code regparm}
+\index{calling convention!register} that tells the compiler to use
+registers to pass up to 3 integer arguments to a function instead of
+using the stack. This is a common type of optimization that many
+compilers support.
+
+Borland and Microsoft use a common syntax to declare calling
+conventions.  They add the {\code \_\_cdecl}\index{calling
+convention!\_\_cdecl} and {\code \_\_stdcall}\index{calling
+convention!\_\_stdcall} keywords to C. These keywords act as function
+modifiers and appear immediately before the function name in a
+prototype. For example, the function {\code f} above would be defined
+as follows for Borland and Microsoft:
+\begin{lstlisting}[stepnumber=0]{}
+void __cdecl f( int );
+\end{lstlisting}
+
+There are advantages and disadvantages to each of the calling
+conventions.  The main advantages of the {\code cdecl}\index{calling
+convention!C} convention is that it is simple and very flexible. It
+can be used for any type of C function and C compiler. Using other
+conventions can limit the portability of the subroutine. Its main
+disadvantage is that it can be slower than some of the others and use
+more memory (since every invocation of the function requires code to
+remove the parameters on the stack).
+
+The advantages of the {\code stdcall}\index{calling
+convention!standard call} convention is that it uses less memory than
+{\code cdecl}. No stack cleanup is required after the {\code CALL}
+instruction. Its main disadvantage is that it can not be used with
+functions that have variable numbers of arguments.
+
+The advantage of using a convention that uses registers to pass integer
+parameters is speed. The main disadvantage is that the convention is more
+complex. Some parameters may be in registers and others on the stack.
+
+\index{calling convention|)}
+
+\subsection{Examples}
+
+Next is an example that shows how an assembly routine can be interfaced to
+a C program. (Note that this program does not use the assembly skeleton
+program (Figure~\ref{fig:skel}) or the driver.c module.)
+
+\LabelLine{main5.c}
+\begin{lstlisting}{}
+#include <stdio.h>
+/* prototype for assembly routine */
+void calc_sum( int, int * ) __attribute__((cdecl));
+
+int main( void )
+{
+  int n, sum;
+
+  printf("Sum integers up to: ");
+  scanf("%d", &n);
+  calc_sum(n, &sum);
+  printf("Sum is %d\n", sum);
+  return 0;
+}
+\end{lstlisting}
+\LabelLine{main5.c}
+
+\begin{AsmCodeListing}[label=sub5.asm, commandchars=\\\%|]
+; subroutine _calc_sum
+; finds the sum of the integers 1 through n
+; Parameters:
+;   n    - what to sum up to (at [ebp + 8])
+;   sump - pointer to int to store sum into (at [ebp + 12])
+; pseudo C code:
+; void calc_sum( int n, int * sump )
+; {
+;   int i, sum = 0;
+;   for( i=1; i <= n; i++ )
+;     sum += i;
+;   *sump = sum;
+; }
+
+segment .text
+        global  _calc_sum
+;
+; local variable:
+;   sum at [ebp-4]
+_calc_sum:
+        enter   4,0               ; make room for sum on stack
+        push    ebx               ; IMPORTANT! \label%line:pushebx|
+
+        mov     dword [ebp-4],0   ; sum = 0
+        dump_stack 1, 2, 4        ; print out stack from ebp-8 to ebp+16 \label%line:dumpstack|
+        mov     ecx, 1            ; ecx is i in pseudocode
+for_loop:
+        cmp     ecx, [ebp+8]      ; cmp i and n
+        jnle    end_for           ; if not i <= n, quit
+
+        add     [ebp-4], ecx      ; sum += i
+        inc     ecx
+        jmp     short for_loop
+
+end_for:
+        mov     ebx, [ebp+12]     ; ebx = sump
+        mov     eax, [ebp-4]      ; eax = sum
+        mov     [ebx], eax
+
+        pop     ebx               ; restore ebx
+        leave
+        ret
+\end{AsmCodeListing}
+
+\begin{figure}[t]
+\begin{Verbatim}[frame=single]
+Sum integers up to: 10
+Stack Dump # 1
+EBP = BFFFFB70 ESP = BFFFFB68
+ +16  BFFFFB80  080499EC
+ +12  BFFFFB7C  BFFFFB80
+  +8  BFFFFB78  0000000A
+  +4  BFFFFB74  08048501
+  +0  BFFFFB70  BFFFFB88
+  -4  BFFFFB6C  00000000
+  -8  BFFFFB68  4010648C
+Sum is 55
+\end{Verbatim}
+\caption{Sample run of sub5 program \label{fig:dumpstack}}
+\end{figure}
+
+Why is line~\ref{line:pushebx} of {\code sub5.asm} so important?
+Because the C calling convention requires the value of EBX to be
+unmodified by the function call. If this is not done, it is very
+likely that the program will not work correctly.
+
+Line~\ref{line:dumpstack} demonstrates how the {\code dump\_stack} macro
+works. Recall that the first parameter is just a numeric label, and the
+second and third parameters determine how many double words to display below
+and above EBP respectively. Figure~\ref{fig:dumpstack} shows an example run
+of the program. For this dump, one can see that the address of the dword
+to store the sum is BFFFFB80 (at EBP~+~12); the number to sum up to is 0000000A
+(at EBP~+~8); the return address for the routine is 08048501 (at EBP~+~4);
+the saved EBP value is BFFFFB88 (at EBP); the value of the local variable is
+0 at (EBP~-~4); and finally the saved EBX value is 4010648C (at EBP~-~8).
+
+The {\code calc\_sum} function could be rewritten to return the sum as its
+return value instead of using a pointer parameter. Since the sum is an
+integral value, the sum should be left in the EAX register. Line~11 of the
+{\code main5.c} file would be changed to:
+\begin{lstlisting}[stepnumber=0]{}
+  sum = calc_sum(n);
+\end{lstlisting}
+Also, the prototype of {\code calc\_sum} would need be altered. Below is
+the modified assembly code:
+\begin{AsmCodeListing}[label=sub6.asm]
+; subroutine _calc_sum
+; finds the sum of the integers 1 through n
+; Parameters:
+;   n    - what to sum up to (at [ebp + 8])
+; Return value:
+;   value of sum
+; pseudo C code:
+; int calc_sum( int n )
+; {
+;   int i, sum = 0;
+;   for( i=1; i <= n; i++ )
+;     sum += i;
+;   return sum;
+; }
+segment .text
+        global  _calc_sum
+;
+; local variable:
+;   sum at [ebp-4]
+_calc_sum:
+        enter   4,0               ; make room for sum on stack
+
+        mov     dword [ebp-4],0   ; sum = 0
+        mov     ecx, 1            ; ecx is i in pseudocode
+for_loop:
+        cmp     ecx, [ebp+8]      ; cmp i and n
+        jnle    end_for           ; if not i <= n, quit
+
+        add     [ebp-4], ecx      ; sum += i
+        inc     ecx
+        jmp     short for_loop
+
+end_for:
+        mov     eax, [ebp-4]      ; eax = sum
+
+        leave
+        ret
+\end{AsmCodeListing}
+
+\subsection{Calling C functions from assembly}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+segment .data
+format       db "%d", 0
+
+segment .text
+...
+      lea    eax, [ebp-16]
+      push   eax
+      push   dword format
+      call   _scanf
+      add    esp, 8
+...
+\end{AsmCodeListing}
+\caption{Calling {\code scanf} from assembly\label{fig:scanf}}
+\end{figure}
+
+One great advantage of interfacing C and assembly is that allows
+assembly code to access the large C library and user-written functions.
+For example, what if one wanted to call the {\code scanf} function to
+read in an integer from the keyboard? Figure~\ref{fig:scanf} shows
+code to do this. One very important point to remember is that {\code
+scanf} follows the C calling standard to the letter. This means that it
+preserves the values of the EBX, ESI and EDI registers; however, the
+EAX, ECX and EDX registers may be modified! In fact, EAX will definitely
+be changed, as it will contain the return value of the {\code scanf} call.
+For other examples of using interfacing with C, look at the code in
+{\code asm\_io.asm} which was used to create {\code asm\_io.obj}.
+\index{interfacing with C|)}
+
+\section{Reentrant and Recursive Subprograms\index{recursion|(}}
+
+\index{subprogram!reentrant|(}
+A reentrant subprogram must satisfy the following properties:
+\begin{itemize}
+\item It must not modify any code instructions. In a high level language
+this would be difficult, but in assembly it is not hard for a program to
+try to modify its own code. For example:
+\begin{AsmCodeListing}[frame=none, numbers=none]
+      mov    word [cs:$+7], 5      ; copy 5 into the word 7 bytes ahead
+      add    ax, 2                 ; previous statement changes 2 to 5!
+\end{AsmCodeListing}
+This code would work in real mode, but in protected mode operating systems 
+the code segment is marked as read only. When the first line above executes,
+the program will be aborted on these systems. This type of programming is
+bad for many reasons. It is confusing, hard to maintain and does not allow
+code sharing (see below).
+
+\item It must not modify global data (such as data in the {\code data} and
+the {\code bss} segments). All variables are stored on the stack.
+
+\end{itemize}
+
+There are several advantages to writing reentrant code.
+\begin{itemize}
+\item A reentrant subprogram can be called recursively.
+\item A reentrant program can be shared by multiple processes. On many
+multi-tasking operating systems, if there are multiple instances of a
+program running, only \emph{one} copy of the code is in memory. Shared
+libraries and DLL's (\emph{Dynamic Link Libraries}) use this idea as well.
+\item Reentrant subprograms work much better in \emph{multi-threaded}
+\footnote{A multi-threaded program has multiple threads of execution. That
+is, the program itself is multi-tasked.} pro\-grams. Windows 9x/NT and most
+UNIX-like operating systems (Solaris, Linux, \emph{etc.}) support 
+multi-threaded programs.
+\end{itemize}
+\index{subprogram!reentrant|)}
+
+\subsection{Recursive subprograms}
+
+These types of subprograms call themselves. The recursion can be either
+\emph{direct} or \emph{indirect}. Direct recursion occurs when a subprogram,
+say {\code foo}, calls itself inside {\code foo}'s body. Indirect recursion
+occurs when a subprogram is not called by itself directly, but by another
+subprogram it calls. For example, subprogram {\code foo} could call
+{\code bar} and {\code bar} could call {\code foo}.
+
+Recursive subprograms must have a \emph{termination condition}. When
+this condition is true, no more recursive calls are made. If a
+recursive routine does not have a termination condition or the condition
+never becomes true, the recursion will never end (much like an infinite
+loop).
+
+\begin{figure}
+\begin{AsmCodeListing}[frame=single]
+; finds n!
+segment .text
+      global _fact
+_fact:
+      enter  0,0
+
+      mov    eax, [ebp+8]    ; eax = n
+      cmp    eax, 1
+      jbe    term_cond       ; if n <= 1, terminate
+      dec    eax
+      push   eax
+      call   _fact           ; eax = fact(n-1)
+      pop    ecx             ; answer in eax
+      mul    dword [ebp+8]   ; edx:eax = eax * [ebp+8]
+      jmp    short end_fact
+term_cond:
+      mov    eax, 1
+end_fact:
+      leave
+      ret
+\end{AsmCodeListing}
+\caption{Recursive factorial function\label{fig:factorial}}
+\end{figure}
+
+\begin{figure}
+\centering
+%\includegraphics{factStack.eps}
+\input{factStack.latex}
+\caption{Stack frames for factorial function\label{fig:factStack}}
+\end{figure}
+
+Figure~\ref{fig:factorial} shows a function that calculates factorials
+recursively. It could be called from C with:
+\begin{lstlisting}[stepnumber=0]{}
+x = fact(3);         /* find 3! */
+\end{lstlisting}
+Figure~\ref{fig:factStack} shows what the stack looks like at its deepest
+point for the above function call.
+
+\begin{figure}[t]
+\begin{lstlisting}[frame=tlrb]{}
+void f( int x )
+{
+  int i;
+  for( i=0; i < x; i++ ) {
+    printf("%d\n", i);
+    f(i);
+  }
+}
+\end{lstlisting}
+\caption{Another example (C version)\label{fig:rec2C}}
+\end{figure}
+
+\begin{figure}
+\begin{AsmCodeListing}[frame=single]
+%define i ebp-4
+%define x ebp+8          ; useful macros
+segment .data
+format       db "%d", 10, 0     ; 10 = '\n'
+segment .text
+      global _f
+      extern _printf
+_f:
+      enter  4,0           ; allocate room on stack for i
+
+      mov    dword [i], 0  ; i = 0
+lp:
+      mov    eax, [i]      ; is i < x?
+      cmp    eax, [x]
+      jnl    quit
+
+      push   eax           ; call printf
+      push   format
+      call   _printf
+      add    esp, 8
+
+      push   dword [i]     ; call f
+      call   _f
+      pop    eax
+
+      inc    dword [i]     ; i++
+      jmp    short lp
+quit:
+      leave
+      ret
+\end{AsmCodeListing}
+\caption{Another example (assembly version)\label{fig:rec2Asm}}
+\end{figure}
+
+Figures~\ref{fig:rec2C} and \ref{fig:rec2Asm} show another more
+complicated recursive example in C and assembly, respectively. What is
+the output is for {\code f(3)}? Note that the {\code ENTER} instruction
+creates a new {\code i} on the stack for each recursive call. Thus, each
+recursive instance of {\code f} has its own independent variable {\code i}.
+Defining {\code i} as a double word in the {\code data} segment would not
+work the same. 
+\index{recursion|)}
+
+\subsection{Review of C variable storage types}
+
+C provides several types of variable storage.
+\begin{description}
+\item[global] 
+\index{storage types!global}
+These variables are defined outside of any function and
+are stored at fixed memory locations (in the {\code data} or {\code
+bss} segments) and exist from the beginning of the program until the
+end. By default, they can be accessed from any function in the program;
+however, if they are declared as {\code static}, only the functions in
+the same module can access them (\emph{i.e.} in assembly terms, the
+label is internal, not external).
+
+\item[static] 
+\index{storage types!static}
+These are \emph{local} variables of a function that are
+declared {\code static}. (Unfortunately, C uses the keyword {\code
+static} for two different purposes!) These variables are also stored
+at fixed memory locations (in {\code data} or {\code bss}), but can
+only be directly accessed in the functions they are defined in. 
+
+\item[automatic] 
+\index{storage types!automatic}
+This is the default type for a C variable defined inside a
+function. These variables are allocated on the stack when the function
+they are defined in is invoked and are deallocated when the function
+returns. Thus, they do not have fixed memory locations.
+
+\item[register] 
+\index{storage types!register}
+This keyword asks the compiler to use a register for
+the data in this variable. This is just a \emph{request}. The compiler
+does \emph{not} have to honor it. If the address of the variable is
+used anywhere in the program it will not be honored (since registers
+do not have addresses). Also, only simple integral types can be
+register values.  Structured types can not be; they would not fit in a
+register! C compilers will often automatically make normal automatic
+variables into register variables without any hint from the programmer.
+
+\item[volatile] 
+\index{storage types!volatile}
+This keyword tells the compiler that the value of the
+variable may change any moment. This means that the compiler can not
+make any assumptions about when the variable is modified. Often a
+compiler might store the value of a variable in a register temporarily
+and use the register in place of the variable in a section of code. It
+can not do these types of optimizations with {\code volatile}
+variables. A common example of a volatile variable would be one could
+be altered by two threads of a multi-threaded program. Consider the 
+following code:
+\begin{lstlisting}{}
+x = 10;
+y = 20;
+z = x;
+\end{lstlisting}
+If {\code x} could be altered by another thread, it is possible that the
+other thread changes {\code x} between lines~1 and 3 so that {\code z}
+would not be 10. However, if the {\code x} was not declared volatile, the
+compiler might assume that {\code x} is unchanged and set {\code z} to 10.
+
+Another use of {\code volatile} is to keep the compiler from using a
+register for a variable. 
+
+\end{description}
+\index{subprogram|)}
