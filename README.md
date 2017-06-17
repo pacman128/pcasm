@@ -1,4 +1,4 @@
-#PC Assembly Language book
+# PC Assembly Language book
 
 This repo contains the LaTeX source of my popular 32-bit 80x86 assembly
 language book.
