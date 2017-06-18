@@ -1,13 +1,12 @@
-
-
+m4_include(`asm.m4')
 ;
 ; file: memory.asm
 ; This program illustrates how to use the string instructions
 
-global asm_copy, asm_find, asm_strlen, asm_strcpy
+global _C_LABEL(asm_copy), _C_LABEL(asm_find), _C_LABEL(asm_strlen), _C_LABEL(asm_strcpy)
 
-segment .text
-; function asm_copy
+_TEXT_SEG
+; function _C_LABEL(asm_copy)
 ; copies blocks of memory
 ; C prototype
 ; void asm_copy( void * dest, const void * src, unsigned sz);
@@ -21,10 +20,10 @@ segment .text
 %define dest [ebp+8]
 %define src  [ebp+12]
 %define sz   [ebp+16]
-asm_copy:
-        enter   0, 0
-        push    esi
-        push    edi
+_C_LABEL(asm_copy):
+	enter   0, 0
+	push	esi
+	push	edi
 
         mov     esi, src         ; esi = address of buffer to copy from
         mov     edi, dest        ; edi = address of buffer to copy to
@@ -33,13 +32,13 @@ asm_copy:
         cld                     ; clear direction flag 
         rep     movsb           ; execute movsb ECX times
 
-        pop     edi
-        pop     esi
-        leave
+	pop	edi
+	pop	esi
+	leave
         ret
 
 
-; function asm_find
+; function _C_LABEL(asm_find)
 ; searches memory for a given byte
 ; void * asm_find( const void * src, char target, unsigned sz);
 ; parameters:
@@ -58,9 +57,9 @@ asm_copy:
 %define target [ebp+12]
 %define sz     [ebp+16]
 
-asm_find:
-        enter   0,0
-        push    edi
+_C_LABEL(asm_find):
+	enter   0,0
+	push	edi
 
         mov     eax, target      ; al has value to search for
         mov     edi, src
@@ -76,12 +75,12 @@ found_it:
         mov     eax, edi          
         dec     eax              ; if found return (DI - 1)
 quit:
-        pop     edi
-        leave
+	pop	edi
+	leave
         ret
 
 
-; function asm_strlen
+; function _C_LABEL(asm_strlen)
 ; returns the size of a string
 ; unsigned asm_strlen( const char * );
 ; parameter:
@@ -90,9 +89,9 @@ quit:
 ;   number of chars in string (not counting, ending 0) (in EAX)
 
 %define src [ebp + 8]
-asm_strlen:
-        enter   0,0
-        push    edi
+_C_LABEL(asm_strlen):
+	enter   0,0
+	push	edi
 
         mov     edi, src        ; edi = pointer to string
         mov     ecx, 0FFFFFFFFh ; use largest possible ECX
@@ -108,11 +107,11 @@ asm_strlen:
         mov     eax,0FFFFFFFEh
         sub     eax, ecx          ; length = 0FFFFFFFEh - ecx
 
-        pop     edi
-        leave
+	pop	edi
+	leave
         ret
 
-; function asm_strcpy
+; function _C_LABEL(asm_strcpy)
 ; copies a string
 ; void asm_strcpy( char * dest, const char * src);
 ; parameters:
@@ -121,10 +120,10 @@ asm_strlen:
 ; 
 %define dest [ebp + 8]
 %define src  [ebp + 12]
-asm_strcpy:
-        enter   0,0
-        push    esi
-        push    edi
+_C_LABEL(asm_strcpy):
+	enter   0,0
+	push	esi
+	push	edi
 
         mov     edi, dest
         mov     esi, src
@@ -133,11 +132,11 @@ cpy_loop:
         lodsb                   ; load AL & inc si
         stosb                   ; store AL & inc di
         or      al, al          ; set condition flags
-        jnz     cpy_loop        ; if not past terminating 0, continue
+        jnz     cpy_loop	; if not past terminating 0, continue
 
-        pop     edi
-        pop     esi
-        leave
+	pop	edi
+	pop	esi
+	leave
         ret
 
 

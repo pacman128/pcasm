@@ -1,5 +1,4 @@
-
-
+m4_include(`asm.m4')
 ;
 ; file: sub3.asm
 ; Subprogram example program
@@ -15,13 +14,13 @@
 
 %include "asm_io.inc"
 
-segment .data
+_DATA_SEG
 sum     dd   0
 
-segment .bss
+_BSS_SEG
 input   resd 1
 
- 
+_DGROUP
 
 ;
 ; psuedo-code algorithm
@@ -33,11 +32,11 @@ input   resd 1
 ; }
 ; print_sum(num);
 
-segment .text
-        global  asm_main
-asm_main:
-        enter   0,0               ; setup routine
-        pusha
+_TEXT_SEG
+        global  _C_LABEL(asm_main)
+_C_LABEL(asm_main):
+	enter	0,0               ; setup routine
+	pusha
 
         mov     edx, 1            ; edx is 'i' in pseudo-code
 while_loop:
@@ -46,7 +45,7 @@ while_loop:
         call    get_int
         add     esp, 8            ; remove i and &input from stack
 
-        mov     eax, [input]
+	mov	eax, [input]
         cmp     eax, 0
         je      end_while
 
@@ -60,9 +59,9 @@ end_while:
         call    print_sum
         pop     ecx               ; remove [sum] from stack
 
-        popa
-        leave                     
-        ret
+	popa
+	leave			  
+	ret
 
 ;
 ; subprogram get_int
@@ -71,10 +70,10 @@ end_while:
 ;   address of word to store input into (at [ebp + 8])
 ; Notes:
 ;   values of eax and ebx are destroyed
-segment .data
+_DATA_SEG
 prompt  db      ") Enter an integer number (0 to quit): ", 0
 
-segment .text
+_TEXT_SEG
 get_int:
         push    ebp
         mov     ebp, esp
@@ -98,10 +97,10 @@ get_int:
 ;   sum to print out (at [ebp+8])
 ; Note: destroys value of eax
 ;
-segment .data
+_DATA_SEG
 result  db      "The sum is ", 0
 
-segment .text
+_TEXT_SEG
 print_sum:
         push    ebp
         mov     ebp, esp

@@ -1,5 +1,4 @@
-
-
+m4_include(`asm.m4')
 ;
 ; file: sub4.asm
 ; Subprogram example
@@ -13,17 +12,17 @@
 ;   address of word to store input into (at [ebp + 8])
 ; Notes:
 ;   values of eax and ebx are destroyed
-segment .data
+_DATA_SEG
 prompt  db      ") Enter an integer number (0 to quit): ", 0
 
-segment .bss
+_BSS_SEG
 
- 
+_DGROUP
 
-segment .text
+_TEXT_SEG
         global  get_int, print_sum
 get_int:
-        enter   0,0
+	enter   0,0
 
         mov     eax, [ebp + 12]
         call    print_int
@@ -44,10 +43,10 @@ get_int:
 ;   sum to print out (at [ebp+8])
 ; Note: destroys value of eax
 ;
-segment .data
+_DATA_SEG_BARE
 result  db      "The sum is ", 0
 
-segment .text
+_TEXT_SEG_BARE
 print_sum:
         enter   0,0
 

@@ -1,3 +1,4 @@
+m4_include(`asm.m4')
 ;
 ; file: prime.asm
 ; This program calculates prime numbers
@@ -37,19 +38,19 @@
 
 %include "asm_io.inc"
 
-segment .data
+_DATA_SEG
 Message         db      "Find primes up to: ", 0
 
 
-segment .bss
+_BSS_SEG
 Limit           resd    1               ; find primes up to this limit
 Guess           resd    1               ; the current guess for prime
 
- 
+_DGROUP
 
-segment .text
-        global  asm_main
-asm_main:
+_TEXT_SEG
+        global  _C_LABEL(asm_main)
+_C_LABEL(asm_main):
         enter   0,0               ; setup routine
         pusha
 
@@ -100,7 +101,7 @@ end_if:
         jmp     while_limit
 end_while_limit:
 
-        popa
+	popa
         mov     eax, 0            ; return back to C
         leave                     
         ret

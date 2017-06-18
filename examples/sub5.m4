@@ -1,37 +1,39 @@
-
-
+m4_include(`asm.m4')
 ;
-; file: sub6.asm
+; file: sub5.asm
 ; Subprogram to C interfacing example
 
-; subroutine calc_sum
+%include "asm_io.inc"
+
+; subroutine _C_LABEL(calc_sum)
 ; finds the sum of the integers 1 through n
 ; Parameters:
 ;   n    - what to sum up to (at [ebp + 8])
-; Return value:
-;   value of sum
+;   sump - pointer to int to store sum into (at [ebp + 12])
 ; pseudo C code:
-; int calc_sum( int n )
+; void calc_sum( int n, int * sump )
 ; {
 ;   int i, sum = 0;
 ;   for( i=1; i <= n; i++ )
 ;     sum += i;
-;   return sum;
+;   *sump = sum;
 ; }
 ;
 ; To assemble:
-; DJGPP:   nasm -f coff sub6.asm
-; Borland: nasm -f obj  sub6.asm
+; DJGPP:   nasm -f coff sub5.asm
+; Borland: nasm -f obj  sub5.asm
 
-segment .text
-        global  calc_sum
+_TEXT_SEG
+        global  _C_LABEL(calc_sum)
 ;
 ; local variable:
 ;   sum at [ebp-4]
-calc_sum:
-        enter   4,0               ; make room for sum on stack
+_C_LABEL(calc_sum):
+        enter   4,0               ; allocate room for sum on stack
+        push    ebx               ; IMPORTANT!
 
         mov     dword [ebp-4],0   ; sum = 0
+        dump_stack 1, 2, 4        ; print out stack from ebp-8 to ebp+16
         mov     ecx, 1            ; ecx is i in pseudocode
 for_loop:
         cmp     ecx, [ebp+8]      ; cmp i and n
@@ -42,8 +44,11 @@ for_loop:
         jmp     short for_loop
 
 end_for:
+        mov     ebx, [ebp+12]     ; ebx = sump
         mov     eax, [ebp-4]      ; eax = sum
+        mov     [ebx], eax
 
+        pop     ebx               ; restore ebx
         leave
         ret
 

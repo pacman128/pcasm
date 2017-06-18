@@ -1,5 +1,4 @@
-
-
+m4_include(`asm.m4')
 ;
 ; file: main4.asm
 ; Multi-module subprogram example program
@@ -17,13 +16,13 @@
 
 %include "asm_io.inc"
 
-segment .data
+_DATA_SEG
 sum     dd   0
 
-segment .bss
+_BSS_SEG
 input   resd 1
 
- 
+_DGROUP
 
 ;
 ; psuedo-code algorithm
@@ -35,12 +34,12 @@ input   resd 1
 ; }
 ; print_sum(num);
 
-segment .text
-        global  asm_main
+_TEXT_SEG
+        global  _C_LABEL(asm_main)
         extern  get_int, print_sum
-asm_main:
-        enter   0,0               ; setup routine
-        pusha
+_C_LABEL(asm_main):
+	enter	0,0               ; setup routine
+	pusha
 
         mov     edx, 1            ; edx is 'i' in pseudo-code
 while_loop:
@@ -49,7 +48,7 @@ while_loop:
         call    get_int
         add     esp, 8            ; remove i and &input from stack
 
-        mov     eax, [input]
+	mov	eax, [input]
         cmp     eax, 0
         je      end_while
 
@@ -63,9 +62,9 @@ end_while:
         call    print_sum
         pop     ecx               ; remove [sum] from stack
 
-        popa
-        leave                     
-        ret
+	popa
+	leave			  
+	ret
 
 
 

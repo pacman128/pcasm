@@ -222,3 +222,4 @@ TSWLatexianTemp*
 # Object files for examples
 *.o
 *.obj
+*~
