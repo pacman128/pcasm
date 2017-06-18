@@ -18,6 +18,14 @@ generate djgpp ms
 generate bcc borland
 generate watcom watcom
 
-
-
-    
+# Assemble the asm_io.asm file to create the object file
+cd linux
+nasm -f elf -d ELF_TYPE asm_io.asm
+cd ../djgpp
+nasm -f coff -d COFF_TYPE asm_io.asm
+cd ../ms
+nasm -f win32 -d COFF_TYPE asm_io.asm
+cd ../borland
+nasm -f obj -d OBJ_TYPE asm_io.asm
+cd ../
+nasm -f obj -d OBJ_TYPE -d WATCOM asm_io.asm
