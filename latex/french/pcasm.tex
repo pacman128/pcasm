@@ -1,0 +1,125 @@
+% To create PDF version, type
+%   pdflatex pcasm.tex
+% This will produce errors the first time, type R at the error prompt
+% Then rerun again (twice to get all the references.
+
+%
+% To make the index, type:
+%    makeindex pcasm
+%
+
+\documentclass[11pt]{book}
+\typeout{-----------------------------------------}
+\typeout{Enter files to be included. (*=all)}
+\typeout{(pcasm1,pcasm2,...)}
+\typeout{-----------------------------------------}
+\typein[\infiles]{ }
+\if*\infiles\else\includeonly{\infiles}\fi
+
+
+\newif\ifmypdf
+\ifx\pdfoutput\undefined
+    \pdffalse          % we are not running PDFLaTeX
+\else
+%    \pdfoutput=1       % we are running PDFLaTeX
+%    \pdftrue
+\fi
+%----------------------------------------------------------------------
+% The following is the construct that interests us in the end:
+%\ifpdf
+%   % Put PDF-specific stuff here
+%\else
+%   % Put LaTeX-specific stuff here
+%\fi
+
+\usepackage[french]{babel}	% so titles are in french
+\usepackage[latin1]{inputenc}	% For accents
+\usepackage[T1]{fontenc}
+
+\usepackage{indentfirst}  % indent first paragraph of sections
+%\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{epsfig}
+\usepackage{longtable}
+\usepackage{color}
+\usepackage{makeidx}
+\ifmypdf
+\usepackage[pdftex,
+            bookmarks=true,
+            bookmarksnumbered=true,
+            pdftitle={Langage Assembleur PC},
+            pdfauthor={Paul A. Carter},
+            pdfsubject={Programmation en Langage Assembleur 80x86},
+	    pdfkeywords={80x86 assembleur programmation}]{hyperref}
+\fi
+\author{Paul~A.~Carter}
+\title{Langage Assembleur PC}
+\usepackage{lecnote}
+
+\makeindex
+
+\hyphenation{num-bers SF OF CF DF fact dif-fer-ence inter-rupts op-er-ands}
+% In order to avoid unwanted space before :, ;, ? or !
+\NoAutoSpaceBeforeFDP
+\begin{document}
+\maketitle
+\newlength{\AsmMargin}
+\setlength{\AsmMargin}{-1cm}
+\DefineVerbatimEnvironment{AsmCodeListing}{Verbatim}{numbers=left, frame=lines,xleftmargin=\AsmMargin, labelposition=all, commentchar=^, commandchars=\\\{\} }
+
+\newcommand{\MarginNote}[1]{\marginpar{\sloppy \em \small #1}}
+\thispagestyle{empty}
+\vspace*{\fill}
+\noindent Copyright \copyright\  2001, 2002, 2004 by Paul Carter\\
+\noindent \emph{Traduction par S\'{e}bastien Le Ray}\\
+
+\noindent Ce document peut \^{e}tre reproduit et distribu\'{e} dans sa totalit\'{e}
+(en incluant cette note de l'auteur, le copyright et l'indication de
+l'autorisation), sous r\'{e}serve qu'aucun frais ne soit demand\'{e} pour le
+document lui-m\^{e}me, sans le consentement de l'auteur. Cela inclut une
+``utilisation raisonnable'' d'extraits pour des revues ou de la publicit\'{e}
+et les travaux d\'{e}riv\'{e}s comme les traductions.\\
+
+\noindent Notez que ces restrictions ne sont pas destin\'{e}s \`{a} emp\^{e}cher la
+participation aux frais pour l'impression ou la copie du document.\\
+
+\noindent Les enseignants sont encourag\'{e}s \`{a} utiliser ce document
+comme support de cours ; cependant, l'auteur apr\'{e}cierait d'\^{e}tre
+averti dans ce cas.
+
+
+\index{subroutine|see{subprogram}}
+\index{REPNZ|see{REPNE}}
+\index{REPZ|see{REPE}}
+\index{C++!member functions|see{methods}}
+\index{text segment|see{code segment}}
+
+\vfill
+\frontmatter
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% A supprimer :
+\tableofcontents
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\include{toc}
+\include{pcasmf}
+\mainmatter
+\include{pcasm1}
+\include{pcasm2}
+\include{pcasm3}
+\include{pcasm4}
+\include{pcasm5}
+\include{pcasm6}
+\include{pcasm7}
+%\include{pcasm8}
+\begin{appendix}
+\include{pcasma}
+\end{appendix}
+\clearpage
+\ifmypdf
+\phantomsection % fixes link anchor
+\fi
+\addcontentsline{toc}{chapter}{Index}
+\printindex
+\end{document}
+
+

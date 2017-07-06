@@ -1,0 +1,116 @@
+% -*-LaTex-*-
+%front matter of pcasm book
+
+\chapter{Pr\'{e}face}
+
+\section*{Objectif}
+
+L'objectif de ce livre est de permettre au lecteur de mieux comprendre
+comment les ordinateurs fonctionnent r\'{e}ellement \`{a} un niveau plus bas que
+les langages de programmation comme Pascal. En ayant une compr\'{e}hension
+plus profonde de la façon dont fonctionnent les ordinateurs, le lecteur
+peu devenir plus productif dans le d\'{e}veloppement de logiciel dans des langages
+de plus haut niveau comme le C et le C++. Apprendre \`{a} programmer en
+assembleur est un excellent moyen d'atteindre ce but. Les autres
+livres d'assembleur pour PC apprennent toujours \`{a} programmer le 
+processeur 8086 qu'utilisait le PC originel de 1981 ! Le processeur
+8086 ne supportait que le mode \emph{r\'{e}el}. Dans ce mode, tout
+programme peu adresser n'importe quel endroit de la m\'{e}moire ou n'importe
+quel p\'{e}riph\'{e}rique de l'ordinateur. Ce mode n'est pas utilisable pour un
+syst\`{e}me d'exploitation s\'{e}curis\'{e} et multit\^{a}che. Ce livre parle plut\^{o}t
+de la façon de programmer les processeurs 80386 et plus r\'{e}cents en mode
+\emph{prot\'{e}g\'{e}} (le mode dans lequel fonctionnent Windows et Linux).
+Ce mode supporte les fonctionnalit\'{e}s que les syst\`{e}mes d'exploitation
+modernes offrent, comme la m\'{e}moire virtuelle et la protection m\'{e}moire.
+Il y a plusieurs raisons d'utiliser le mode prot\'{e}g\'{e} :
+\begin{enumerate}
+\item Il est plus facile de programmer en mode prot\'{e}g\'{e} qu'en mode r\'{e}el 8086
+	que les autres livres utilisent.
+\item Tous les syst\`{e}mes d'exploitation PC modernes fonctionnent en mode prot\'{e}g\'{e}.
+\item Il y a des logiciels libres disponibles qui fonctionnent dans ce mode.
+\end{enumerate}
+Le manque de livres sur la programmation en assembleur PC en mode prot\'{e}g\'{e} est la
+principale raison qui a conduit l'auteur \`{a} \'{e}crire ce livre.
+
+Comme nous y avons fait allusion ci-dessus, ce dexte utilise des logiciels
+Libres/Open~Source : l'assembleur NASM et le compilateur C/C++ DJGPP.
+Les deux sont disponibles en t\'{e}l\'{e}chargement sur Internet. Ce texte parle \'{e}galement
+de l'utilisation de code assembleur NASM sous Linux et avec les compilateurs
+C/C++ de Borland et Microsoft sous Windows. Les exemples pour toutes ces
+plateformes sont disponibles sur mon site Web : 
+{\code http://www.drpaulcarter.com/pcasm}.
+Vous \emph{devez} t\'{e}l\'{e}charger le code exemple si vous voulez assembler et
+ex\'{e}cuter la plupart des exemples de ce tutorial.
+
+Soyez conscient que ce texte ne tente pas de couvrir tous les aspects de la
+programmation assembleur. L'auteur a essay\'{e} de couvrir les sujets les plus
+importants avec lesquels \emph{tous} les programmeurs devraient \^{e}tre familiers.
+
+\section*{Remerciements}
+
+L'auteur voutrait remercier les nombreux programmeurs qui ont contribu\'{e}
+au mouvement Libre/Open~Source. Tous les programmes et m\^{e}me ce livre
+lui-m\^{e}me ont \'{e}t\'{e} cr\'{e}\'{e}s avec des logiciels gratuits. L'auteur voudrait
+remercier en particulier John~S.~Fine, Simon~Tatham, Julian~Hall et les
+autres d\'{e}veloppeurs de l'assembleur NASM sur lequel tous les exemples de
+ce livre sont bas\'{e}s ; DJ Delorie pour le d\'{e}veloppement du compilateur C/C++
+DJGPP utilis\'{e} ; les nombreuses personnes qui ont contribu\'{e} au compilateur
+GNU gcc sur lequel DJGPP est bas\'{e} ; Donald Knuth et les autres pour avoir
+d\'{e}velopp\'{e} les langages composition \TeX\ et \LaTeXe\ qui ont \'{e}t\'{e} utilis\'{e}s
+pour produire le livre ; Richard Stallman (fondateur de la Free Software
+Foundation), Linus Torvalds (cr\'{e}ateur du noyau Linux) et les autres qui ont
+cr\'{e}\'{e} les logiciels sous-jacents utilis\'{e}s pour ce travail.
+
+Merci aux personnes suivantes pour leurs corrections :
+\begin{itemize}
+\item John S. Fine
+\item Marcelo Henrique Pinto de Almeida
+\item Sam Hopkins
+\item Nick D'Imperio
+\item Jeremiah Lawrence
+\item Ed Beroset
+\item Jerry Gembarowski
+\item Ziqiang Peng
+\item Eno Compton
+\item Josh I Cates
+\item Mik Mifflin
+\item Luke Wallis
+\item Gaku Ueda
+\item Brian Heward
+\item Chad Gorshing
+\item F. Gotti
+\item Bob Wilkinson
+\item Markus Koegel
+\item Louis Taber
+\end{itemize}
+
+
+\section*{Ressources sur Internet}
+\begin{center}
+\begin{tabular}{|ll|}
+\hline
+Page de l'auteur & {\code http://www.drpaulcarter.com/} \\
+%NASM   & {\code http://nasm.2y.net/} \\
+Page NASM sur SourceForge & {\code http://sourceforge.net/projects/nasm/} \\
+DJGPP  & {\code http://www.delorie.com/djgpp} \\
+Assembleur Linux & {\code http://www.linuxassembly.org/} \\
+The Art of Assembly & {\code http://webster.cs.ucr.edu/} \\
+USENET & {\code comp.lang.asm.x86 } \\
+Documentation Intel & {\code http://developer.intel.com/design/Pentium4/documentation.htm} \\
+\hline
+\end{tabular}
+\end{center}
+
+
+\section*{R\'{e}actions}
+
+L'auteur accepte toute r\'{e}action sur ce travailThe author welcomes any feedback on this work.
+\begin{center}
+\begin{tabular}{ll}
+\textbf{E-mail:} & {\code pacman128@gmail.com} \\
+\textbf{WWW:}    & {\code http://www.drpaulcarter.com/pcasm} \\
+\end{tabular}
+\end{center}
+
+
+

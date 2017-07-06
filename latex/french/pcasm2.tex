@@ -1,0 +1,1006 @@
+\chapter{Bases du Langage Assembleur}
+
+\section{Travailler avec les Entiers\index{entiers|(}}
+
+\subsection{Repr\'{e}sentation des entiers\index{entiers!repr\'{e}sentation|(}}
+
+\index{entiers!non sign\'{e}s|(}
+Les entiers se d\'{e}composent en deux cat\'{e}gories : sign\'{e}s et non sign\'{e}s. Les
+entiers non sign\'{e}s (qui sont positifs) sont repr\'{e}sent\'{e}s d'une mani\`{e}re binaire
+tr\`{e}s intuitive. Les nombre 200 en tant qu'entier non sign\'{e} sur un octet serait
+repr\'{e}sent\'{e} par 11001000 (ou C8 en hexa).
+\index{entiers!non sign\'{e}s|)}
+
+\index{entiers!sign\'{e}s|(}
+Les entiers sign\'{e}s (qui peuvent \^{e}tre positifs ou n\'{e}gatifs) sont repr\'{e}sent\'{e}s
+d'une façon plus compliqu\'{e}e. Par exemple, consid\'{e}rons $-56$. $+56$ serait repr\'{e}sent\'{e}
+par l'octet 00111000. Sur papier, on peut repr\'{e}senter $-56$ comme $-111000$,
+mais comment cela serait-il repr\'{e}sent\'{e} dans un octet en m\'{e}moire de l'ordinateur.
+Comment serait stock\'{e} le signe moins ?
+
+Il y a trois techniques principales qui ont \'{e}t\'{e} utilis\'{e}es pour repr\'{e}senter les
+entiers sign\'{e}s dans la m\'{e}moire de l'ordinateur. Toutes ces m\'{e}thodes utilisent
+le bit le plus significatif de l'entier comme \emph{bit de signe}. \index{entiers!bit de signe}
+Ce bit vaut 0 si le nombre est positif et 1 s'il est n\'{e}gatif.
+
+\subsubsection{Grandeur sign\'{e}e \index{entiers!repr\'{e}sentation!grandeur sign\'{e}e}}
+
+La premi\`{e}re m\'{e}thode est la plus simple, elle est appel\'{e}e \emph{grandeur sign\'{e}e}.
+Elle repr\'{e}sente l'entier en deux parties. La premi\`{e}re partie est le bit de
+signe et la seconde est la grandeur enti\`{e}re. Donc 56 serait repr\'{e}sent\'{e}
+par l'octet $\underline{0}0111000$ (le bit de signe est soulign\'{e}) et $-56$
+serait $\underline{1}0111000$. La valeur d'octet la plus grande serait
+$\underline{0}1111111$ soit $+127$ et la plus petite valeur sur un octet serait
+$\underline{1}1111111$ soit $-127$. Pour obtenir l'oppos\'{e} d'une valeur, on inverse
+le bit de signe. Cette m\'{e}thode est intuitive mais a ses inconv\'{e}nients.
+Tout d'abord, il y a deux valeurs possibles pour 0 : $+0$ ($\underline{0}0000000$)
+et $-0$ ($\underline{1}0000000$). Comme z\'{e}ro n'est ni positif ni n\'{e}gatif,
+ces deux repr\'{e}sentations devraient se comporter de la m\^{e}me façon. Cela complique
+la logique de l'arithm\'{e}tique pour le processeur. De plus, l'arithm\'{e}tique g\'{e}n\'{e}rale
+est \'{e}galement compliqu\'{e}e. Si l'on ajoute 10 \`{a} $-56$, cela doit \^{e}tre transform\'{e} en
+10 moins 56. L\`{a} encore, cela complique la logique du processeur.
+
+\subsubsection{Compl\'{e}ment \`{a} 1\index{entiers!representation!one's complement}}
+La seconde m\'{e}thode est appel\'{e}e repr\'{e}sentation en \emph{compl\'{e}ment \`{a} un}.
+Le compl\'{e}ment \`{a} un d'un nombre est trouv\'{e} en inversant chaque bit du nombre
+(une autre façon de l'obtenir est que la valeur du nouveau bit est
+$1 - \mathrm{ancienne valeur du bit}$). Par exemple, le compl\'{e}ment \`{a} un de
+$\underline{0}0111000$ ($+56$) est $\underline{1}1000111$. Dans la notation en
+compl\'{e}ment \`{a} un, calculer le compl\'{e}ment \`{a} un est \'{e}quivalent \`{a} la n\'{e}gation. Donc
+$\underline{1}1000111$ est la repr\'{e}sentation de $-56$. Notez que le bit de signe
+a \'{e}t\'{e} automatiquement chang\'{e} par le compl\'{e}ment \`{a} un et que, comme l'on s'y attendait,
+appliquer le compl\'{e}ment \`{a} un deux fois redonne le nombre de d\'{e}part. Comme pour la
+premi\`{e}re m\'{e}thode, il y a deux repr\'{e}sentation pour 0 : 
+$\underline{0}0000000$ ($+0$) et $\underline{1}1111111$ ($-0$). L'arithm\'{e}tique
+des nombres en compl\'{e}ment \`{a} un est compliqu\'{e}e.
+
+Voici une astuce utile pour trouver le compl\'{e}ment \`{a} un d'un nombre en hexad\'{e}cimal
+sans repasser en binaire. L'astuce est d'\^{o}ter le chiffre hexa de F (ou 15 en d\'{e}cimal).
+Cette m\'{e}thode suppose que le nombre de bits dans le nombre est multiple de 4. Voici
+un exemple : $+56$ est repr\'{e}sent\'{e} par 38 en hexa. pour trouver le compl\'{e}ment \`{a} un,
+\^{o}tez chaque chiffre de F pour obtenir C7 en hexa. Cela concorde avec le r\'{e}sultat
+ci-dessus.
+
+\subsubsection{Compl\'{e}ment \`{a} deux \index{entiers!repr\'{e}sentation!compl\'{e}ment \`{a} deux|(}
+               \index{compl\'{e}ment \`{a} deux|(}}
+
+Les deux premi\`{e}res m\'{e}thodes d\'{e}crites ont \'{e}t\'{e} utilis\'{e}es sur les premiers ordinateurs.
+Les ordinateurs modernes utilisent une troisi\`{e}me m\'{e}thode appel\'{e}e repr\'{e}sentation en
+\emph{compl\'{e}ment \`{a} deux}. On trouve le e compl\'{e}ment \`{a} deux d'un nombre en effectuant
+les deux op\'{e}rations suivantes :
+\begin{enumerate}
+\item Trouver le compl\'{e}ment \`{a} un du nombre
+\item Ajouter un au r\'{e}sultat de l'\'{e}tape 1
+\end{enumerate}
+Voici un exemple en utilisant $\underline{0}0111000$ (56). Tout d'abord, on calcule
+le compl\'{e}ment \`{a} un : $\underline{1}1000111$. Puis, on ajoute un :
+\[
+\begin{array}{rr}
+ & \underline{1}1000111 \\
++&                    1 \\ \hline
+ & \underline{1}1001000
+\end{array}
+\]
+
+Dans la notation en compl\'{e}ment \`{a} deux, calculer le compl\'{e}ment \`{a} deux est \'{e}quivalent
+\`{a} trouver l'oppos\'{e} d'un nombre. Donc, $\underline{1}1001000$ est la repr\'{e}sentation
+en compl\'{e}ment \`{a} deux de $-56$. Deux n\'{e}gations devraient reproduire le nombre original.
+Curieusement le compl\'{e}ment \`{a} deux ne rempli pas cette condition. Prenez le compl\'{e}ment
+\`{a} deux de $\underline{1}1001000$ en ajoutant un au compl\'{e}ment \`{a} un.
+\[
+\begin{array}{rr}
+ & \underline{0}0110111 \\
++&                    1 \\ \hline
+ & \underline{0}0111000
+\end{array}
+\]
+
+Lorsque l'on effectue l'addition dans l'op\'{e}ration de compl\'{e}mentation \`{a} deux, l'addition
+du bit le plus \`{a} gauche peut produire une retenue. Cette retenue n'est \emph{pas} utilis\'{e}e.
+Souvenez vous que toutes les donn\'{e}es sur un ordinateur sont d'une taille fixe (en terme de
+nombre de bits). Ajouter deux octets produit toujours un r\'{e}sultat sur un octet (comme
+ajouter deux mots donne un mot, {\em etc\/}.) Cette propri\'{e}t\'{e} est importante pour la
+notation en compl\'{e}ment \`{a} deux. Par exemple, consid\'{e}rons z\'{e}ro comme un nombre en compl\'{e}ment
+\`{a} deux sur un octet ($\underline{0}0000000$). Calculer son compl\'{e}ment \`{a} deux produit la somme :
+\[
+\begin{array}{rr}
+ & \underline{1}1111111 \\
++&                    1 \\ \hline
+c& \underline{0}0000000
+\end{array}
+\]
+o\`{u} $c$ repr\'{e}sente une retenue (Plus tard, nous montrerons comment d\'{e}tecter cette retenue,
+mais elle n'est pas stock\'{e}e dans le r\'{e}sultat). Donc, en notation en compl\'{e}ment \`{a} deux,
+il n'y a qu'un z\'{e}ro. Cela rend l'arithm\'{e}tique en compl\'{e}ment \`{a} deux plus simple que les m\'{e}thodes
+pr\'{e}c\'{e}dentes.
+
+\begin{table}
+\centering
+\begin{tabular}{||c|c||}
+\hline
+Nombre & Repr\'{e}sentation Hexa \\
+\hline
+0 & 00 \\
+1 & 01 \\
+127 & 7F \\
+-128 & 80 \\
+-127 & 81 \\
+-2 & FE \\
+-1 & FF \\
+\hline
+\end{tabular}
+\caption{Two's Complement Representation \label{tab:twocomp}}
+\end{table}
+
+En utilisant la notation en compl\'{e}ment \`{a} deux, un octet sign\'{e} peut \^{e}tre utilis\'{e} pour
+repr\'{e}senter les nombres $-128$ \`{a} $+127$. Le Tableau~\ref{tab:twocomp} montre quelques
+valeurs choisies. Si 16 bits sont utilis\'{e}s, les nombres sign\'{e}s $-32,768$ \`{a} 
+$+32,767$ peuvent \^{e}tre repr\'{e}sent\'{e}s. $+32,767$ est repr\'{e}sent\'{e} par 7FFF, $-32,768$ 
+par 8000, -128 par FF80 et -1 par FFFF. Les nombres en compl\'{e}ment \`{a} deux sur 32 bits
+vont de $-2$ milliards \`{a} $+2$ milliards environ. 
+
+
+Le processeur n'a aucune id\'{e}e de ce qu'un octet en particulier (ou un mot ou un double
+mot) est suppos\'{e} repr\'{e}sent\'{e}. L'assembleur n'a pas le concept de types qu'un langage de
+plus haut niveau peut avoir. La façon dont les donn\'{e}es sont interpr\'{e}t\'{e}es d\'{e}pendent de
+l'instruction dans laquelle on les utilise. Que la valeur FF soit consid\'{e}r\'{e}e comme
+repr\'{e}sentant un $-1$ sign\'{e} ou un $+255$ non sign\'{e} d\'{e}pend du programmeur. Le langage
+C d\'{e}finit des types entiers sign\'{e}s et non sign\'{e}s. Cela permet au compilateur C de
+d\'{e}terminer les instructions correctes \`{a} utiliser avec les donn\'{e}es.
+
+\index{compl\'{e}ment \`{a} deux|)}
+\index{entiers!repr\'{e}sentation!compl\'{e}ment \`{a} deux|)}
+\index{entiers!sign\'{e}s|)}
+
+\subsection{Extension de signe\index{entiers!extension de signe|(}}
+
+En assembleur, toutes les donn\'{e}es ont une taille bien sp\'{e}cifi\'{e}e. Il n'est pas
+rare de devoir changer la taille d'une donn\'{e}e pour l'utiliser avec d'autres.
+R\'{e}duire la taille est le plus simple.
+
+\subsubsection{R\'{e}duire la taille des donn\'{e}es}
+
+Pour r\'{e}duire la taille d'une donn\'{e}e, il suffit d'en retirer les bits les plus
+significatifs. Voici un exemple trivial :
+\begin{AsmCodeListing}[numbers=none,frame=none]
+      mov    ax, 0034h      ; ax = 52 (stock\'{e} sur 16 bits)
+      mov    cl, al         ; cl = les 8 bits de poids faible de ax
+\end{AsmCodeListing}
+
+Bien s\^{u}r, si le nombre ne peut pas \^{e}tre repr\'{e}sent\'{e} correctement dans
+une plus petite taille, r\'{e}duire la taille ne fonctionne pas. Par exemple,
+si {\code AX}  valait 0134h (ou 308 en d\'{e}cimal) alors le code ci-dessus
+mettrait quand m\^{e}me {\code CL} \`{a} 34h. Cette m\'{e}thode fonctionne \`{a} la fois avec
+les nombres sign\'{e}s et non sign\'{e}s. Consid\'{e}rons les nombres sign\'{e}s, si
+{\code AX} valait FFFFh ($-1$ sur un mot), alors {\code CL} vaudrait FFh 
+($-1$ sur un octet). Cependant, notez que si la valeur dans {\code AX}) \'{e}tait sign\'{e},
+elle aurait \'{e}t\'{e} tronqu\'{e} et le r\'{e}sultat aurait \'{e}t\'{e} faux !
+
+La r\`{e}gle pour les nombres non sign\'{e}s est que tous les bits retir\'{e}s soient \`{a}
+0 afin que la convertion soit correcte. La r\`{e}gle pour les nombres sign\'{e}s est
+que les bits retir\'{e}s doivent soit tous \^{e}tre des 1 soit tous des 0. De plus,
+Le premier bit \`{a} ne pas \^{e}tre retir\'{e} doit valoir la m\^{e}me chose que ceux qui l'ont
+\'{e}t\'{e}. Ce bit sera le bit de signe pour la valeur plus petite. Il est important
+qu'il ait la m\^{e}me valeur que le bit de signe original !
+
+\subsubsection{Augmenter la taille des donn\'{e}es}
+
+Augmenter la taille des donn\'{e}es est plus compliqu\'{e} que la r\'{e}duire.
+Consid\'{e}rons l'octet hexa FF. S'il est \'{e}tendu \`{a} un mot, quelle valeur
+aura-t-il ? Cela d\'{e}pend de la façon dont FF est interpr\'{e}t\'{e}. Si FF
+est un octet non sign\'{e} (255 en d\'{e}cimal), alors le mot doit \^{e}tre 00FF ;
+cependant, s'il s'agit d'un octet sign\'{e} ($-1$ en d\'{e}cimal), alors le
+mot doit \^{e}tre FFFF.
+
+En g\'{e}n\'{e}ral, pour \'{e}tendre un nombre non sign\'{e}, on met tous les bits suppl\'{e}mentaires
+du nouveau nombre \`{a} 0. Donc, FF devient 00FF. Cependant, pour \'{e}tendre un nombre
+sign\'{e}, on doit \emph{\'{e}tendre} le bit de signe. \index{entiers!bit de signe} Cela signifie
+que les nouveaux bits deviennent des copies du bit de signe. Comme le bit de signe
+de FF est \`{a} 1, les nouveaux bits doivent \'{e}galement \^{e}tre des uns, pour donner FFFF. Si le
+nombre sign\'{e} 5A (90 en d\'{e}cimal) \'{e}tait \'{e}tendu, le r\'{e}sultat serait 005A.
+
+Il y a plusieurs instructions fournies par le 80386 pour \'{e}tendre les nombres. Souvenez
+vous que l'ordinateur ne sait pas si un nombre est sign\'{e} ou non. C'est au programmeur
+d'utiliser l'instruction ad\'{e}quate.
+
+Pour les nombres non sign\'{e}s, on peut placer des 0 dans les bits de poids fort de façon simple
+en utilisant l'instruction {\code MOV}. Par axemple pour \'{e}tendre l'octet de AL en un mot
+non sign\'{e} dans AX :
+\begin{AsmCodeListing}[numbers=none,frame=none]
+      mov    ah, 0   ; met les 8 bits de poids for \`{a} 0
+\end{AsmCodeListing}
+Cependant, il n'est pas possible d'utiliser une instruction {\code MOV} pour
+convertir le mot non sign\'{e} de AX en un double mot non sign\'{e} dans EAX. Pourquoi pas ?
+Il n'y a aucune façon d'acc\'{e}der aux 16 bits de poids fort de EAX dans un {\code
+MOV}. Le 80386 r\'{e}soud ce probl\`{e}me en fournissant une nouvelle instruction :
+{\code MOVZX}. \index{MOVZX} Cette instruction a deux op\'{e}randes. La destination
+(premier op\'{e}rande) doit \^{e}tre un registre de 16 ou 32~bits. La source (deuxi\`{e}me
+op\'{e}rande) doit \^{e}tre un registre 8 ou 16~bits. L'autre restriction est que la destination
+doit \^{e}tre plus grande que la source (la plupart des instructions recqui\`{e}rent que la source
+soit de la m\^{e}me taille que la destination). Voici quelques exemples :
+\begin{AsmCodeListing}[numbers=none,frame=none]
+      movzx  eax, ax      ; \'{e}tend ax \`{a} eax
+      movzx  eax, al      ; \'{e}tend al \`{a} eax
+      movzx  ax, al       ; \'{e}tend al \`{a} ax
+      movzx  ebx, ax      ; \'{e}tend ax \`{a} ebx
+\end{AsmCodeListing}
+
+Pour les nombres sign\'{e}s, il n'y a pas de façon simple d'utiliser l'instruction
+{\code MOV} quelque soit le cas. Le 8086 fournit plusieurs instructions pour \'{e}tendre
+les nombres sign\'{e}s. L'instruction {\code CBW} \index{CBW} (Convert Byte to
+Word, Convertir un Octet en Mot) \'{e}tend le signe du registre AL dans AX. Les
+op\'{e}randes sont implicites. L'instruction {\code CWD} \index{CWD} (Convert Word to Double
+word, Convertir un Mot en Double mot) \'{e}tend le signe de AX dans DX:AX. La notation
+DX:AX signifie qu'il faut consid\'{e}rer les registres DX et AX comme un seul registre 32~bits
+avec les 16 bits de poids forts dans DX et les bits de poids faible dans AX (souvenez
+vous que le 8086 n'avait pas de registre 32~bits du tout !). Le 80386 a apport\'{e}
+plusieurs nouvelles instructions. L'instruction {\code CWDE} \index{CWDE} (Convert Word to Double
+word Extended, convertir un mot en double mot \'{e}tendue) \'{e}tend le signe de AX dans EAX.
+L'instruction {\code CDQ}\index{CDQ} (Convert Double word to Quad word, Convertir un Double
+mot en Quadruple mot) \'{e}tend le signe de EAX dans EDX:EAX\index{registre!EDX:EAX} (64~bits !)
+Enfin, l'instruction {\code MOVSX} \index{MOVSX} fonctionne comme {\code MOVZX} except\'{e}
+qu'elle utilise les r\`{e}gles des nombres sign\'{e}s.
+
+\subsubsection{Application \`{a} la programmation en C}
+
+L'extension \MarginNote{Le C ANSI ne d\'{e}finit pas si le type {\code char}
+est sign\'{e} ou non, c'est \`{a} chaque compilateur de le d\'{e}cider. C'est pourquoi
+on d\'{e}finit le type explicitement dans la Figure~\ref{fig:charExt}.} d'entiers
+sign\'{e}s et non sign\'{e}s a \'{e}galement lieu en C. Les variables en C peuvent \^{e}tre
+d\'{e}clar\'{e}es soit comme sign\'{e}es soit comme non sign\'{e}es (les {\code int} sont
+sign\'{e}s). Consid\'{e}rons le code de la Figure~\ref{fig:charExt}.  A la ligne~3,
+la variable {\code a} est \'{e}tendue en utilisant les r\`{e}gles pour les valeurs
+non sign\'{e}es (avec {\code MOVZX}), mais \`{a} la ligne~4, les r\`{e}gles sign\'{e}es
+sont utilis\'{e}es pour {\code b} (avec {\code MOVSX}).
+
+\begin{figure}[t]
+\begin{lstlisting}[frame=tlrb]{}
+unsigned char uchar = 0xFF;
+signed char   schar = 0xFF;
+int a = (int) uchar;     /* a = 255 (0x000000FF) */
+int b = (int) schar;     /* b = -1  (0xFFFFFFFF) */
+\end{lstlisting}
+\caption{Extension de signe en C}
+\label{fig:charExt}
+\end{figure}
+
+Il existe un bug de programmation courant en C qui est directement
+li\'{e} \`{a} notre sujet. Consid\'{e}rons le code de la Figure~\ref{fig:IObug}.
+La prototype de {\code fgetc()}{\samepage est :
+\begin{CodeQuote}
+int fgetc( FILE * );
+\end{CodeQuote}
+On peut se demander }pourquoi est-ce que la fonction renvoie un  {\code int}
+puisqu'elle lit des caract\`{e}res ? La raison est qu'elle renvoie normalement
+un {\code char} (\'{e}tendu \`{a} une valeur {\code int} en utilisant l'extension
+de z\'{e}ro). Cependant, il y a une valeur qu'elle peut retourner qui n'est pas un
+caract\`{e}re, {\code EOF}. C'est une macro habituellement d\'{e}finie comme valant
+$-1$. Donc, {\code fgetc()} retourne soit un {\code char} \'{e}tendu \`{a} une valeur
+{\code int} (qui ressemble \`{a} {\code 000000{\em xx}} en hexa) soit {\code EOF} 
+(qui ressemble \`{a} {\code FFFFFFFF} en hexa).
+
+\begin{figure}[t]
+\begin{lstlisting}[stepnumber=0,frame=tlrb]{}
+char ch;
+while( (ch = fgetc(fp)) != EOF ) {
+  /* faire qqch avec ch */
+}
+\end{lstlisting}
+\caption{Utilisation de la fonction fgetc}
+\label{fig:IObug}
+\end{figure}
+
+Le probl\`{e}me avec le programme de la Figure~\ref{fig:IObug} est que {\code fgetc()}
+renvoie un {\code int}, mais cette valeur est stock\'{e}e dans un {\code char}.
+Le C tronquera alors les bits de poids fort pour faire tenir la valeur de
+l'{\code int} dans le {\code char}. Le seul probl\`{e}me est que les nombres
+(en hexa) {\code 000000FF} et {\code FFFFFFFF} seront tous deux tronqu\'{e}
+pour donner l'octet {\code FF}. Donc, la boucle while ne peut pas distinguer
+la lecture de l'octet {\code FF} dans le fichier et la fin de ce fichier.
+
+Ce que fait exactement le code dans ce cas change selon que le {\code char}
+est sign\'{e} ou non. Pourquoi ? Parce~que ligne~2, {\code ch} est compar\'{e} avec
+{\code EOF}. Comme {\code EOF} est un {\code int}\footnote{Il est 
+courant de penser que les fichiers ont un carct\`{e}re EOF comme dernier caract\`{e}re.
+Ce n'est \emph{pas} vrai !}, {\code ch} sera \'{e}tendu \`{a} un {\code int} afin
+que les deux valeurs compar\'{e}es soient de la m\^{e}me taille\footnote{La raison de
+cette n\'{e}cessit\'{e} sera expos\'{e}e plus tard.}.
+Comme la Figure~\ref{fig:charExt} le montrait, le fait qu'une variable soit
+sign\'{e}e ou non est tr\`{e}s important.
+
+Si le {\code char} n'est pas sign\'{e}, {\code FF} est \'{e}tendu et donne {\code
+000000FF}. Cette valeur est compar\'{e}e \`{a} {\code EOF} ({\code FFFFFFFF}) et
+est diff\'{e}rente. Donc la boucle ne finit jamais !
+
+So le {\code char} est sign\'{e}, {\code FF} est \'{e}tendu et donne {\code
+FFFFFFFF}. Les deux valeurs sont alors \'{e}gale et la boucle se termine.
+Cependant, comme l'octet {\code FF} peut avoir \'{e}t\'{e} lu depuis le fichier,
+la boucle peut se terminer pr\'{e}matur\'{e}ment.
+
+La solution \`{a} ce probl\`{e}me est de d\'{e}finir la variable {\code ch} comme un
+{\code int}, pas un {\code char}. Dans ce cas, aucune troncation ou extension
+n'est effectu\'{e}e \`{a} la ligne~2. Dans la boucle, il est sans danger de tronquer
+la valeur puisque {\code ch} \emph{doit} alors \^{e}tre r\'{e}ellement un octet.
+
+\index{entiers!extension de signe|)}
+\index{entiers!repr\'{e}sentation|)}
+
+\subsection{Arithm\'{e}tique en compl\'{e}ment \`{a} deux\index{compl\'{e}ment \`{a} deux!arithm\'{e}tique|(}}
+
+Comme nous l'avons vu plus t\^{o}t, l'instruction {\code add} effectue une
+addition et l'instruction {\code sub} effectue une soustraction. Deux
+des bits du registre EFLAGS que ces instructions positionnent sont
+\emph{overflow} (d\'{e}passement de capacit\'{e}) et \emph{carry flag} (retenue).
+Le drapeau d'overflow est \`{a} 1 si le r\'{e}sultat r\'{e}el de l'op\'{e}ration est trop
+grand et ne tient pas dans la destination pour l'arithm\'{e}tique
+sign\'{e}e. Le drapeau de retenue est \`{a} 1 s'il y a une  retenue dans le
+bit le plus significatif d'une addition d'une soustraction. Donc,
+il peut \^{e}tre utilis\'{e} pour d\'{e}tecter un d\'{e}passement de capacit\'{e} en
+arithm\'{e}tique non sign\'{e}e. L'utilisation du drapeau de retenue pour 
+l'arithm\'{e}tique sign\'{e}e va \^{e}tre vu sous peu. Un des grands avantages du
+compl\'{e}ment \`{a}~2 est qu les r\`{e}gles pour l'addition et la soustraction sont 
+exactement les m\^{e}mes que pour les entiers non sign\'{e}s. Donc,
+{\code add} et {\code sub} peuvent \^{e}tre utilis\'{e}es pour les entiers sign\'{e}s
+ou non.
+\[
+\begin{array}{rrcrr}
+ & 002\mathrm{C} & & & 44\\
++& \mathrm{FFFF} & &+&(-1)\\ \cline{1-2} \cline{4-5}
+ & 002\mathrm{B} & & & 43
+\end{array}
+\]
+Il y a une retenue de g\'{e}n\'{e}r\'{e}e mais elle ne fait pas partie de la r\'{e}ponse.
+
+\index{entiers!multiplication|(}
+\index{MUL|(}
+\index{IMUL|(}
+Il y a deux instructions de multiplication et de division diff\'{e}rentes.
+Tout d'abord, pour multiplier, utilisez les instructions {\code MUL} 
+ou {\code IMUL}. L'instruction {\code MUL} est utilis\'{e}e pour multiplier
+les nombres non sign\'{e}s et {\code IMUL} est utilis\'{e}e pour multiplier les 
+entiers sign\'{e}s. Pourquoi deux instructions diff\'{e}rentes sont n\'{e}cessaires ?
+Les r\`{e}gles pour la multiplication sont diff\'{e}rentes pour les nombres non
+sign\'{e}s et les nombres sign\'{e}s en compl\'{e}ment \`{a}~2. Pourquoi cela ? Consid\'{e}rons
+la multiplication de l'octet FF avec lui-m\^{e}me donnant un r\'{e}sultat sur un
+mot. En utilisant la multiplication non sign\'{e}e, il s'agit de 255 fois 255
+soit 65025 (ou FE01 en hexa). En utilisant la multiplication sign\'{e}e, il
+s'agit de $-1$ fois $-1$ soit 1 (ou 0001 en hexa).
+
+Il y a plusieurs formes pour les instructions de multiplication. La
+plus ancienne ressemble \`{a} cela :
+\begin{AsmCodeListing}[numbers=none,frame=none]
+      mul   source
+\end{AsmCodeListing}
+La \emph{source} est soit un registre soit une r\'{e}f\'{e}rence m\'{e}moire. Cela ne peut
+pas \^{e}tre une valeur imm\'{e}diate. Le type exact de la multiplication d\'{e}pend de
+la taille de l'op\'{e}rande source. Si l'op\'{e}rande est un octet, elle est multipli\'{e}e
+par l'octet situ\'{e} dans le registre AL et le r\'{e}sultat est stock\'{e} dans les
+16 bits de AX. Si la source fait 16~bits, elle est multipli\'{e}e par le mot situ\'{e}
+dans AX et le r\'{e}sultat 32 bits est stock\'{e} dans DX:AX. Si la source fait 32 bits,
+elle est multipli\'{e}e par EAX et le r\'{e}sultat 64 bits est stock\'{e} dans EDX:EAX\index{registre!EDX:EAX}.
+\index{MUL|)}
+
+\begin{table}[t]
+\centering
+\begin{tabular}{|c|c|c|l|}
+\hline
+{ \bf dest} & { \bf source1 } & {\bf source2} & \multicolumn{1}{c|}{\bf Action} \\ \hline
+            & reg/mem8        &               & AX = AL*source1 \\
+            & reg/mem16       &               & DX:AX = AX*source1 \\
+            & reg/mem32       &               & EDX:EAX = EAX*source1 \\
+reg16       & reg/mem16       &               & dest *= source1 \\
+reg32       & reg/mem32       &               & dest *= source1 \\
+reg16       & immed8          &               & dest *= immed8 \\
+reg32       & immed8          &               & dest *= immed8 \\
+reg16       & immed16         &               & dest *= immed16 \\
+reg32       & immed32         &               & dest *= immed32 \\
+reg16       & reg/mem16       & immed8        & dest = source1*source2 \\
+reg32       & reg/mem32       & immed8        & dest = source1*source2 \\
+reg16       & reg/mem16       & immed16       & dest = source1*source2 \\
+reg32       & reg/mem32       & immed32       & dest = source1*source2 \\
+\hline
+\end{tabular}
+\caption{{\code Instructions imul}\label{tab:imul}}
+\end{table}
+
+L'instruction {\code IMUL} a les m\^{e}mes formats que {\code MUL}, mais ajoute \'{e}galement
+d'autres formats d'instruction. Il y a des formats \`{a} deux et \`{a} trois op\'{e}randes :
+\begin{AsmCodeListing}[numbers=none,frame=none]
+      imul   dest, source1
+      imul   dest, source1, source2
+\end{AsmCodeListing}
+Le Tableau~\ref{tab:imul} montre les combinaisons possibles.
+\index{IMUL|)}
+\index{entiers!multiplication|)}
+
+\index{entiers!division|(}
+\index{DIV}
+Les deux op\'{e}rateurs de division sont {\code DIV} et {\code IDIV}. Il effectuent
+respectivement une division enti\`{e}re non sign\'{e}e et une division enti\`{e}re sign\'{e}e.
+Le format g\'{e}n\'{e}ral est :
+\begin{AsmCodeListing}[numbers=none,frame=none]
+      div   source
+\end{AsmCodeListing}
+Si la source est sur 8~bits, alors AX est divis\'{e} par l'op\'{e}rande. Le quotient
+est stock\'{e} dans AL et le reste dans AH. Si la source est sur 16~bits,
+alors DX:AX est divis\'{e} par l'op\'{e}rande. Le quotient est stock\'{e} dans AX et le reste
+dans DX. Si la source est sur 32~bits, alors EDX:EAX\index{registre!EDX:EAX} est
+divis\'{e} par l'op\'{e}rande, le quotient est stock\'{e} dans EAX et le reste dans EDX.
+L'instruction {\code IDIV}\index{IDIV} fonctionne de la m\^{e}me façon. Il n'y a pas
+d'instructions {\code IDIV} sp\'{e}ciales comme pour {\code IMUL}. Si le quotient est
+trop grand pour tenir dans son registre ou que le diviseur vaut 0, le programme
+et interrompu et se termine. Une erreur courante est d'oublier d'initialiser DX
+ou EDX avant la division.
+\index{entiers!division|)}
+
+L'instruction {\code NEG} \index{NEG} inverse son op\'{e}rande en calculant son
+compl\'{e}ment \`{a} deux. L'op\'{e}rande peut \^{e}tre n'importe quel registre ou emplacement
+m\'{e}moire sur 8~bits, 16~bits, or 32~bits.
+
+\subsection{Programme exemple}
+\index{math.asm|(}
+\begin{AsmCodeListing}[label=math.asm]
+%include "asm_io.inc"
+segment .data         ; Chaines affichees
+prompt          db    "Entrez un nombre : ", 0
+square_msg      db    "Le carre de l'entree vaut ", 0
+cube_msg        db    "Le cube de l'entree vaut ", 0
+cube25_msg      db    "Le cube de l'entree fois 25 vaut ", 0
+quot_msg        db    "Le quotient de cube/100 vaut ", 0
+rem_msg         db    "Le reste de cube/100 vaut ", 0
+neg_msg         db    "La n\'{e}gation du reste vaut ", 0
+
+segment .bss
+input   resd 1
+
+segment .text
+        global  _asm_main
+_asm_main:
+        enter   0,0               ; routine d'initialisation
+	pusha
+
+        mov     eax, prompt
+        call    print_string
+
+        call    read_int
+        mov     [input], eax
+
+        imul    eax               ; edx:eax = eax * eax
+        mov     ebx, eax          ; sauvegarde le r\'{e}sultat dans ebx
+        mov     eax, square_msg
+        call    print_string
+        mov     eax, ebx
+        call    print_int
+        call    print_nl
+
+        mov     ebx, eax
+        imul    ebx, [input]      ; ebx *= [entree]
+        mov     eax, cube_msg
+        call    print_string
+        mov     eax, ebx
+        call    print_int
+        call    print_nl
+
+        imul    ecx, ebx, 25      ; ecx = ebx*25
+        mov     eax, cube25_msg
+        call    print_string
+        mov     eax, ecx
+        call    print_int
+        call    print_nl
+
+        mov     eax, ebx
+        cdq                       ; initialise edx avec extension de signe
+        mov     ecx, 100          ; on ne peut pas diviser par une valeur imm\'{e}diate
+        idiv    ecx               ; edx:eax / ecx
+        mov     ecx, eax          ; sauvegarde le r\'{e}sultat dans ecx
+        mov     eax, quot_msg
+        call    print_string
+        mov     eax, ecx
+        call    print_int
+        call    print_nl
+        mov     eax, rem_msg
+        call    print_string
+        mov     eax, edx
+        call    print_int
+        call    print_nl
+        
+        neg     edx               ; inverse le reste
+        mov     eax, neg_msg
+        call    print_string
+        mov     eax, edx
+        call    print_int
+        call    print_nl
+
+        popa
+        mov     eax, 0            ; retour au C
+        leave                     
+        ret
+\end{AsmCodeListing}
+\index{math.asm|)}
+
+\subsection{Arithm\'{e}tique en pr\'{e}cision \'{e}tendue\label{sec:ExtPrecArith} \index{entiers!pr\'{e}cision \'{e}tendue|(}}}
+
+Le langage assembleur fournit \'{e}galement des instructions qui permettent
+d'effectuer des additions et des soustractions sur des nombres plus grands
+que des doubles mots. Ces instructions utilisent le drapeau de retenue.
+Comme nous l'avons dit plus haut, les instructions {\code ADD}
+\index{ADD} et {\code SUB} \index{SUB} modifient le drapeau de retenue
+si une retenue est g\'{e}n\'{e}r\'{e}e. Cette information stock\'{e}e dans le drapeau
+de retenue peut \^{e}tre utilis\'{e}e pour additionner ou soustraire de grands
+nombres en morcelant l'op\'{e}ration en doubles mots (ou plus petit).
+
+Les instructions {\code ADC} \index{ADC} et {\code SBB} \index{SBB} 
+utilisent les informations donn\'{e}es par le drapeau de retenue.
+L'instruction {\code ADC} effectue l'op\'{e}ration suivante :
+\begin{center}
+{\code \emph{op\'{e}rande1} = \emph{op\'{e}rande1} + drapeau de retenue + \emph{op\'{e}rande2} }
+\end{center}
+L'instruction {\code SBB} effectue :
+\begin{center}
+{\code \emph{op\'{e}rande1} = \emph{op\'{e}rande1} - drapeau de retenue - \emph{op\'{e}rande2} }
+\end{center}
+Comment sont elles utilis\'{e}es ? Consid\'{e}rons la somme d'entiers 64~bits dans 
+EDX:EAX\index{registre!EDX:EAX} et EBX:ECX. Le code suivant stockerait la somme
+dans EDX:EAX :
+\begin{AsmCodeListing}[frame=none]
+      add    eax, ecx       ; additionne les 32 bits de poids faible
+      adc    edx, ebx       ; additionne les 32 bits de poids fort et la retenue
+\end{AsmCodeListing}
+La soustraction est tr\`{e}s similaire. Le code suivant soustrait EBX:ECX de 
+EDX:EAX :
+\begin{AsmCodeListing}[frame=none]
+      sub    eax, ecx       ; soustrait les 32 bits de poids faible
+      sbb    edx, ebx       ; soustrait les 32 bits de poids fort et la retenue
+\end{AsmCodeListing}
+
+Pour les nombres \emph{vraiment} grands, une boucle peut \^{e}tre utilis\'{e}e (voir
+Section~\ref{sec:control}). Pour une boucle de somme, il serait pratique
+d'utiliser l'instruction {\code ADC} pour toutes les it\'{e}rations (au lieu de toutes
+sauf la premi\`{e}re). Cela peut \^{e}tre fait en utilisant l'instruction {\code CLC} \index{CLC}
+(CLear Carry) juste avant que la boucle ne commence pour initialiser le drapeau de
+retenue \`{a} 0. Si le drapeau de retenue vaut 0, il n'y a pas de diff\'{e}rence entre
+les instructions {\code ADD} et {\code ADC}. La m\^{e}me id\'{e}e peut \^{e}tre utilis\'{e}e pour la
+soustraction.
+\index{entiers!pr\'{e}cision \'{e}tendue|)}
+\index{compl\'{e}ment \`{a} deux!arithm\'{e}tique|)}
+
+\section{Structures de Contr\^{o}le}
+\label{sec:control}
+Les langages de haut niveau fournissent des structures de contr\^{o}le de haut niveau
+(\emph{p.e.}, les instructions \emph{if} et \emph{while}) qui contr\^{o}lent le flot
+d'ex\'{e}cution. Le langage assembleur ne fournit pas de structures de contr\^{o}le aussi
+complexes. Il utilise \`{a} la place l'inf\^{a}me \emph{goto} et l'utiliser de mani\`{e}re
+inappropri\'{e}e peut conduire \`{a} du code spaghetti ! Cependant, il \emph{est} possible
+d'\'{e}crire des programmes structur\'{e}s en assembleur. La proc\'{e}dure de base est de
+concevoir la logique du programme en utilisant les structures de contr\^{o}le de haut
+niveau habituelles et de traduire cette conception en langage assembleur (comme
+le ferait un compilateur).
+
+\subsection{Comparaison \index{entiers!comparaisons|(} \index{CMP|(}}
+%TODO: Make a table of all the FLAG bits
+
+\index{registre!FLAGS|(}
+Les structures de contr\^{o}le d\'{e}cident ce qu'il faut faire en comparant des donn\'{e}es.
+En assembleur, le r\'{e}sultat d'une comparaison est stock\'{e} dans le registre
+FLAGS pour \^{e}tre utilis\'{e} plus tard. Le 80x86 fournit l'instruction 
+{\code CMP} pour effectuer des comparaisons. Le registre FLAGS est positionn\'{e} selon
+la diff\'{e}rence entre les deux op\'{e}randes de l'instruction {\code CMP}. Les op\'{e}randes
+sont soustraites et le registre FLAGS est positionn\'{e} selon le r\'{e}sultat, mais ce
+r\'{e}sultat n'est stock\'{e} \emph{nulle part}. Si vous avez besoin du r\'{e}sultat, utilisez
+l'instruction {\code SUB} au lieu de {\code CMP}.
+
+\index{entiers!non sign\'{e}s|(}
+Pour les entiers non sign\'{e}s, il y a deux drapeaux (bits dans le registre FLAGS)
+qui sont importants : les drapeaux z\'{e}ro (ZF) \index{registre!FLAGS!ZF} et
+retenue (CF) \index{registre!FLAGS!CF}. Le drapeau zero est allum\'{e}~(1)
+si le r\'{e}sultat de la diff\'{e}rence serait 0. Consid\'{e}rons une comparaison comme :
+\begin{AsmCodeListing}[frame=none, numbers=none]
+      cmp    vleft, vright
+\end{AsmCodeListing}
+La diff\'{e}rence {\code vleft~-~vright} est calcul\'{e}e et les drapeaux sont positionn\'{e}s
+en fonction. Si la diff\'{e}rence calcul\'{e}e par {\code CMP} vaut 0, {\code 
+vleft~=~vright}, alors ZF est allum\'{e}(\emph{i.e.} 1) et CF est \'{e}teint
+(\emph{i.e.} 0). Si {\code vleft~>~vright}, ZF est \'{e}teint et CF \'{e}galement.
+Si {\code vleft~<~vright}, alors ZF est \'{e}teint et CF est allum\'{e} (retenue).
+\index{entiers!non sign\'{e}s|)}
+
+\index{entiers!sign\'{e}s|(} 
+Pour les entiers sign\'{e}s, il y a trois drapeaux importants : le drapeau
+z\'{e}ro \index{registre!FLAGS!ZF} (ZF), le drapeau d'overflow \index{registre!FLAGS!OF}(OF)
+et le drapeau de signe\index{register!FLAGS!SF} (SF). \MarginNote{Pourquoi SF~=~OF
+si {\code vleft~>~vright} ? S'il n'y a pas d'overflow, alors la diff\'{e}rence aura la
+valeur correcte et doit \^{e}tre positive ou nulle. Donc, SF~=~OF~=~0.
+Par contre, s'il y a un overflow, la diff\'{e}rence n'aura pas la valeur correcte
+(et sera en fait n\'{e}gative). Donc, SF~=~OF~=~1.}Le drapeau d'overflow est
+allum\'{e} si le r\'{e}sultat d'une op\'{e}ration d\'{e}passe la capacit\'{e} (de trop ou de trop peu).
+Le drapeau de signe est allum\'{e} si le r\'{e}sultat d'une op\'{e}ration est n\'{e}gatif.
+Si {\code vleft~=~vright}, ZF est allum\'{e} (comme pour les entiers non sign\'{e}s).
+Si {\code vleft~>~vright}, ZF est \'{e}teint et SF~=~OF.  Si {\code vleft~<~vright}, 
+ZF est \'{e}teint et SF~$\neq$~OF.
+\index{entiers!sign\'{e}s|)}
+
+N'oubliez pas que d'autres instructions peuvent aussi changer le registre
+FLAGS, pas seulement {\code CMP}.
+\index{CMP|)}
+\index{entiers!comparaisons|)}
+\index{registre!FLAGS|)}
+\index{entiers|)}
+
+\subsection{Instructions de branchement}
+
+Les instructions de branchement peuvent transf\'{e}rer l'ex\'{e}cution \`{a} n'importe quel
+point du programme. En d'autres termes, elles agissent comme un \emph{goto}. Il
+y a deux types de branchements : conditionnel et inconditionnel. Un branchement
+inconditionnel est exactement comme un goto, il effectue toujours le branchement.
+Un branchement conditionnel peut effectuer le branchement ou non selon les 
+drapeaux du registre FLAGS. Si un branchement conditionnel n'effecute pas le
+branchement, le contr\^{o}le passe \`{a} l'instruction suivante.
+
+\index{JMP|(}
+L'instruction {\code JMP} (abbr\'{e}viation de \emph{jump}) effectue les
+branchements inconditionnels. Son seul argument est habituellement
+l'\emph{\'{e}tiquette de code} de l'instruction \`{a} laquelle se brancher.
+L'assembleur ou l'\'{e}diteur de liens remplacera l'\'{e}tiquette par l'adresse 
+correcte de l'instruction. C'est une autre des op\'{e}rations p\'{e}nibles
+que l'assembleur fait pour rendre la vie du programmeur plus simple.
+Il est important de r\'{e}aliser que l'instruction imm\'{e}diatement apr\`{e}s
+l'instruction {\code JMP} ne sera jamais ex\'{e}cut\'{e}e \`{a} moins qu'une autre
+instruction ne se branche dessus !
+
+Il y a plusieurs variantes de l'instruction de saut :
+\begin{description}
+
+\item[SHORT] Ce saut est tr\`{e}s limit\'{e} en port\'{e}e. Il ne peut bouger que
+de plus ou moins 128~octets en m\'{e}moire. L'avantage de ce type de saut
+est qu'il utilise moins de m\'{e}moire que les autres. Il utilise un seul
+octet sign\'{e} pour stocker le \emph{d\'{e}placement} du saut. Le d\'{e}placement
+est le nombre d'octets \`{a} sauter vers l'avant ou vers l'arri\`{e}re (le
+d\'{e}placement est ajout\'{e} \`{a} EIP). Pour sp\'{e}cifier un saut court, utilisez
+le mot cl\'{e} {\code SHORT} imm\'{e}diatement avant l'\'{e}tiquette dans 
+l'instruction {\code JMP}.
+
+\item[NEAR] Ce saut est le saut par d\'{e}faut, que ce soit pour les branchements
+inconditionnels ou conditionnels, il peut \^{e}tre utilis\'{e} pour sauter vers
+n'importe quel emplacement dans un segment. En fait, le 80386 supporte
+deux types de sauts proches. L'un utilise 2 ocets pour le d\'{e}placement.
+Cela permet de se d\'{e}placer en avant ou en arri\`{e}re d'environ 32~000~octets.
+L'autre type utilise quatre octets pour le d\'{e}placement, ce qui, bien s\^{u}r,
+permet de se d\'{e}placer n'importe o\`{u} dans le segment. Le type de saut \`{a}
+deux octets peut \^{e}tre sp\'{e}cifi\'{e} en plaçant le mot cl\'{e} {\code WORD}
+avant l'\'{e}tiquette dans l'instruction {\code JMP}.
+
+\item[FAR] Ce saut permet de passer le contr\^{o}le \`{a} un autre segment de code.
+C'est une chose tr\`{e}s rare en mode prot\'{e}g\'{e} 386.
+\end{description}
+
+Les \'{e}tiquettes de code valides suivent les m\^{e}mes r\`{e}gles que les \'{e}tiquettes de
+donn\'{e}es. Les \'{e}tiquettes de code sont d\'{e}finies en les plaçant dans le segment
+de code au d\'{e}but de l'instruction qu'ils \'{e}tiquettent. Deux~points sont plac\'{e}s
+\`{a} la fin de l'\'{e}tiquette lors de sa d\'{e}finition. Ces deux~points ne font \emph{pas}
+partie du nom.
+\index{JMP|)}
+
+\index{branchement conditionnel|(}
+\begin{table}[t]
+\center
+\begin{tabular}{|ll|}
+\hline
+JZ  & saute uniquement si ZF est allum\'{e} \\
+JNZ & saute uniquement si ZF est \'{e}teint \\
+JO  & saute uniquement si OF est allum\'{e}\\
+JNO & saute uniquement si OF est \'{e}teint \\
+JS  & saute uniquement si SF est allum\'{e} \\
+JNS & saute uniquement si SF est \'{e}teint \\
+JC  & saute uniquement si CF est allum\'{e} \\
+JNC & saute uniquement si CF est \'{e}teint \\
+JP  & saute uniquement si PF est allum\'{e} \\
+JNP & saute uniquement si PF est \'{e}teint \\
+\hline
+\end{tabular}
+\caption{Branchements Conditionnels Simples\label{tab:SimpBran} \index{JZ} \index{JNZ}
+        \index{JO} \index{JNO} \index{JS} \index{JNS} \index{JC} \index{JNC}
+        \index{JP} \index{JNP}}
+\end{table}
+
+Il y a beaucoup d'instructions de branchement conditionnel diff\'{e}rentes. Elles
+prennent toutes une \'{e}tiquette de code comme seule op\'{e}rande. Les plus simples
+se contentent de regarder un drapeau dans le registre FLAGS pour d\'{e}terminer
+si elles doivent sauter ou non. Voyez le Tableau~\ref{tab:SimpBran} pour une
+liste de ces instructions (PF est le \emph{drapeau de parit\'{e}} \index{registre!FLAGS!PF}
+qui indique si le nombre de bits dans les 8~bits de poids faible du r\'{e}sultat est pair ou
+impair).
+
+Le pseudo-code suivant :
+\begin{Verbatim}
+if ( EAX == 0 )
+  EBX = 1;
+else
+  EBX = 2;
+\end{Verbatim}
+peut \^{e}tre \'{e}crit de cette façon en assembleur :
+\begin{AsmCodeListing}[frame=none]
+      cmp    eax, 0            ; positionne les drapeaux (ZF allum\'{e} si eax - 0 = 0)
+      jz     thenblock         ; si ZF est allum\'{e}, branchement vers thenblock
+      mov    ebx, 2            ; partie ELSE du IF
+      jmp    next              ; saute par dessus la partie THEN du IF
+thenblock:
+      mov    ebx, 1            ; partie THEN du IF
+next:
+\end{AsmCodeListing}
+
+Les autres comparaisons ne sont pas si simples si l'on se contente des branchements
+conditionnels du Tableau~\ref{tab:SimpBran}. Pour illustrer, consid\'{e}rons le
+pseudo-code suivant :
+\begin{Verbatim}
+if ( EAX >= 5 )
+  EBX = 1;
+else
+  EBX = 2;
+\end{Verbatim}
+Si EAX est plus grand ou \'{e}gal \`{a} 5, ZF peut \^{e}tre allum\'{e} ou non et SF
+sera \'{e}gal \`{a} OF. Voici le code assembleur qui teste ces conditions
+(en supposant que EAX est sign\'{e}) :
+\begin{AsmCodeListing}[frame=none]
+      cmp    eax, 5
+      js     signon            ; goto signon si SF = 1
+      jo     elseblock         ; goto elseblock si OF = 1 et SF = 0
+      jmp    thenblock         ; goto thenblock si SF = 0 et OF = 0
+signon:
+      jo     thenblock         ; goto thenblock si SF = 1 et OF = 1
+elseblock:
+      mov    ebx, 2
+      jmp    next
+thenblock:
+      mov    ebx, 1
+next:
+\end{AsmCodeListing}
+
+\begin{table}
+\center
+\begin{tabular}{|ll|ll|}
+\hline
+\multicolumn{2}{|c|}{\textbf{Sign\'{e}}} & \multicolumn{2}{c|}{\textbf{Non Sign\'{e}}} \\
+\hline
+JE & saute si {\code vleft = vright} & JE & saute si {\code vleft = vright} \\
+JNE & saute si {\code vleft $\neq$ vright} & JNE & saute si {\code vleft $\neq$ vright} \\
+JL, JNGE & saute si {\code vleft < vright} & JB, JNAE & saute si {\code vleft < vright} \\
+JLE, JNG & saute si {\code vleft $\leq$ vright} & JBE, JNA & saute si {\code vleft $\leq$ vright} \\
+JG, JNLE & saute si {\code vleft > vright} & JA, JNBE & saute si {\code vleft > vright} \\
+JGE, JNL & saute si {\code vleft $\geq$ vright} & JAE, JNB & saute si {\code vleft $\geq$ vright} \\
+\hline
+\end{tabular}
+\caption{Instructions de Comparaison Sign\'{e}es et Non Sign\'{e}es\label{tab:CompBran} \index{JE} \index{JNE}
+         \index{JL} \index{JNGE} \index{JLE} \index{JNG} \index{JG} \index{JNLE} \index{JGE}
+         \index{JNL}}
+\end{table}
+
+Le code ci-dessus est tr\`{e}s confus. Heureusement, le 80x86 fournit des instructions
+de branchement additionnelles pour rendre ce type de test \emph{beaucoup} plus simple.
+Il y a des versions sign\'{e}es et non sign\'{e}es de chacune. Le Tableau~\ref{tab:CompBran} 
+montre ces instructions. Les branchements \'{e}gal et non \'{e}gal (JE et JNE) sont les m\^{e}mes
+pour les entiers sign\'{e}s et non sign\'{e}s (en fait, JE et JNE sont r\'{e}ellement identiques \`{a}
+JZ et JNZ, respectivement). Chacune des autres instructions de branchement a deux
+synonymes. Par exemple, regardez JL (jump less than, saut si inf\'{e}rieur \`{a}) et
+JNGE (jump not greater than or equal to, saut si non plus grand ou \'{e}gal). Ce sont les
+m\^{e}mes instructions car :
+\[ x < y \Longrightarrow \mathbf{not}( x \geq y ) \]
+Les branchements non sign\'{e}s utilisent A pour \emph{above} (au dessus) et B
+pour \emph{below} (en dessous) \`{a} la place de L et G.
+
+En utilisant ces nouvelles instructions de branchement, le pseudo-code ci-dessus
+peut \^{e}tre traduit en assembleur plus facilement.
+\begin{AsmCodeListing}[frame=none]
+      cmp    eax, 5
+      jge    thenblock
+      mov    ebx, 2
+      jmp    next
+thenblock:
+      mov    ebx, 1
+next:
+\end{AsmCodeListing}
+\index{branchement conditionnel|)}
+
+\subsection{Les instructions de boucle}
+
+Le 80x86 fournit plusieurs instructions destin\'{e}es \`{a} impl\'{e}menter des boucles de
+style \emph{for}. Chacune de ces instructions prend une \'{e}tiquette de code comme
+seule op\'{e}rande.
+\begin{description}
+\item[LOOP] 
+\index{LOOP}
+Decr\'{e}mente ECX, si ECX $\neq$ 0, saute vers l'\'{e}tiquette
+\item[LOOPE, LOOPZ]
+\index{LOOPE} \index{LOOPZ}
+D\'{e}cremente ECX (le registre FLAGS n'est pas modifi\'{e}), si
+                    ECX $\neq$ 0 et ZF = 1, saute
+\item[LOOPNE, LOOPNZ]
+\index{LOOPNE} \index{LOOPNZ}
+D\'{e}cremente ECX (FLAGS inchang\'{e}), si ECX $\neq$ 0
+                      et ZF = 0, saute
+\end{description}
+
+Les deux derni\`{e}res instructions de boucle sont utiles pour les boucles de recherche
+s\'{e}quentielle. Le pseudo-code suivant :
+\begin{lstlisting}[stepnumber=0]{}
+sum = 0;
+for( i=10; i >0; i-- )
+  sum += i;
+\end{lstlisting}
+\noindent peut \^{e}tre traduit en assembleur de la façon suivante :
+\begin{AsmCodeListing}[frame=none]
+      mov    eax, 0          ; eax est sum
+      mov    ecx, 10         ; ecx est i
+loop_start:
+      add    eax, ecx
+      loop   loop_start
+\end{AsmCodeListing}
+
+\section{Traduire les Structures de Contr\^{o}le Standards}
+
+Cette section d\'{e}crit comment les structures de contr\^{o}le standards des langages
+de haut niveau peuvent \^{e}tre impl\'{e}ment\'{e}es en langage assembleur.
+
+\subsection{Instructions if\index{instruction if|(}}
+Le pseudo-code suivant :
+\begin{lstlisting}[stepnumber=0]{}
+if ( condition )
+  then_block;
+else
+  else_block;
+\end{lstlisting}
+\noindent peut \^{e}tre impl\'{e}ment\'{e} de cette façon :
+\begin{AsmCodeListing}[frame=none]
+      ; code pour positionner FLAGS
+      jxx    else_block    ; choisir xx afin de sauter si la condition est fausse
+      ; code pour le bloc then
+      jmp    endif
+else_block:
+      ; code pour le bloc else
+endif:
+\end{AsmCodeListing}
+
+S'il n'y a pas de else, le branchement {\code else\_block} peut \^{e}tre remplac\'{e} par un
+branchement \`{a}  {\code endif}.
+\begin{AsmCodeListing}[frame=none]
+      ; code pour positionner FLAGS
+      jxx    endif          ; choisir xx afin de sauter si la condition est fausse
+      ; code pour le bloc then
+endif:
+\end{AsmCodeListing}
+\index{instruction if|)}
+
+\subsection{Boucles while\index{boucle while|(}}
+La boucle \emph{while} est une boucle avec un test au d\'{e}but :
+\begin{lstlisting}[stepnumber=0]{}
+while( condition ) {
+  corps de la boucle;
+}
+\end{lstlisting}
+\noindent Cela peut \^{e}tre traduit en :
+\begin{AsmCodeListing}[frame=none]
+while:
+      ; code pour positionner FLAGS selon la condition
+      jxx    endwhile       ; choisir xx pour sauter si la condition est fausse
+      ; body of loop
+      jmp    while
+endwhile:
+\end{AsmCodeListing}
+\index{boucle while|)}
+
+\subsection{Boucles do while\index{boucle do while|(}}
+La boucle \emph{do while} est une boucle avec un test \`{a} la fin :
+\begin{lstlisting}[stepnumber=0]{}
+do {
+  corps de la boucle;
+} while( condition );
+\end{lstlisting}
+\noindent Cela peut \^{e}tre traduit en :
+\begin{AsmCodeListing}[frame=none]
+do:
+      ; corps de la boucle
+      ; code pour positionner FLAGS selon la condition
+      jxx    do          ; choisir xx pour se brancher si la condition est vraie
+\end{AsmCodeListing}
+\index{boucle do while|)}
+
+
+\begin{figure}[t]
+\begin{lstlisting}[frame=tlrb,escapechar=\$]{}
+  unsigned guess;   /* $\slshape candidat courant pour \^{e}tre premier $ */
+  unsigned factor;  /* diviseur possible de guess */
+  unsigned limit;   /* $\slshape rechercher les nombres premiers jusqu'\`{a} cette valeur $*/
+
+  printf("Rechercher les nombres premier jusqu'a : ");
+  scanf("%u", &limit);
+  printf("2\n");    /* traite les deux premier nombres premiers comme  */
+  printf("3\n");    /* $\slshape des cas sp\'{e}ciaux$  */
+  guess = 5;        /* candidat initial */
+  while ( guess <= limit ) {
+    /* recherche un diviseur du candidat */
+    factor = 3;
+    while ( factor*factor < guess &&
+            guess % factor != 0 )
+     factor += 2;
+    if ( guess % factor != 0 )
+      printf("%d\n", guess);
+    guess += 2;    /* ne regarder que les nombres impairs */
+  }
+\end{lstlisting}
+\caption{}\label{fig:primec}
+\end{figure}
+
+\section{Exemple : Trouver des Nombres Premiers}
+Cette section d\'{e}taille un programme qui trouve des nombres premiers. Rappelez
+vous que les nombres premiers ne sont divisibles que par 1 et par eux-m\^{e}mes.
+Il n'y a pas de formule pour les rechercher. La m\'{e}thode de base qu'utilise 
+ce programme est de rechercher les diviseurs de tous les nombres impairs
+\footnote{2 est le seul nombre premier pair.} sous une limite donn\'{e}e. Si aucun
+facteur ne peut \^{e}tre trouv\'{e} pour un nombre impair, il est premier. La
+Figure~\ref{fig:primec} montre l'algorithme de base \'{e}crit en C.
+
+Voici la version assembleur :
+\index{prime.asm|(}
+\begin{AsmCodeListing}[label=prime.asm]
+%include "asm_io.inc"
+segment .data
+Message         db      "Rechercher les nombres premiers jusqu'a : ", 0
+
+segment .bss
+Limit           resd    1               ;\small rechercher les nombres premiers jusqu'\`{a} cette limite
+Guess           resd    1               ; candidat courant pour \^{e}tre premier
+
+segment .text
+        global  _asm_main
+_asm_main:
+        enter   0,0               ; routine d'intialisation
+        pusha
+
+        mov     eax, Message
+        call    print_string
+        call    read_int             ; scanf("%u", &limit);
+        mov     [Limit], eax
+
+        mov     eax, 2               ; printf("2\(\backslash\)n");
+        call    print_int
+        call    print_nl
+        mov     eax, 3               ; printf("3\(\backslash\)n");
+        call    print_int
+        call    print_nl
+
+        mov     dword [Guess], 5     ; Guess = 5;
+while_limit:                         ; while ( Guess <= Limit )
+        mov     eax,[Guess]
+        cmp     eax, [Limit]
+        jnbe    end_while_limit      ; on utilise jnbe car les nombres ne sont pas signes
+
+        mov     ebx, 3               ; ebx est factor = 3;
+while_factor:
+        mov     eax,ebx
+        mul     eax                  ; edx:eax = eax*eax
+        jo      end_while_factor     ; si la r\'{e}ponse ne tient pas dans eax seul
+        cmp     eax, [Guess]
+        jnb     end_while_factor     ; si !(factor*factor < guess)
+        mov     eax,[Guess]
+        mov     edx,0
+        div     ebx                  ; edx = edx:eax % ebx
+        cmp     edx, 0
+        je      end_while_factor     ; si !(guess % factor != 0)
+
+        add     ebx,2                ; factor += 2;
+        jmp     while_factor
+end_while_factor:
+        je      end_if               ; si !(guess % factor != 0)
+        mov     eax,[Guess]          ; printf("%u\(\backslash\)n")
+        call    print_int
+        call    print_nl
+end_if:
+        add     dword [Guess], 2     ; guess += 2
+        jmp     while_limit
+end_while_limit:
+
+        popa
+        mov     eax, 0            ; retour au C
+        leave                     
+        ret
+\end{AsmCodeListing}
+\index{prime.asm|)}

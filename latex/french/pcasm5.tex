@@ -1,0 +1,1070 @@
+% -*-latex-*-
+\chapter{Tableaux}
+\index{tableaux|(}
+\section{Introduction}
+
+Un \emph{tableau} est un bloc contigu de données en mémoire. Tous les éléments
+de la liste doivent être du même type et occuper exactement le même nombre d'octets
+en mémoire. En raison de ces propriétés, les tableaux permettent un accès efficace
+à une donnée par sa position (ou indice) dans le tableau. L'adresse de n'importe
+quel élément peut être calculée en connaissant les trois choses suivantes :
+\begin{itemize}
+\item L'adresse du premier élément du tableau
+\item Le nombre d'octets de chaque élément
+\item L'indice de l'élément
+\end{itemize}
+
+Il est pratique de considérer l'indice du premier élément du tableau comme
+étant 0 (comme en C). Il est possible d'utiliser d'autres valeurs pour le
+premier indice mais cela complique les calculs.
+
+\subsection{Définir des tableaux\index{tableaux!définition|(}}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+segment .data
+; définit un tableau de 10 doubles mots initialisés à 1,2,..,10
+a1           dd   1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+; définit un tableau de 10 mots initialisés à 0
+a2           dw   0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+; idem mais en utilisant TIMES
+a3           times 10 dw 0
+; définit un tableau d'octets avec 200 0 puis 100 1
+a4           times 200 db 0
+             times 100 db 1
+
+segment .bss
+; définit un tableau de 10 doubles mots non initialisés
+a5           resd  10
+; définit un tableau de 100 mots non initialisés
+a6           resw  100
+\end{AsmCodeListing}
+\caption{Définir des tableaux\label{fig:DataArrays}}
+\end{figure}
+
+\subsubsection{Définir des tableaux dans les segments {\code data} et {\code bss}
+               \index{tableaux!définition!statique}}
+
+Pour définir un tableau initialisé dans le segment {\code data}, utilisez les directives
+{\code db}, {\code dw}, \emph{etc.} normales.
+\index{directive!D\emph{X}}directives. NASM fournit également une directive utile appelée
+{\code TIMES} \index{directive!TIMES} qui peut être utilisée pour répéter une expression
+de nombreuses fois sans avoir à la dupliquer à la main.
+La Figure~\ref{fig:DataArrays} montre plusieurs exemples.
+
+Pour définir un tableau non initialisé dans le segment {\code bss}, utilisez
+les directives {\code resb}, {\code resw}, \emph{etc.}\index{directive!RES\emph{X}}
+Souvenez vous que ces directives ont une opérande qui spécifie le nombre
+d'unités mémoire à réserver. La Figure~\ref{fig:DataArrays} montre également des
+exemples de ces types de définitions.
+
+\begin{figure}[t]
+\centering
+\begin{tabular}{l|c|ll|c|}
+\cline{2-2} \cline{5-5}
+EBP - 1  & char    & \hspace{2em} &           & \\
+\cline{2-2}
+         & unused  &              &           & \\
+\cline{2-2}
+EBP - 8  & dword 1 &              &           & \\
+\cline{2-2}
+EBP - 12 & dword 2 &              &           & word \\
+\cline{2-2}
+         &         &              &           & array \\
+         &         &              &           & \\
+         & word    &              &           & \\
+         & array   &              & EBP - 100 & \\
+\cline{5-5}
+         &         &              & EBP - 104 & dword 1 \\
+\cline{5-5}
+         &         &              & EBP - 108 & dword 2 \\
+\cline{5-5}
+         &         &              & EBP - 109 & char \\
+\cline{5-5}
+EBP - 112 &        &              &           & unused \\
+\cline{2-2} \cline{5-5}
+\end{tabular}
+\caption{Organisations possibles de la pile\label{fig:StackLayouts}}
+\end{figure}
+
+\subsubsection{Définir des tableaux comme variables locales\index{tableaux!définition!variable locale}}
+
+Il n'y a pas de manière directe de définir un tableau comme variable locale
+sur la pile. Comme précédemment, on calcule le nombre total d'octets requis
+pour \emph{toutes} les variables locales, y compris les tableaux, et on
+l'ôte de ESP (soit directement, soit en utilisant l'instruction
+{\code ENTER}). Par exemple, si une fonction a besoin d'une variable
+caractère, deux entiers double-mot et un tableau de 50 éléments d'un mot,
+il faudrait $1 + 2 \times 4 + 50 \times 2 = 109$ octets. Cependant,
+le nombre ôté de ESP doit être un multiple de quatre (112 dans ce cas)
+pour maintenir ESP sur un multiple de double mot. On peut organiser les
+variables dans ces 109 octets de plusieurs fa\c{c}ons. 
+La Figure~\ref{fig:StackLayouts} montre deux manières possibles. La partie
+inutilisée sert à maintenir les doubles mots sur des adresses multiples
+de doubles mots afin d'accélérer les accès mémoire.
+\index{tableaux!définition|)}
+
+\subsection{Accéder aux éléments de tableaux\index{tableaux!accès|(}}
+
+Il n'y a pas d'opérateur {\code [ ]} en langage assembleur comme en C. Pour
+accéder à un élément d'un tableau, son adresse doit être calculée.
+Considérons les deux définitions de tableau suivantes :
+\begin{AsmCodeListing}[frame=none, numbers=none]
+array1       db     5, 4, 3, 2, 1     ; tableau d'octets
+array2       dw     5, 4, 3, 2, 1     ; tableau de mots
+\end{AsmCodeListing}
+Voici quelques exemple utilisant ces tableaux :
+\begin{AsmCodeListing}[frame=none]
+      mov    al, [array1]             ; al = array1[0]
+      mov    al, [array1 + 1]         ; al = array1[1]
+      mov    [array1 + 3], al         ; array1[3] = al
+      mov    ax, [array2]             ; ax = array2[0]
+      mov    ax, [array2 + 2]         ; ax = array2[1] (PAS array2[2]!)
+      mov    [array2 + 6], ax         ; array2[3] = ax
+      mov    ax, [array2 + 1]         ; ax = ??
+\end{AsmCodeListing}
+A la ligne~5, l'élément 1 du tableau de mots est référencé, pas l'élément 2.
+Pourquoi ? Les mots sont des unités de deux octets, donc pour se déplacer
+à l'élément suivant d'un tableau de mots, on doit se déplacer de deux octets,
+pas d'un seul. La ligne~7 lit un octet du premier élément et un octet du
+suivant. En C, le compilateur regarde la type de pointeur pour déterminer
+de combien d'octets il doit se déplacer dans une expression utilisant
+l'arithmétique des pointeurs, afin que le programmeur n'ait pas à le faire.
+Cependant, en assembleur, c'est au programmeur de prendre en compte
+a taille des éléments du tableau lorsqu'il se déplace parmi les éléments.
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single,commandchars=\\\{\}]
+      mov    ebx, array1           ; ebx = adresse de array1
+      mov    dx, 0                 ; dx contiendra sum
+      mov    ah, 0                 ; ?
+      mov    ecx, 5
+lp:
+      mov    al, [ebx]             ; al = *ebx
+      add    dx, ax                ; dx += ax (pas al!) \label{line:SumArray1}
+      inc    ebx                   ; bx++
+      loop   lp
+\end{AsmCodeListing}
+\caption{Faire la somme des éléments d'un tableau (Version 1)\label{fig:SumArray1}}
+\end{figure}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single,commandchars=\\\{\}]
+      mov    ebx, array1           ; ebx = adresse de array1
+      mov    dx, 0                 ; dx contiendra la somme
+      mov    ecx, 5
+lp:
+\textit{      add    dl, [ebx]             ; dl += *ebx}
+\textit{      jnc    next                  ; si pas de retenue goto next}
+\textit{      inc    dh                    ; incrémente dh}
+\textit{next:}
+      inc    ebx                   ; bx++
+      loop   lp
+\end{AsmCodeListing}
+\caption{Faire la somme des éléments d'un tableau (Version 2)\label{fig:SumArray2}}
+\end{figure}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single,commandchars=\\\{\}]
+      mov    ebx, array1           ; ebx = adresse de array1
+      mov    dx, 0                 ; dx contiendra la somme
+      mov    ecx, 5
+lp:
+\textit{      add    dl, [ebx]             ; dl += *ebx}
+\textit{      adc    dh, 0                 ; dh += drapeau de retenue + 0}
+      inc    ebx                   ; bx++
+      loop   lp
+\end{AsmCodeListing}
+\caption{Faire la somme des éléments d'un tableau (Version 3)\label{fig:SumArray3}}
+\end{figure}
+
+La Figure~\ref{fig:SumArray1} montre un extrait de code qui additionne
+tous les éléments de {\code array1} de l'exemple de code précédent. A
+la ligne~\ref{line:SumArray1}, AX est ajouté à DX. Pourquoi pas AL ?
+Premièrement, les deux opérandes de l'instruction {\code ADD} doivent avoir
+la même taille. Deuxièmement, il serait facile d'ajouter des octets et d'obtenir
+une somme qui serait trop grande pour tenir sur un octet. En utilisant
+DX, la somme peut atteindre 65~535. Cependant, il est important de
+réaliser que AH est également additionné. C'est pourquoi, AH est
+positionné à zéro\footnote{Positionner AH à zéro équivaut
+à supposer implicitement que AL est un nombre non signé. S'il est signé,
+ l'action appropriée serait d'insérer une instruction {\code CBW} entre les lignes~6 et 7.}
+à la ligne~3.
+
+Les Figures~\ref{fig:SumArray2} et \ref{fig:SumArray3} montrent deux
+manières alternatives de calculer la somme. Les lignes en italique
+remplacent les lignes~6 et 7 de la Figure~\ref{fig:SumArray1}.
+
+\subsection{Adressage indirect plus avancé\index{adressage indirect!tableaux|(}}
+
+Ce n'est pas étonnant, l'adressage indirect est souvent utilisé avec les tableaux.
+La forme la plus générale d'une référence mémoire indirecte est :
+\begin{center}
+{\code [ \emph{reg de base} + \emph{facteur}*\emph{reg d'index} + 
+      \emph{constante}]}
+\end{center}
+où :
+\begin{description}
+\item[reg de base] est un des registres EAX, EBX, ECX, EDX, EBP, ESP, ESI
+                ou EDI.
+\item[facteur] est 1, 2, 4 ou 8 (S'il vaut 1, le facteur est omis).
+\item[reg d'index] est un des registres EAX, EBX, ECX, EDX, EBP, ESI, EDI
+                 (Notez que ESP n'est pas dans la liste).
+\item[constante] est une constante 32~bits. Cela peut être une étiquette (ou une
+                expression d'étiquette).
+\end{description}
+
+\subsection{Exemple}
+Voici un exemple qui utilise un tableau et le passe à une fonction. Il utilise le
+programme {\code array1c.c} (dont le listing suit) comme pilote, pas le programme
+{\code driver.c}. \index{array1.asm|(}
+\begin{AsmCodeListing}[label=array1.asm]
+%define ARRAY_SIZE 100
+%define NEW_LINE 10
+
+segment .data
+FirstMsg        db   "10 premiers éléments du tableau", 0
+Prompt          db   "Entrez l'indice de l'élément à afficher : ", 0
+SecondMsg       db   "L'élément %d vaut %d", NEW_LINE, 0
+ThirdMsg        db   "Eléments 20 à 29 du tableau", 0
+InputFormat     db   "%d", 0
+
+segment .bss
+array           resd ARRAY_SIZE
+
+segment .text
+        extern  _puts, _printf, _scanf, _dump_line
+        global  _asm_main
+_asm_main:
+        enter   4,0		; variable locale dword en EBP - 4
+        push    ebx
+        push    esi
+
+; initialise le tableau à 100, 99, 98, 97, ...
+
+        mov     ecx, ARRAY_SIZE
+        mov     ebx, array
+init_loop:
+        mov     [ebx], ecx
+        add     ebx, 4
+        loop    init_loop
+
+        push    dword FirstMsg         ; affiche FirstMsg
+        call    _puts
+        pop     ecx
+
+        push    dword 10
+        push    dword array
+        call    _print_array           ; affiche les 10 premiers éléments du tableau
+        add     esp, 8
+
+; demande à l'utilisateur l'indice de l'élément
+Prompt_loop:
+        push    dword Prompt
+        call    _printf
+        pop     ecx
+
+        lea     eax, [ebp-4]      ; eax = adresse du dword local
+        push    eax
+        push    dword InputFormat
+        call    _scanf
+        add     esp, 8
+        cmp     eax, 1               ; eax = valeur de retour de scanf
+        je      InputOK
+
+        call    _dump_line  ; ignore le reste de la ligne et recommence
+        jmp     Prompt_loop          ; si la saisie est invalide
+
+InputOK:
+        mov     esi, [ebp-4]
+        push    dword [array + 4*esi]
+        push    esi
+        push    dword SecondMsg      ; affiche la valeur de l'élément
+        call    _printf
+        add     esp, 12
+
+        push    dword ThirdMsg       ; affiche les éléments 20 à 29
+        call    _puts
+        pop     ecx
+
+        push    dword 10
+        push    dword array + 20*4     ; adresse de array[20]
+        call    _print_array
+        add     esp, 8
+
+        pop     esi
+        pop     ebx
+        mov     eax, 0            ; retour au C
+        leave                     
+        ret
+
+;
+; routine _print_array
+; Routine appelable depuis le C qui affiche les éléments d'un tableau de doubles mots
+; comme des entiers signés.
+; Prototype C:
+; void print_array( const int * a, int n);
+; Paramètres:
+;   a - pointeur vers le tableau à afficher (en ebp+8 sur la pile)
+;   n - nombre d'entiers à afficher (en ebp+12 sur la pile)
+
+segment .data
+OutputFormat    db   "%-5d %5d", NEW_LINE, 0
+
+segment .text
+        global  _print_array
+_print_array:
+        enter   0,0
+        push    esi
+        push    ebx
+
+        xor     esi, esi                  ; esi = 0
+        mov     ecx, [ebp+12]             ; ecx = n
+        mov     ebx, [ebp+8]              ; ebx = adresse du tableau
+print_loop:
+        push    ecx                       ; printf change ecx !
+
+        push    dword [ebx + 4*esi]       ; empile tableau[esi]
+        push    esi
+        push    dword OutputFormat
+        call    _printf
+        add     esp, 12                   ; retire les paramètres (laisse ecx !)
+
+        inc     esi
+        pop     ecx
+        loop    print_loop
+
+        pop     ebx
+        pop     esi
+        leave
+        ret
+\end{AsmCodeListing}
+
+\LabelLine{array1c.c}
+\begin{lstlisting}
+#include <stdio.h>
+
+int asm_main( void );
+void dump_line( void );
+
+int main()
+{
+  int ret_status;
+  ret_status = asm_main();
+  return ret_status;
+}
+
+/*
+ * fonction dump_line
+ * retire tous les caractères restant sur la ligne courante dans le buffer d'entrée
+ */
+void dump_line()
+{
+  int ch;
+
+  while( (ch = getchar()) != EOF && ch != '\n')
+    /* null body*/ ;
+}
+\end{lstlisting}
+\LabelLine{array1c.c}
+\index{array1.asm|)}
+\index{adressage indirect!tableaux|)}
+\index{tableaux!accès|)}
+
+\subsubsection{L'instruction {\code LEA} revisitée\index{LEA|(}}
+
+L'instruction {\code LEA} peut être utilisée dans d'autres cas que le
+calcul d'adresse. Elle est assez couramment utilisée pour les calculs
+rapides. Considérons le code suivant :
+\begin{AsmCodeListing}[numbers=none,frame=none]
+      lea    ebx, [4*eax + eax]
+\end{AsmCodeListing}
+Il stocke la valeur de $5 \times \mathtt{EAX}$ dans EBX.
+Utiliser {\code LEA} dans ce cas est à la fois plus simple et plus rapide
+que d'utiliser {\code MUL}\index{MUL}. Cependant, il faut être conscient
+du fait que l'expression entre crochets \emph{doit} être une adresse
+indirecte légale. Donc, par exemple, cette instruction ne peut pas être
+utilisée pour multiplier par 6 rapidement.
+\index{LEA|)}
+
+
+\subsection{Tableaux Multidimensionnels\index{tableaux!multidimensionnels|(}}
+
+Les tableaux multidimensionnels ne sont pas vraiments différents de ceux
+à une dimension dont nous avons déjà parlé. En fait, il sont représentés
+en mémoire exactement comme cela, un tableau à une dimension.
+
+\subsubsection{Tableaux à Deux Dimensions\index{tableaux!multidimensionnels!deux dimensions|(}}
+Ce n'est pas étonnant, le tableau multidimensionnel le plus simple est celui à deux
+dimensions. Un tableau à deux dimensions est souvent représenté comme une grille
+d'éléments. Chaque élément est identifié par une paire d'indices. Par convention,
+le premier indice est associé à la ligne et le second à la colonne.
+
+Considérons un tableau avec trois lignes et deux colonnes défini de la manière suivante :
+\begin{lstlisting}[stepnumber=0]{}
+  int a[3][2];
+\end{lstlisting}
+Le compilateur C réserverait de la place pour un tableau d'entiers de 6 ($= 2 \times 3$) et
+placerait les éléments comme suit :
+
+\parbox{\textwidth}{
+\vspace{0.5em}
+\centering
+\begin{tabular}{||l|c|c|c|c|c|c||}
+\hline
+Indice & 0 & 1 & 2 & 3 & 4 & 5 \\
+\hline
+Elément & a[0][0] & a[0][1] & a[1][0] & a[1][1] & a[2][0] & a[2][1]  \\
+\hline
+\end{tabular}
+\vspace{0.5em}
+}
+\noindent Ce que ce tableau tente de montrer et que l'élément réferencé comme
+{\code a[0][0]} est stocké au début du tableau de 6 éléments à une dimension.
+L'élément {\code a[0][1]} est stocké à la position suivante (indice~1) 
+\emph{etc}. Chaque ligne du tableau à deux dimensions est stockée en mémoire de
+fa\c{c}on contig\"{u}e. Le dernier élément d'une ligne est suivi par le premier
+élément de la suivante. On appelle cela la représentation \emph{au niveau ligne}
+(rowwise) du tableau et c'est comme cela qu'un compilateur C/C++ représenterait
+le tableau.
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[]
+   mov    eax, [ebp - 44]          ; ebp - 44 est l'emplacement de i
+   sal    eax, 1                   ; multiplie i par 2
+   add    eax, [ebp - 48]          ; ajoute j
+   mov    eax, [ebp + 4*eax - 40]  ; ebp - 40 est l'adresse de a[0][0]
+   mov    [ebp - 52], eax          ; stocke le résultat dans x (en ebp - 52)
+\end{AsmCodeListing}
+\caption{ Assembleur correspondant à \lstinline|x = a[i][j]| \label{fig:aij}}
+\end{figure}
+
+Comment le compilateur détermine où {\code a[i][j]} se trouve dans la représentation
+au niveau ligne ? Une formule simple calcule l'indice à partir de {\code i} et
+{\code j}. La formule dans ce cas est $2i + j$. Il n'est pas compliqué de voir
+comment on obtient cette formule. Chaque ligne fait deux éléments de long ; donc
+le premier élément de la ligne $i$ est à l'emplacement $2i$. Puis on obtient
+l'emplacement de la colonne $j$ en ajoutant $j$ à $2i$. Cette analyse montre
+également comment la formule est généralisée à un tableau de 
+{\code N} colonnes : $N \times i + j$. Notez que la formule ne dépend \emph{pas}
+du nombre de lignes.
+
+Pour illustrer, voyons comment \emph{gcc} compile le code suivant (utilisant le
+tableau {\code a} défini plus haut) :
+\begin{lstlisting}[stepnumber=0]{}
+  x = a[i][j];
+\end{lstlisting}
+La Figure~\ref{fig:aij} montre le code assembleur correspondant. Donc,
+le compilateur convertit grossièrement le code en :
+\begin{lstlisting}[stepnumber=0]{}
+  x = *(&a[0][0] + 2*i + j);
+\end{lstlisting}
+et en fait, le programmeur pourrait l'écrire de cette manière et obtenir le
+même résultat.
+
+Il n'y a rien de magique à propos du choix de la représentation niveau ligne
+du tableau. Une représentation niveau colonne fonctionnerait également : 
+
+\parbox{\textwidth}{
+\vspace{0.5em}
+\centering
+\begin{tabular}{||l|c|c|c|c|c|c||}
+\hline
+Indice & 0 & 1 & 2 & 3 & 4 & 5 \\
+\hline
+Elément & a[0][0] & a[1][0] & a[2][0] & a[0][1] & a[1][1] & a[2][1]  \\
+\hline
+\end{tabular}
+\vspace{0.5em}
+}
+\noindent Dans la représentation niveau colonne, chaque colonne est stockée
+de maniètre contig\"{u}e. L'élément {\code [i][j]} est stocké à l'emplacement
+$i + 3j$. D'autres langages (FORTRAN, par exemple) utilisent la représentation
+niveau colonne. C'est important lorsque l'on interface du code provenant de
+multiples langages.
+\index{tableaux!multidimensionnels!deux dimensions|)}
+
+\subsubsection{Dimensions Supérieures à Deux}
+Pour les dimensions supérieures à deux, la même idée de base est appliquée.
+Considérons un tableau à trois dimensions :
+\begin{lstlisting}[stepnumber=0]{}
+  int b[4][3][2];
+\end{lstlisting}
+Ce tableau serait stocké comme s'il était composé de trois tableaux à deux
+dimensions, chacun de taille {\code [3][2]} stockés consécutivement en mémoire.
+Le tableau ci-dessous montre comment il commence :
+
+\parbox{\textwidth}{
+\vspace{0.5em}
+\centering
+\begin{tabular}{||l|c|c|c|c|c|c||}
+\hline
+Indice & 0 & 1 & 2 & 3 & 4 & 5  \\
+\hline
+Elément & b[0][0][0] & b[0][0][1]  & b[0][1][0] & b[0][1][1] & b[0][2][0]
+&  b[0][2][1]  \\
+\hline
+\hline
+Indice & 6 & 7 & 8 & 9 & 10 & 11 \\
+\hline
+Elément & b[1][0][0] & b[1][0][1] & b[1][1][0] & b[1][1][1]  & b[1][2][0] 
+& b[1][2][1] \\
+\hline
+\end{tabular}
+\vspace{0.5em}
+}
+\noindent La formule pour calculer la position de {\code b[i][j][k]}
+est $6i + 2j + k$. Le 6 est déterminé par la taille des tableaux
+{\code [3][2]}. En général, pour un tableau de dimension {\code
+a[L][M][N]} l'emplacement de l'élément {\code a[i][j][k]} sera $M\times N\times i 
++ N \times j + k$. Notez, là encore, que la dimension {\code L} n'apparaît
+pas dans la formule.
+
+Pour les dimensions plus grandes, le même procédé est généralisé. Pour un tableau
+à $n$ dimensions de dimension $D_1$ à $D_n$, l'emplacement d'un élément repéré par
+les indices $i_1$ à $i_n$ est donné par la formule :
+\begin{displaymath}
+D_2 \times D_3 \cdots \times D_n \times i_1 + D_3 \times D_4 \cdots \times D_n 
+\times i_2 + \cdots + D_n \times i_{n-1} + i_n
+\end{displaymath}
+ou pour les fanas de maths, on peut l'écrire de fa\c{c}on plus concise :
+\begin{displaymath}
+\sum_{j=1}^{n} \: \left( \prod_{k=j+1}^{n} D_k \right) \: i_j
+\end{displaymath}
+\MarginNote{C'est là que vous comprenez que l'auteur est un major de physique (ou
+la référence à FORTRAN vous avait déjà mis sur la voie ?)}
+La première dimension, $D_1$, n'apparaît pas dans la formule.
+
+Pour la représentation au niveau colonne, la formule générale serait :
+\begin{displaymath}
+i_1 + D_1 \times i_2 + \cdots + D_1 \times D_2 \times \cdots \times D_{n-2} 
+\times i_{n-1} + D_1 \times D_2 \times \cdots \times D_{n-1} \times i_n
+\end{displaymath}
+ou dans la notation des fanas de maths :
+\begin{displaymath}
+\sum_{j=1}^{n} \: \left( \prod_{k=1}^{j-1} D_k \right) \: i_j
+\end{displaymath}
+Dans ce cas, c'est la dernière dimension, $D_n$, qui n'apparaît pas dans la
+formule.
+
+\subsubsection{Passer des Tableaux Multidimensionnels comme Paramètres en C\index{tableaux!multidimensionnels!paramètres|(}}
+
+La représentation au niveau ligne des tableaux multidimensionnels a un
+effet direct sur la programmation C. Pour les tableaux à une dimension,
+la taille du tableau n'est pas nécessaire pour calculer l'emplacement en
+mémoire de n'importe quel élément. Ce n'est pas vrai pour les tableaux
+multidimensionnels. Pour accéder aux éléments de ces tableaux, le compilateur
+doit connaître toutes les dimensions sauf la première. Cela saute aux yeux
+lorsque l'on observe le prototype d'une fonction qui prend un tableau
+multidimensionnel comme paramètre. Ce qui suit ne compilera pas :
+\begin{lstlisting}[stepnumber=0]{}
+  void f( int a[ ][ ] );  /* pas d'information sur la dimension */
+\end{lstlisting}
+Cependant, ce qui suit compile :
+\begin{lstlisting}[stepnumber=0]{}
+  void f( int a[ ][2] );
+\end{lstlisting}
+Tout tableau à deux dimensions à deux colonnes peut être passé à cette fonction.
+La première dimension n'est pas nécessaire\footnote{On peut indiquer une taille
+mais elle n'est pas prise en compte par le compilateur.}.
+
+Ne confondez pas avec une fonction ayant ce prototype :
+\begin{lstlisting}[stepnumber=0]{}
+  void f( int * a[ ] );
+\end{lstlisting}
+Cela définit un tableau à une dimension de pointeurs sur des entiers (qui
+peut à son tour être utilisé pour créer un tableau de tableaux qui se comportent
+plus comme un tableau à deux dimensions).
+
+Pour les tableaux de dimensions supérieures, toutes les dimensions sauf la première
+doivent être données pour les paramètres. Par exemple, un paramètre tableau à quatre
+dimensions peut être passé de la fa\c{c}on suivante :
+\begin{lstlisting}[stepnumber=0]{}
+  void f( int a[ ][4][3][2] );
+\end{lstlisting}
+\index{tableaux!multidimensionnels!paramètres|)}
+\index{tableaux!multidimensionnels|)}
+
+\section{Instructions de Tableaux/Chaînes}
+\index{instructions de chaînes|(} 
+
+La famille des processeurs 80x86 fournit plusieurs instructions con\c{c}ues
+pour travailler avec les tableaux. Ces instructions sont appelées
+\emph{instructions de chaînes}. Elles utilisent les registres d'index
+(ESI et EDI) pour effectuer une opération puis incrémentent ou
+décrémentent automatiquement l'un des registres d'index ou les deux.
+Le \emph{drapeau de direction} (DF) \index{registre!FLAGS!DF} dans le
+registre FLAGS détermine si les registres d'index sont incrémentés ou
+décrémentés. Il y a deux instructions qui modifient le drapeau de direction :
+\begin{description}
+\item[CLD] \index{CLD} éteint le drapeau de direction. Les registres d'index
+           sont alors incrémentés.
+\item[STD] \index{STD} allume le drapeau de direction. Les registres d'index
+           sont alors décrémentés.
+\end{description}
+Une erreur \emph{très} courante dans la programmation 80x86 est d'oublier
+de positionner le drapeau de direction. Cela conduit souvent à un code qui
+fonctionne la plupart du temps (lorsque le drapeau de direction est dans la
+position désirée), mais ne fonctionne pas \emph{tout} le temps.
+
+\begin{figure}[t]
+\centering
+{\code
+\begin{tabular}{|lp{1.5in}|lp{1.5in}|}
+\hline
+LODSB & AL = [DS:ESI]\newline ESI = ESI $\pm$ 1 & 
+STOSB & [ES:EDI] = AL\newline EDI = EDI $\pm$ 1 \\
+\hline
+LODSW & AX = [DS:ESI]\newline ESI = ESI $\pm$ 2 & 
+STOSW & [ES:EDI] = AX\newline EDI = EDI $\pm$ 2 \\
+\hline
+LODSD & EAX = [DS:ESI]\newline ESI = ESI $\pm$ 4 & 
+STOSD & [ES:EDI] = EAX\newline EDI = EDI $\pm$ 4 \\
+\hline
+\end{tabular}
+}
+\caption{Instructions de lecture et d'écriture de chaîne\label{fig:rwString}
+         \index{LODSB} \index{STOSB} \index{LODSW} \index{LODSD} \index{STOSD}}
+\end{figure}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+segment .data
+array1  dd  1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+
+segment .bss
+array2  resd 10
+
+segment .text
+      cld                   ; à ne pas oublier !
+      mov    esi, array1
+      mov    edi, array2
+      mov    ecx, 10
+lp:
+      lodsd
+      stosd
+      loop  lp
+\end{AsmCodeListing}
+\caption{Exemples de chargement et de stockage\label{fig:lodEx}}
+\end{figure}
+
+\subsection{Lire et écrire en mémoire}
+
+Les instructions de chaîne les plus simples lisent ou écrivent en mémoire,
+ou les deux. Elles peuvent lire ou écrire un octet, un mot ou un double-mot
+à la fois. La Figure~\ref{fig:rwString} montre ces instructions avec une
+brève description de ce qu'elles font en pseudo-code. Il y a plusieurs choses
+à noter ici. Tout d'abord, ESI est utilisé pour lire et EDI pour écrire.
+C'est facile à retenir si l'on se souvient que SI signifie \emph{Source
+Index} (Indice Source) et DI \emph{Destination Index} (Indice de Destination).
+ \index{registre!ESI} \index{registre!EDI} Ensuite, notez que le registre
+qui contient la donnée est fixe (AL, AX ou EAX). Enfin, notez que les instructions
+de stockage utilisent ES pour déterminer le segment dans lequel écrire, pas DS.
+En programmation en mode protégé, ce n'est habituellement pas un problème,
+puisqu'il n'y a qu'un segment de données et ES est automatiquement initialisé
+pour y faire référence (tout comme DS). Cependant, en programmation en mode
+réel, il est \emph{très} important pour le programmeur d'initialiser
+ES avec la valeur de sélecteur de segment 
+correcte\index{registre!segment}\footnote{Une autre complication est
+qu'on ne peut pas copier la valeur du registre DS dans ES directement
+en utilisant une instruction {\code MOV}. A la place, la valeur de
+DS doit être copiée dans un registre universel (comme AX) puis être
+copié depuis ce registre dans ES, ce qui utilise deux instruction
+{\code MOV}.}. La Figure~\ref{fig:lodEx} montre un exemple de l'utilisation
+de ces instructions qui copie un tableau dans un autre.
+
+\begin{figure}[t]
+\centering
+{\code
+\begin{tabular}{|lp{2.5in}|}
+\hline
+MOVSB & byte [ES:EDI] = byte [DS:ESI] \newline ESI = ESI $\pm$ 1 \newline
+        EDI = EDI $\pm$ 1 \\
+\hline
+MOVSW & word [ES:EDI] = word [DS:ESI] \newline ESI = ESI $\pm$ 2 \newline
+        EDI = EDI $\pm$ 2 \\
+\hline
+MOVSD & dword [ES:EDI] = dword [DS:ESI] \newline ESI = ESI $\pm$ 4 \newline
+        EDI = EDI $\pm$ 4 \\
+\hline
+\end{tabular}
+}
+\caption{Instructions de déplacement de chaîne  en mémoire\label{fig:movString} \index{MOVSB}
+         \index{MOVSW} \index{MOVSD}}
+\end{figure}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+segment .bss
+array  resd 10
+
+segment .text
+      cld                   ; à ne pas oublier !
+      mov    edi, array
+      mov    ecx, 10
+      xor    eax, eax
+      rep stosd
+\end{AsmCodeListing}
+\caption{Exemple de tableau mise à zéro d'un tableau\label{fig:zeroArrayEx}}
+\end{figure}
+
+La combinaison des instructions {\code LODSx} et {\code STOSx} (comme aux
+lignes~13 et 14 de la Figure~\ref{fig:lodEx}) est très courante. En fait,
+cette combinaison peut être effectuée par une seule instruction de chaîne
+{\code MOVSx}. La Figure~\ref{fig:movString} décrit les opérations
+effectuées par cette instruction. Les lignes~13 et 14 de la
+Figure~\ref{fig:lodEx} pourraient être remplacées par une seule instruction
+{\code MOVSD} avec le même résultat. La seule différence serait que le registre
+EAX ne serait pas utilisé du tout dans la boucle.
+
+\subsection{Le préfixe d'instruction {\code REP}\index{REP|(}}
+
+La famille 80x86 fournit un préfixe d'instruction spécial\footnote{Un
+préfixe d'instruction n'est pas une instruction, c'est un octet spécial
+qui est placé avant une instruction de chaîne qui modifie son comportement.
+D'autres préfixes sont également utilisés pour modifier
+le segment par défaut des accès mémoire} appelé {\code REP} qui peut être
+utilisé avec les instructions de chaîne présentées ci-dessus. Ce préfixe
+indique au processeur de répéter l'instruction de chaîne qui suit un nombre
+précis de fois. Le registre ECX est utilisé pour compter les itérations
+(exactement comme pour l'instruction {\code LOOP}). En utilisant le préfixe
+{\code REP}, la boucle de la Figure~\ref{fig:lodEx} (lignes~12 à 15) pourrait
+être remplacée par une seule ligne :
+\begin{AsmCodeListing}[frame=none, numbers=none]
+      rep movsd
+\end{AsmCodeListing}
+La Figure~\ref{fig:zeroArrayEx} montre un autre exemple qui met à zéro
+le contenu d'un tableau.
+\index{REP|)}
+
+\begin{figure}[t]
+\centering
+{\code
+\begin{tabular}{|lp{3.5in}|}
+\hline
+CMPSB & compare l'octet en [DS:ESI] avec celui en [ES:EDI] \newline ESI = ESI $\pm$ 1 
+        \newline EDI = EDI $\pm$ 1 \\
+\hline
+CMPSW & compare le mot en [DS:ESI] avec celui en [ES:EDI] \newline ESI = ESI $\pm$ 2 
+        \newline EDI = EDI $\pm$ 2 \\
+\hline
+CMPSD & compare de double-mot en [DS:ESI] avec celui en [ES:EDI] \newline ESI = ESI $\pm$ 4 
+        \newline EDI = EDI $\pm$ 4 \\
+\hline
+SCASB & compare AL et [ES:EDI] \newline EDI $\pm$ 1 \\
+\hline
+SCASW & compare AX et [ES:EDI] \newline EDI $\pm$ 2 \\
+\hline
+SCASD & compare EAX et [ES:EDI] \newline EDI $\pm$ 4 \\
+\hline
+\end{tabular}
+}
+\caption{Instructions de comparaison de chaînes\label{fig:cmpString}
+         \index{CMPSB} \index{CMPSW} \index{CMPSD} \index{SCASB}
+         \index{SCASW} \index{SCASD}}
+\end{figure}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single,commandchars=\\\{\}]
+segment .bss
+array        resd 100
+
+segment .text
+      cld
+      mov    edi, array    ; pointeur vers le début du tableau
+      mov    ecx, 100      ; nombre d'éléments
+      mov    eax, 12       ; nombre à rechercher
+lp:
+      scasd    \label{line:scasdSrchStrEx}
+      je     found
+      loop   lp
+ ; code à exécuter si non trouvé
+      jmp    onward
+found:
+      sub    edi, 4         ; edi pointe maintenant vers 12\label{line:subSrchStrEx}
+ ; code à exécuter si trouvé
+onward:
+\end{AsmCodeListing}
+\caption{Exemple de recherche\label{fig:srchStrEx}}
+\end{figure}
+
+\subsection{Instructions de comparaison de chaînes}
+
+La Figure~\ref{fig:cmpString} montre plusieurs nouvelles instructions
+de chaînes qui peuvent être utilisées pour comparer des données en mémoire
+entre elles ou avec des registres. Elles sont utiles pour comparer des
+tableaux ou effectuer des recherches. Elles positionnent le registre
+FLAGS exactement comme l'instruction {\code CMP}. Les instructions
+{\code CMPSx}\index{CMPSB} \index{CMPSW} \index{CMPSD} comparent
+les emplacements mémoire correspondants et les instructions
+{\code SCASx} \index{SCASB} \index{SCASW} \index{SCASD} scannent
+des emplacements mémoire pour une valeur particulière.
+
+La Figure~\ref{fig:srchStrEx} montre un court extrait de code qui recherche
+le nombre 12 dans un tableau de double mots. L'instruction {\code SCASD}
+à la ligne~\ref{line:scasdSrchStrEx} ajoute toujours 4 à EDI, même si
+la valeur recherchée est trouvée. Donc, si l'on veut trouver l'adresse
+du 12 dans le tableau, il est nécessaire de soustraire 4 de EDI (comme
+le fait la ligne~\ref{line:subSrchStrEx}).
+
+\begin{figure}[t]
+\centering
+\begin{tabular}{|l|p{4in}|}
+\hline
+{\code REPE}, {\code REPZ} & répète l'instruction tant que le drapeau Z est allumé
+                             ou au plus ECX fois \\
+\hline
+{\code REPNE}, {\code REPNZ} & répète l'instruction tant que le drapeau Z est éteint
+                             ou au plus ECX fois \\
+\hline
+\end{tabular}
+\caption{Préfixes d'instruction {\code REPx}\label{fig:repx} \index{REPE} 
+          \index{REPNE}}
+\end{figure}
+
+\begin{figure}
+\begin{AsmCodeListing}[frame=single,commandchars=\\\{\}]
+segment .text
+      cld
+      mov    esi, block1        ; adresse du premier bloc
+      mov    edi, block2        ; adresse du second bloc
+      mov    ecx, size          ; taille des blocs en octets
+      repe   cmpsb              ; répéter tant que Z est allumé
+      je     equal              ; Z est allumé => blocs égaux\label{line:cmpBlocksEx}
+   ; code à exécuter si les blocs ne sont pas égaux
+      jmp    onward
+equal:
+   ; code à exécuter s'ils sont égaux
+onward:
+\end{AsmCodeListing}
+\caption{Comparer des blocs mémoire\label{fig:cmpBlocksEx}}
+\end{figure}
+
+\subsection{Les préfixes d'instruction {\code REPx}}
+
+Il y a plusieurs autres préfixes d'instruction du même genre que {\code REP}
+qui peuvent être utilisés avec les instructions de comparaison de chaînes.
+La Figure~\ref{fig:repx} montre les deux nouveaux préfixes et décrit
+ce qu'ils font. {\code REPE} \index{REPE} et {\code REPZ} sont simplement
+des synonymes pour le même préfixe (comme le sont {\code REPNE} \index{REPNE}
+et {\code REPNZ}). Si l'instruction de comparaison de chaînes répétée
+stoppe à cause du résultat de la comparaison, le ou les registres d'index
+sont quand même incrémentés et ECX décrémenté ; cependant, le registre
+FLAGS contient toujours l'état qu'il avait à la fin de la répétition.
+\MarginNote{Pourquoi ne peut pas pas simplement regarder si ECX est à zéro
+après la comparaison répétée ?} Donc, il est possible d'utiliser le drapeau
+Z pour déterminer si la comparaison s'est arrêtée à cause de son résultat
+ou si c'est parce que ECX a atteint zéro.
+
+La Figure~\ref{fig:cmpBlocksEx} montre un extrait de code qui détermine si
+deux blocs de mémoire sont égaux. Le {\code JE} de la ligne~\ref{line:cmpBlocksEx} 
+de l'exemple vérifie le résultat de l'instruction précédente. Si la comparaison
+s'est arrêtée parce qu'elle a trouvée deux octets différents, le drapeau Z sera
+toujours éteint et aucun branchement n'est effectué ; cependant, si la comparaison
+s'est arrêtée parce que ECX a atteint zéro, le drapeau Z sera toujours allumé
+et le code se branche à l'étiquette {\code equal}.
+
+\subsection{Exemple}
+
+Cette section contient un fichier source assembleur avec plusieurs fonctions
+qui implémentent des opérations sur les tableaux en utilisant des instructions
+de chaîne. Beaucoup de ces fonctions font doublons avec des fonctions familières
+de la bibliothèque C.
+
+\index{memory.asm|(}
+\begin{AsmCodeListing}[label=memory.asm]
+global _asm_copy, _asm_find, _asm_strlen, _asm_strcpy
+
+segment .text
+; fonction _asm_copy
+; copie deux blocs de mémoire
+; prototype C
+; void asm_copy( void * dest, const void * src, unsigned sz);
+; paramètres:
+;   dest - pointeur sur le tampon vers lequel copier
+;   src  - pointeur sur le tampon depuis lequel copier
+;   sz   - nombre d'octets à copier
+
+; ci-dessous, quelques symboles utiles sont définis
+
+%define dest [ebp+8]
+%define src  [ebp+12]
+%define sz   [ebp+16]
+_asm_copy:
+        enter   0, 0
+        push    esi
+        push    edi
+
+        mov     esi, src        ; esi = adresse du tampon depuis lequel copier
+        mov     edi, dest       ; edi = adresse du tampon vers lequel copier
+        mov     ecx, sz         ; ecx = nombre d'octets à copier
+
+        cld                     ; éteint le drapeau de direction
+        rep     movsb           ; exécute movsb ECX fois
+
+        pop     edi
+        pop     esi
+        leave
+        ret
+
+
+; fonction _asm_find
+; recherche un octet donné en mémoire
+; void * asm_find( const void * src, char target, unsigned sz);
+; paramètres :
+;   src    - pointeur sur le tampon dans lequel chercher
+;   target - octet à rechercher
+;   sz     - nombre d'octets dans le tampon
+; valeur de retour :
+;   si l'élément recherché est trouvé, un pointeur vers sa première occurence dans le tampon
+;   est retourné
+;   sinon, NULL est retourné
+; NOTE : l'élément à rechercher est un octet, mais il est empilé comme une valeur dword.
+;       La valeur de l'octet est stockée dans les 8 bits de poids faible.
+; 
+%define src    [ebp+8]
+%define target [ebp+12]
+%define sz     [ebp+16]
+
+_asm_find:
+        enter   0,0
+        push    edi
+
+        mov     eax, target     ; al a la valeur recherchée
+        mov     edi, src
+        mov     ecx, sz
+        cld
+
+        repne   scasb           ; scanne jusqu'à ce que ECX == 0 ou [ES:EDI] == AL
+
+        je      found_it        ; si le drapeau zéro est allumé, on a trouvé
+        mov     eax, 0          ; si pas trouvé, retourner un pointeur NULL
+        jmp     short quit
+found_it:
+        mov     eax, edi          
+        dec     eax              ; si trouvé retourner (DI - 1)
+quit:
+        pop     edi
+        leave
+        ret
+
+
+; fonction _asm_strlen
+; retourne la taille d'une chaîne
+; unsigned asm_strlen( const char * );
+; paramètre :
+;   src - pointeur sur la chaîne
+; valeur de retour :
+;   nombre de caractères dans la chaîne (sans compter le 0 terminal) (dans EAX)
+
+%define src [ebp + 8]
+_asm_strlen:
+        enter   0,0
+        push    edi
+
+        mov     edi, src        ; edi = pointeur sur la chaîne
+        mov     ecx, 0FFFFFFFFh ; utilise la plus grande valeur possible de ECX
+        xor     al,al           ; al = 0
+        cld
+
+        repnz   scasb           ; recherche le 0 terminal
+
+;
+; repnz ira un cran trop loin, donc la longueur vaut FFFFFFFE - ECX,
+; pas FFFFFFFF - ECX
+;
+        mov     eax,0FFFFFFFEh
+        sub     eax, ecx        ; longueur = 0FFFFFFFEh - ecx
+
+        pop     edi
+        leave
+        ret
+
+; fonction _asm_strcpy
+; copie une chaîne
+; void asm_strcpy( char * dest, const char * src);
+; paramètres :
+;   dest - pointeur sur la chaine vers laquelle copier
+;   src  - pointeur sur la chaîne depuis laquelle copier
+; 
+%define dest [ebp + 8]
+%define src  [ebp + 12]
+_asm_strcpy:
+        enter   0,0
+        push    esi
+        push    edi
+
+        mov     edi, dest
+        mov     esi, src
+        cld
+cpy_loop:
+        lodsb                   ; charge AL & incrémente SI
+        stosb                   ; stocke AL & incrémente DI
+        or      al, al          ; positionne les drapeaux de condition
+        jnz     cpy_loop        ; si l'on est pas après le 0 terminal, on continue
+
+        pop     edi
+        pop     esi
+        leave
+        ret
+\end{AsmCodeListing}
+
+\LabelLine{memex.c}
+\begin{lstlisting}
+#include <stdio.h>
+
+#define STR_SIZE 30
+/* prototypes */
+
+void asm_copy( void *, const void *, unsigned ) __attribute__((cdecl));
+void * asm_find( const void *, 
+                 char target, unsigned ) __attribute__((cdecl));
+unsigned asm_strlen( const char * ) __attribute__((cdecl));
+void asm_strcpy( char *, const char * ) __attribute__((cdecl));
+
+int main()
+{
+  char st1[STR_SIZE] = "chaîne test";
+  char st2[STR_SIZE];
+  char * st;
+  char   ch;
+
+  asm_copy(st2, st1, STR_SIZE);   /* copie les 30 caractères de la chaîne */
+  printf("%s\n", st2);
+
+  printf("Entrez un caractère : ");  /* recherche un octet dans la chaîne */
+  scanf("%c%*[^\n]", &ch);
+  st = asm_find(st2, ch, STR_SIZE);
+  if ( st )
+   printf("Trouvé : %s\n", st);
+  else
+   printf("Pas trouvé\n");
+
+  st1[0] = 0;
+  printf("Entrez une chaîne :");
+  scanf("%s", st1);
+  printf("longueur = %u\n", asm_strlen(st1));
+
+  asm_strcpy( st2, st1);     /* copie des données dans la chaîne */
+  printf("%s\n", st2 );
+
+  return 0;
+}
+\end{lstlisting}
+\LabelLine{memex.c}
+\index{memory.asm|)}
+\index{instructions de chaînes|)}
+\index{tableaux|)}
+
+
+
+
+
+
+
+
+
+
+
+
+
