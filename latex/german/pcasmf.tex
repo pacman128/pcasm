@@ -1,0 +1,126 @@
+% -*-LaTex-*-
+%front matter of pcasm book
+
+\chapter{Vorwort}
+
+\section*{Ziel}
+
+Das Ziel dieses Buches besteht darin, dem Leser ein besseres
+Verst\"{a}ndnis dar\"{u}ber zu geben, wie Computer auf einem niedrigeren
+Level als in Programmiersprachen wie Pascal wirklich arbeiten. Durch
+den Erwerb eines tieferen Verst\"{a}ndnisses wie Computer arbeiten, kann
+der Lesern oft sehr viel produktiver Software in Hochsprachen wie C
+und C++ entwickeln. Ein ausgezeichneter Weg, um dieses Ziel zu
+erreichen, ist, in Assembler programmieren zu lernen. Andere
+PC-Assemblerb\"{u}cher lehren immer noch den 8086 Prozessor zu
+programmieren, den der originale PC 1981 benutzte! Die 8086
+Prozessoren unterst\"{u}tzten nur den \emph{real} Modus. In diesem Modus
+kann jedes Programm alle Speicherstellen oder Ger\"{a}te im Computer
+ansprechen. Dieser Modus ist f\"{u}r ein sicheres Betriebssystem mit
+Multitasking nicht geeignet. Dagegen behandelt dieses Buch wie der
+80386 und sp\"{a}tere Prozessoren im \emph{protected} Modus programmiert
+werden (dem Modus, in dem Windows und Linux laufen). Dieser Modus
+unterst\"{u}tzt die Merkmale, die moderne Betriebssysteme erwarten, wie
+virtuellen Speicher und gesch\"{u}tzten Speicher. Es gibt verschiedene
+Gr\"{u}nde den protected Mode zu verwenden:
+\begin{enumerate}
+\parskip=-0.50em %reduce the spacing <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+\item Es ist einfacher im protected Mode zu programmieren als im 8086
+real Mode, den andere B\"{u}cher verwenden.
+\item Alle modernen PC-Betriebssysteme laufen im protected Mode.
+\item Es gibt freie Software, die in diesem Modus l\"{a}uft.
+\end{enumerate}
+Das Fehlen von Lehrb\"{u}chern f\"{u}r die Assemblerprogrammierung des PC im
+protected Mode ist der Hauptgrund, dass der Autor dieses Buch
+schrieb.
+
+Wie oben angedeutet, macht dieses Buch Gebrauch von Free/Open Source
+Software: n\"{a}mlich dem NASM Assembler und dem DJGPP C/C++ Compiler.
+Beide stehen zum Download im Internet zur Verf\"{u}gung. Der Text
+bespricht au{\ss}erdem, wie der Assemblercode von NASM unter Linux und
+mit den C/C++ Compilern von Borland und Microsoft unter Windows
+verwendet werden kann. Beispiele f\"{u}r alle diese Plattformen k\"{o}nnen
+auf meiner Webseite gefunden werden: {\code
+http://www.drpaulcarter.com/pcasm}. Sie \emph{m\"{u}ssen} den
+Beispielcode he"-runterladen, wenn Sie viele der Beispiele in diesem
+Tutorial assemblieren und laufen lassen m\"{o}chten.
+
+Sind Sie sich dar\"{u}ber bewusst, dass dieser Text nicht versucht,
+jeden Aspekt der Assemblerprogrammierung abzudecken. Der Autor hat
+versucht, die wichtigsten Themen abzudecken, mit denen \emph{alle}
+Programmierer bekannt sein sollten.
+
+\section*{Danksagungen}
+
+Der Autor m\"{o}chte den vielen Programmierern auf der Welt danken, die
+zur Free/Open Source Bewegung beigetragen haben. All die Programme
+und sogar dieses Buch selbst wurden unter Verwendung freier Software
+produziert. Besonders m\"{o}chte der Autor John~S.~Fine, Simon~Tatham,
+Julian~Hall und anderen f\"{u}r die Entwicklung des NASM Assemblers
+danken, auf dem alle Beispiele in diesem Buch basieren; DJ Delorie
+f\"{u}r die Entwicklung des verwendeten DJGPP C/C++ Compilers; den
+zahlreichen Personen, die zum GNU gcc Compiler beigetragen haben,
+auf dem DJGPP beruht; Donald E.\ Knuth und anderen f\"{u}r die
+Entwicklung der \TeX\ and \LaTeXe\ Satzsprachen, die benutzt wurden,
+um diesen Buch zu produzieren; Richard Stallman (Gr\"{u}nder der Free
+Software Foundation), Linus Torvalds (Sch\"{o}pfer des Linux Kernels)
+und anderen, die die zugrunde liegende Software produziert haben,
+die der Autor benutzte, um dieses Werk zu produzieren.
+
+Dank geb\"{u}hrt den folgenden Personen f\"{u}r Korrekturen:
+
+\begin{itemize}
+\parskip=-0.50em %reduce the spacing <<< is stretched by Latex <<<<<<<<<<<<<<<<
+\item John S.\ Fine
+\item Marcelo Henrique Pinto de Almeida
+\item Sam Hopkins
+\item Nick D'Imperio
+\item Jeremiah Lawrence
+\item Ed Beroset
+\item Jerry Gembarowski
+\item Ziqiang Peng
+\item Eno Compton
+\item Josh I Cates
+\item Mik Mifflin
+\item Luke Wallis
+\item Gaku Ueda
+\item Brian Heward
+\item Chad Gorshing
+\item F.\ Gotti
+\item Bob Wilkinson
+\item Markus Koegel
+\item Louis Taber
+\item Dave Kiddell
+\item Eduardo Horowitz
+\item S\'{e}bastien Le Ray
+\item Nehal Mistry
+\end{itemize}
+
+\pagebreak[4] % <<< table _must_ be on a right (odd) page to fit on paper <<<<
+\section*{Quellen im Internet\footnote{Stand 2006-12-15 [Anm.\ d.\ \"{U}\@.]}}
+
+\begin{center}
+\begin{tabular}{|ll|}
+ \hline
+ Die Seite des Authors  & {\code http://www.drpaulcarter.com/} \\
+ %NASM                   & {\code http://nasm.2y.net/} \\
+ NASM SourceForge Seite & {\code http://sourceforge.net/projects/nasm/} \\
+ DJGPP                  & {\code http://www.delorie.com/djgpp} \\
+ Linux Assembly         & {\code http://www.linuxassembly.org/} \\
+ The Art of Assembly    & {\code http://webster.cs.ucr.edu/} \\
+ USENET                 & {\code comp.lang.asm.x86 } \\
+ Intel Dokumentation    & {\code http://developer.intel.com/design/Pentium4/documentation.htm} \\
+ %update to /Pentium5/ ?? not yet 2006-12-06 -ubi
+ \hline
+\end{tabular}
+\end{center}
+
+\section*{Feedback}
+
+Der Autor begr\"{u}{\ss}t jedes Feedback \"{u}ber dieses Werk.
+\begin{center}
+\begin{tabular}{ll}
+\textbf{E-mail:} & {\code pacman128@gmail.com} \\
+\textbf{WWW:}    & {\code http://www.drpaulcarter.com/pcasm} \\
+\end{tabular}
+\end{center}

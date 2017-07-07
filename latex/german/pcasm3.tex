@@ -1,0 +1,1067 @@
+% -*-latex-*-
+\chapter{Bitoperationen}
+\section{Schiebeoperationen\index{Bitoperationen!Schiebebefehle|(}}
+
+Assembler erlaubt dem Programmierer die individuellen Bits von Daten
+zu manipulieren. Eine der einfachen Bitoperationen wird \emph{shift}
+genannt. Eine Verschiebeoperation ver\"{a}ndert die Position der Bits in
+Daten. Verschiebungen k\"{o}nnen entweder nach links (d.\,h.\ in
+Richtung der h\"{o}herwertigen Bits) oder nach rechts (den
+niederwertigen Bits) sein.
+
+\subsection{Logische Schiebeoperationen\index{Bitoperationen!Schiebebefehle!logische
+Shifts|(}}
+
+Eine logische Verschiebung ist der einfachste Typ einer
+Verschiebung. Sie verschiebt in einer sehr einfachen Weise.
+Abbildung~\ref{fig:logshifts} zeigt ein Beispiel einer Verschiebung
+einer ein-Byte Zahl.
+
+\begin{figure}[h]
+\centering
+\begin{tabular}{r|c|c|c|c|c|c|c|c|}
+ \cline{2-9}
+ links geschoben  & 1 & 1 & 0 & 1 & 0 & 1 & 0 & 0 \\
+ \cline{2-9}
+ $\;\;\;\;\;\;$Original         & 1 & 1 & 1 & 0 & 1 & 0 & 1 & 0 \\
+ \cline{2-9}
+ rechts geschoben & 0 & 1 & 1 & 1 & 0 & 1 & 0 & 1 \\
+ \cline{2-9}
+\end{tabular}
+\caption{Logische Shifts \label{fig:logshifts}}
+\end{figure}
+
+Beachte, dass neue, hereinkommende Bits immer Null sind. Die Befehle
+{\code SHL} \index{Maschinenbefehl!SHL} und {\code SHR}
+\index{Maschinenbefehl!SHR} werden benutzt, um logische
+Verschiebungen nach links bzw.\ rechts durchzuf\"{u}hren. Diese Befehle
+erlauben einem, um jede Anzahl von Positionen zu schieben. Die
+Anzahl der Positionen, um die zu schieben ist, kann entweder eine
+Konstante sein oder kann im Register {\code CL} gespeichert werden.
+Das letzte Bit, das aus dem Datum herausgeschoben wird, wird im
+Carryflag gespeichert. Hier sind einige Codebeispiele:
+\begin{AsmCodeListing}[frame=none, numbers=left]
+      mov    ax, 0C123h
+      shl    ax, 1            ; schiebe 1 bit nach links,  ax = 8246h, CF = 1
+      shr    ax, 1            ; schiebe 1 bit nach rechts, ax = 4123h, CF = 0
+      shr    ax, 1            ; schiebe 1 bit nach rechts, ax = 2091h, CF = 1
+      mov    ax, 0C123h
+      shl    ax, 2            ; schiebe 2 bit nach links,  ax = 048Ch, CF = 1
+      mov    cl, 3
+      shr    ax, cl           ; schiebe 3 bit nach rechts, ax = 0091h, CF = 1
+\end{AsmCodeListing}
+
+\subsection{Anwendungen der Schiebeoperationen}
+
+Schnelle Multiplikation und Division sind die einfachsten
+Anwendungen der Schiebeoperationen. Erinnern wir uns, dass im
+Dezimalsystem die Multiplikation und Division mit einer Potenz von
+zehn einfach ist, es sind nur Ziffern zu verschieben. Das gleiche
+trifft auf Potenzen von zwei im Bin\"{a}ren zu. Um zum Beispiel die
+bin\"{a}re Zahl $1011_2$ (oder 11 in dezimal) zu verdoppeln, schieben
+wir einmal nach links um $10110_2$ (oder 22) zu erhalten. Der
+Quotient einer Division durch eine Potenz von zwei ist das Ergebnis
+einer Schiebung nach rechts. Um einfach durch 2 zu teilen, benutzen
+wir eine einzelne Rechtsschiebung; um durch 4 ($2^2$) zu dividieren,
+schieben wir um 2 Positionen nach rechts; um durch 8 ($2^3$) zu
+dividieren, schieben wir 3 Stellen nach rechts, usw\@.
+Schiebebefehle sind sehr grundlegend und sind \emph{viel} schneller
+als die entsprechenden {\code MUL} \index{Maschinenbefehl!MUL} und
+{\code DIV} \index{Maschinenbefehl!DIV} Befehle!
+
+Logische Schiebungen k\"{o}nnen tats\"{a}chlich benutzt werden, um
+vorzeichenlose Werte zu multiplizieren und dividieren. Sie
+funktionieren im Allgemeinen nicht f\"{u}r Zahlen mit Vorzeichen.
+Betrachten wir den 2-Byte Wert FFFF (vorzeichenbehaftete $-1$). Wird
+er logisch einmal rechts geschoben, ist das Ergebnis 7FFF, das
+$+32\,767$ ist! F\"{u}r vorzeichenbehaftete Werte kann ein anderer Typ
+von Schiebeoperationen verwendet werden.
+\index{Bitoperationen!Schiebebefehle!logische Shifts|)}
+
+\subsection{Arithmetische Schiebeoperationen\index{Bitoperationen!Schiebebefehle!arithmetische Shifts|(}}
+
+Diese Schiebungen wurden entwickelt, damit vorzeichenbehaftete
+Zahlen schnell mit Potenzen von 2 multipliziert und dividiert werden
+k\"{o}nnen. Sie stellen sicher, dass das Vorzeichenbit richtig behandelt
+wird.
+\begin{description}
+\parskip=-0.10em %reduce the spacing <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+\item[SAL]
+\index{Maschinenbefehl!SAL} Shift Arithmetic Left - Dieser Befehl
+ist einfach ein Synonym f\"{u}r {\code SHL}\@. Er wird in genau den
+gleichen Maschinencode \"{u}bersetzt wie {\code SHL}\@. Solange das
+Vorzeichenbit durch die Schiebung  nicht ver\"{a}ndert wird, ist das
+Ergebnis korrekt.
+
+\item[SAR]
+\index{Maschinenbefehl!SAR} Shift Arithmetic Right - Dies ist ein
+neuer Befehl, der das Vorzeichenbit (d.\,h.\ das MSB) seines
+Operanden nicht verschiebt. Die anderen Bits werden normal
+geschoben, au{\ss}er dass die neuen Bits, die links hereinkommen, Kopien
+des Vorzeichenbits sind (das hei{\ss}t, wenn das Vorzeichenbit 1 ist,
+sind die neuen Bits ebenfalls 1). Folglich werden, wenn ein Byte mit
+diesem Befehl geschoben wird, nur die unteren 7 Bits geschoben. Wie
+bei den anderen Schiebungen, wird das letzte heraus geschobene Bit
+im Carryflag gespeichert.
+\end{description}
+
+\begin{AsmCodeListing}[frame=none, numbers=left, firstnumber=last]
+      mov    ax, 0C123h
+      sal    ax, 1            ; ax = 8246h, CF = 1
+      sal    ax, 1            ; ax = 048Ch, CF = 1
+      sar    ax, 2            ; ax = 0123h, CF = 0
+\end{AsmCodeListing}
+\index{Bitoperationen!Schiebebefehle!arithmetische Shifts|)}
+
+\subsection{Rotierbefehle\index{Bitoperationen!Schiebebefehle!Rotationen|(}}
+
+Die rotierenden Schiebebefehle arbeiten wie logische Schiebungen,
+au{\ss}er dass Bits, die an einem Ende aus dem Datum herausfallen, auf
+der anderen Seite hinein geschoben werden. Das Datum wird daher wie
+eine Ringstruktur behandelt. Die zwei einfachsten Rotierbefehle sind
+{\code ROL} \index{Maschinenbefehl!ROL} und {\code ROR},
+\index{Maschinenbefehl!ROR} die nach links bzw.\ nach rechts
+rotieren. Genauso wie bei den anderen Schiebungen, lassen diese
+Schiebungen eine Kopie des letzten herumgeschobenen Bits im
+Carryflag zur\"{u}ck.
+\begin{AsmCodeListing}[frame=none, numbers=left, firstnumber=last]
+      mov    ax, 0C123h
+      rol    ax, 1            ; ax = 8247h, CF = 1
+      rol    ax, 1            ; ax = 048Fh, CF = 1
+      rol    ax, 1            ; ax = 091Eh, CF = 0
+      ror    ax, 2            ; ax = 8247h, CF = 1
+      ror    ax, 1            ; ax = C123h, CF = 1
+\end{AsmCodeListing}
+
+Es gibt zwei zus\"{a}tzliche Rotierbefehle, die die Bits im Datum und im
+Carryflag schieben, {\code RCL} \index{Maschinenbefehl!RCL} und
+{\code RCR} \index{Maschinenbefehl!RCR} genannt. Wenn zum Beispiel
+das {\code AX} Register mit diesen Befehlen rotiert wird, werden die
+17 Bits bestehend aus {\code AX} und dem Carryflag rotiert.
+\begin{AsmCodeListing}[frame=none, numbers=left, firstnumber=last, commandchars=\\\{\}]
+      mov    ax, 0C123h
+      clc                     ; l\"{o}sche das Carryflag (CF = 0)
+      rcl    ax, 1            ; ax = 8246h, CF = 1
+      rcl    ax, 1            ; ax = 048Dh, CF = 1
+      rcl    ax, 1            ; ax = 091Bh, CF = 0
+      rcr    ax, 2            ; ax = 8246h, CF = 1
+      rcr    ax, 1            ; ax = C123h, CF = 0
+\end{AsmCodeListing}
+\index{Bitoperationen!Schiebebefehle!Rotationen|)}
+
+\subsection{Eine einfache Anwendung\label{sec:AddBitsExample}}
+
+Hier ist ein Codefragment, das die Anzahl der Bits z\"{a}hlt, die im EAX
+Register "`an"' (d.\,h.~1) sind.
+%TODO: show how the ADC instruction could be used to remove the jnc
+\begin{AsmCodeListing}[numbers=left, commandchars=\\\{\}]
+      mov    bl, 0          ; bl Z\"{a}hler der Anzahl von ON Bits
+      mov    ecx, 32        ; ecx ist der Schleifenz\"{a}hler
+ count_loop:
+      shl    eax, 1         ; schiebe Bit ins Carryflag \label{line:CntBit}
+      jnc    skip_inc       ; wenn CF == 0, goto skip_inc
+      inc    bl
+ skip_inc:
+      loop   count_loop
+\end{AsmCodeListing}
+Der obige Code zerst\"{o}rt den urspr\"{u}nglichen Wert von {\code EAX}
+({\code EAX} ist am Ende der Schleife Null). Wenn man den Wert von
+{\code EAX} erhalten m\"{o}chte, kann Zeile~\ref{line:CntBit} durch
+{\code rol  eax, 1} ersetzt werden.
+\index{Bitoperationen!Schiebebefehle|)}
+
+\section{Boolesche bitweise Operationen}
+
+Es gibt vier allgemeine boolesche Operationen: \emph{AND},
+\emph{OR}, \emph{XOR} und \emph{NOT}. Eine \emph{Wahrheitstafel}
+zeigt das Ergebnis jeder Operation f\"{u}r jeden m\"{o}glichen Wert seiner
+Operanden.
+
+\subsection{Die \emph{AND} Operation\index{Bitoperationen!AND}}
+\begin{table}[ht]
+\centering
+\begin{tabular}{|c|c|c|}
+ \hline
+ \emph{X} & \emph{Y} & \emph{X} AND \emph{Y} \\
+ \hline \hline
+ 0 & 0 & 0 \\
+ 0 & 1 & 0 \\
+ 1 & 0 & 0 \\
+ 1 & 1 & 1 \\
+ \hline
+\end{tabular}
+\caption{Die AND Operation \label{tab:and}}
+\end{table}
+
+Das Ergebnis vom \emph{AND} zweier Bits ist nur 1, wenn beide Bits 1
+sind, sonst ist das Ergebnis 0, wie die Wahrheitstafel in
+Tabelle~\ref{tab:and} zeigt.
+
+\begin{figure}[ht]
+\centering
+\begin{tabular}{rcccccccc}
+     & 1 & 0 & 1 & 0 & 1 & 0 & 1 & 0 \\
+ AND & 1 & 1 & 0 & 0 & 1 & 0 & 0 & 1 \\
+ \hline
+     & 1 & 0 & 0 & 0 & 1 & 0 & 0 & 0
+\end{tabular}
+\caption{AND auf ein Byte angewandt \label{fig:and}}
+\end{figure}
+
+Prozessoren unterst\"{u}tzen diese Operationen als Befehle, die
+unabh\"{a}ngig auf allen Datenbits parallel arbeiten. Wenn zum Beispiel
+die Inhalte von {\code AL} und {\code BL} mit \emph{AND} verkn\"{u}pft
+werden, wird die grundlegende \emph{AND} Operation auf jedes der 8
+Paare korrespondierender Bits in den beiden Registern angewandt, wie
+Abbildung~\ref{fig:and} zeigt. Unten ist ein Codebeispiel:
+\index{Maschinenbefehl!AND}
+\begin{AsmCodeListing}[frame=none, numbers=left]
+      mov    ax, 0C123h
+      and    ax, 82F6h        ; ax = 8022h
+\end{AsmCodeListing}
+
+\subsection{Die \emph{OR} Operation \index{Bitoperationen!OR}}
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{|c|c|c|}
+ \hline
+ \emph{X} & \emph{Y} & \emph{X} OR \emph{Y} \\
+ \hline \hline
+ 0 & 0 & 0 \\
+ 0 & 1 & 1 \\
+ 1 & 0 & 1 \\
+ 1 & 1 & 1 \\
+ \hline
+\end{tabular}
+\caption{Die OR Operation \label{tab:or}}
+\end{table}
+
+
+Das inklusive \emph{OR} zweier Bits ist nur 0, wenn beide Bits 0
+sind, andernfalls ist das Ergebnis 1, wie die Wahrheitstafel in
+Tabelle~\ref{tab:or} zeigt. Unten ist ein Codebeispiel:
+\index{Maschinenbefehl!OR}
+
+\begin{AsmCodeListing}[frame=none, numbers=left, firstnumber=last]
+      mov    ax, 0C123h
+      or     ax, 0E831h       ; ax = E933h
+\end{AsmCodeListing}
+
+\subsection{Die \emph{XOR} Operation \index{Bitoperationen!XOR}}
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{|c|c|c|}
+ \hline
+ \emph{X} & \emph{Y} & \emph{X} XOR \emph{Y} \\
+ \hline \hline
+ 0 & 0 & 0 \\
+ 0 & 1 & 1 \\
+ 1 & 0 & 1 \\
+ 1 & 1 & 0 \\
+ \hline
+\end{tabular}
+\caption{Die XOR Operation \label{tab:xor}}
+\end{table}
+
+Das exklusive \emph{OR} zweier Bits ist genau dann 0, wenn beide
+Bits gleich sind, sonst ist das Ergebnis 1, wie die Wahrheitstafel
+in Tabelle~\ref{tab:xor} zeigt. Unten ist ein Codebeispiel:
+\index{Maschinenbefehl!XOR}
+
+\begin{AsmCodeListing}[frame=none, numbers=left, firstnumber=last]
+      mov    ax, 0C123h
+      xor    ax, 0E831h       ; ax = 2912h
+\end{AsmCodeListing}
+
+\subsection{Die \emph{NOT} Operation \index{Bitoperationen!NOT}}
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{|c|c|}
+ \hline
+ \emph{X} & NOT \emph{X} \\
+ \hline \hline
+ 0 & 1 \\
+ 1 & 0 \\
+ \hline
+\end{tabular}
+\caption{Die NOT Operation \label{tab:not}}
+\end{table}
+
+Die \emph{NOT} Operation ist eine \emph{un\"{a}re} Operation
+\index{Operation!un\"{a}re} (d.\,h.\ sie wirkt auf einen Operanden,
+nicht auf zwei, wie \emph{bin\"{a}re} Operationen
+\index{Operation!bin\"{a}re} so wie \emph{AND}). Das \emph{NOT} eines
+Bits ist der invertierte Wert des Bits, wie die Wahrheitstafel in
+Tabelle~\ref{tab:not} zeigt. Unten ist ein Codebeispiel:
+\index{Maschinenbefehl!NOT}
+
+\begin{AsmCodeListing}[frame=none, numbers=left, firstnumber=last]
+      mov    ax, 0C123h
+      not    ax               ; ax = 3EDCh
+\end{AsmCodeListing}
+
+Beachte, dass \emph{NOT} das Einerkomplement findet. Im Gegensatz zu
+den anderen bitweisen Operationen, \"{a}ndert der {\code NOT} Befehl
+kein Bit im {\code FLAGS} Register.
+
+\subsection{Der {\code TEST} Befehl\index{Maschinenbefehl!TEST}}
+
+Der {\code TEST} Befehl f\"{u}hrt eine \emph{AND} Operation durch, aber
+speichert das Ergebnis nicht. Er setzt nur das {\code FLAGS}
+Register auf Grund dessen, was das Ergebnis sein w\"{u}rde (genauso wie
+der {\code CMP} Befehl eine Subtraktion durchf\"{u}hrt, aber nur {\code
+FLAGS} setzt). Wenn zum Beispiel das Ergebnis Null sein w\"{u}rde, w\"{u}rde
+{\code ZF} gesetzt werden.
+
+\begin{table} % <<< framed table <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+\centering
+%\begin{tabular}{|p{0.28 \textwidth}|p{0.65 \textwidth}|}
+\begin{tabular}{|p{0.28 \textwidth}|p{0.5 \textwidth}|}
+\hline
+ Setze Bit \emph{i}  & \emph{OR} die Zahl mit $2^i$ (das ist die bin\"{a}re
+                       Zahl, in der nur das Bit \emph{i} gesetzt ist) \\
+\hline
+ L\"{o}sche Bit \emph{i} & \emph{AND} die Zahl mit der bin\"{a}ren Zahl, die nur
+                       Bit \emph{i} gel\"{o}scht hat. Dieser Operand wird oft
+                       eine \emph{Maske} genannt \\
+\hline
+ Komplementiere Bit \emph{i} & \emph{XOR} die Zahl mit $2^i$ \\
+\hline
+\end{tabular}
+\caption{Verwendung der booleschen Operationen \label{tab:bool}}
+\end{table}
+
+% <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+%\begin{table}
+%\begin{tabular}{lp{3in}}
+% Setze Bit \emph{i} & \emph{OR} die Zahl mit $2^i$ (das ist die bin\"{a}re
+%                     Zahl, in der nur das Bit \emph{i} gesetzt ist) \\
+% L\"{o}sche Bit \emph{i} & \emph{AND} die Zahl mit der bin\"{a}ren Zahl, die nur
+%                     Bit \emph{i} gel\"{o}scht hat. Dieser Operand wird oft
+%                     eine \emph{Maske} genannt \\
+% Komplementiere Bit \emph{i} & \emph{XOR} die Zahl mit $2^i$
+%\end{tabular}
+%\caption{Verwendung der booleschen Operationen \label{tab:bool}}
+%\end{table}
+% <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+\subsection{Anwendungen der Bitoperationen \index{Bitoperationen!in Assembler|(}}
+
+Bitoperationen sind sehr n\"{u}tzlich, um Datenbits individuell zu
+manipulieren, ohne die anderen Bits zu ver\"{a}ndern.
+Tabelle~\ref{tab:bool} zeigt drei g\"{a}ngige Verwendungen dieser
+Operationen. Unten ist etwas Beispielcode, der diese Ideen umsetzt.
+\begin{AsmCodeListing}[frame=none, numbers=left]
+      mov    ax, 0C123h
+      or     ax, 8            ; schalte Bit 3 an,    ax = C12Bh
+      and    ax, 0FFDFh       ; schalte Bit 5 ab,    ax = C10Bh
+      xor    ax, 8000h        ; invertiere Bit 31,   ax = 410Bh
+      or     ax, 0F00h        ; schalte Nibble an,   ax = 4F0Bh
+      and    ax, 0FFF0h       ; schalte Nibble ab,   ax = 4F00h
+      xor    ax, 0F00Fh       ; invertiere Nibbles,  ax = BF0Fh
+      xor    ax, 0FFFFh       ; Einerkomplement,     ax = 40F0h
+\end{AsmCodeListing}
+
+Die \emph{AND} Operation kann ebenfalls dazu benutzt werden, den
+Rest einer Division durch eine Potenz von zwei zu finden. Um den
+Teilerrest einer Division durch $2^i$ zu finden, verkn\"{u}pft man die
+Zahl durch \emph{AND} mit einer Maske gleich $2^i - 1$. Diese Maske
+enth\"{a}lt Einsen vom Bit 0 bis zum Bit $i-1$. Es sind genau diese
+Bits, die den Rest enthalten. Das Ergebnis des \emph{AND} beh\"{a}lt
+diese Bits und setzt die anderen auf Null. Es folgt ein
+Codefragment, das den Quotient und den Rest der Division von 100
+durch 16 findet.
+\begin{AsmCodeListing}[frame=none, numbers=left, firstnumber=last, commentchar=\$]
+      mov    eax, 100         ; 100 = 64h
+      mov    ebx, 0000000Fh   ; Maske = 16 - 1 = 15 oder F
+      and    ebx, eax         ; ebx = Rest = 4
+      shr    eax, 4           ; eax = Quotient von eax/2^4 = 6
+\end{AsmCodeListing}
+Unter Benutzung des {\code CL} Registers ist es m\"{o}glich, beliebige
+Datenbits zu modifizieren. Es folgt ein Beispiel, das ein beliebiges
+Bit in {\code EAX} setzt (anschaltet). Die Nummer des zu setzenden
+Bits ist in {\code BH} gespeichert.
+\begin{AsmCodeListing}[frame=none, numbers=left, firstnumber=last]
+      mov    cl, bh           ; bilde zuerst die OR Maske
+      mov    ebx, 1
+      shl    ebx, cl          ; cl mal links schieben
+      or     eax, ebx         ; schalte Bit an
+\end{AsmCodeListing}
+Ein Bit abzuschalten ist nur ein bisschen schwieriger.
+\begin{AsmCodeListing}[frame=none, numbers=left, firstnumber=last]
+      mov    cl, bh           ; bilde zuerst die AND Maske
+      mov    ebx, 1
+      shl    ebx, cl          ; cl mal links schieben
+      not    ebx              ; invertiere Bits
+      and    eax, ebx         ; schalte Bit ab
+\end{AsmCodeListing}
+Der Code, um ein beliebiges Bit zu komplementieren, sei als \"{U}bung
+f\"{u}r den Leser gelassen.
+
+Es ist nicht ungew\"{o}hnlich, den folgenden r\"{a}tselhaften Befehl in
+einem 80x86 Programm zu finden.
+\begin{AsmCodeListing}[frame=none, numbers=left, firstnumber=last]
+      xor    eax, eax         ; eax = 0
+\end{AsmCodeListing}
+Eine Zahl, mit sich selbst \emph{XOR} verkn\"{u}pft, ergibt immer Null.
+Dieser Befehl wird benutzt, da sein Maschinencode kleiner als der
+entsprechende {\code MOV} Befehl ist. \index{Bitoperationen!in
+Assembler|)}
+
+\section{Vermeidung bedingter Spr\"{u}nge}
+\index{branch prediction|(}
+
+Moderne Prozessoren benutzen sehr hoch entwickelte Techniken, um
+Code so schnell wie m\"{o}glich auszuf\"{u}hren. Eine verbreitete Technik
+ist als \emph{spekulative Ausf\"{u}hrung} \index{spekulative Ausf\"{u}hrung}
+bekannt. Diese Technik nutzt die Parallelverarbeitungsm\"{o}glichkeiten
+der CPU, um mehrere Instruktionen auf einmal auszuf\"{u}hren. Bedingte
+Spr\"{u}nge stellen f\"{u}r diese Idee ein Problem dar. Im Allgemeinen wei{\ss}
+der Prozessor nicht, ob ein Sprung durchgef\"{u}hrt wird oder nicht.
+Wird er durchgef\"{u}hrt, wird eine andere Menge an Instruktionen
+ausgef\"{u}hrt, als wenn er nicht durchgef\"{u}hrt wird. Prozessoren
+versuchen vorherzusagen, ob der Sprung ausgef\"{u}hrt wird. Wenn die
+Voraussage falsch ist, hat der Prozessor seine Zeit damit
+verschwendet, falschen Code auszuf\"{u}hren. \index{branch prediction|)}
+
+\begin{figure}[ht]
+\begin{AsmCodeListing}[numbers=left, commandchars=\\\{\}]
+      mov    bl, 0            ; bl Z\"{a}hler der Anzahl von ON Bits
+      mov    ecx, 32          ; ecx ist der Schleifenz\"{a}hler
+ count_loop:
+      shl    eax, 1           ; schiebe Bit ins Carryflag
+      adc    bl, 0            ; addiere nur das Carryflag zu bl
+      loop   count_loop
+\end{AsmCodeListing}
+\caption{Bits z\"{a}hlen mit {\code ADC}\label{fig:countBitsAdc}}
+\end{figure}
+
+Ein Weg, um dieses Problem zu vermeiden, ist, wann immer m\"{o}glich,
+die Verwendung bedingter Spr\"{u}nge zu vermeiden. Der Beispielcode in
+\ref{sec:AddBitsExample} (Seite~\pageref{sec:AddBitsExample}) zeigt
+ein einfaches Beispiel, wo man dies tun k\"{o}nnte. Im vorherigen
+Beispiel werden die "`an"' Bits des EAX Registers gez\"{a}hlt. Es
+verwendet eine Verzweigung, um den {\code INC} Befehl zu
+\"{u}berspringen. Abbildung~\ref{fig:countBitsAdc} zeigt, wie die
+Verzweigung durch Benutzung des {\code ADC}
+\index{Maschinenbefehl!ADC} Befehls entfernt werden kann, um das
+Carryflag direkt zu addieren.
+
+Die {\code SET\emph{cc}}\index{Maschinenbefehl!SET\emph{cc}} Befehle
+liefern einen Weg, um Verzweigungen in bestimmten F\"{a}llen zu
+entfernen. Diese Befehle setzen den Wert eines bytegro{\ss}en Registers
+oder Speicheradresse auf Null oder Eins, basierend auf dem Zustand
+des FLAGS Registers. Die Buchstaben nach {\code SET} sind die
+gleichen Buchstaben, die bei den bedingten Spr\"{u}ngen benutzt werden.
+Wenn die entsprechende Bedingung von {\code SET\emph{cc}} wahr ist,
+ist das gespeicherte Ergebnis eine Eins, wenn falsch, wird eine Null
+gespeichert. Zum Beispiel,
+\begin{AsmCodeListing}[frame=none, numbers=none]
+      setz   al               ; AL = 1 wenn Z Flag gesetzt, sonst 0
+\end{AsmCodeListing}
+Unter Benutzung dieser Befehle kann man einige clevere Techniken
+entwickeln, die Werte ohne Verzweigungen berechnen.
+
+Betrachten wird zum Beispiel das Problem, das Maximum zweier Werte
+zu finden. Der Standardansatz, dieses Problem zu l\"{o}sen, w\"{u}rde sein,
+ein {\code CMP} zu benutzen und einen bedingten Sprung zu verwenden,
+der darauf reagiert, welcher Wert der gr\"{o}{\ss}ere war. Das folgende
+Beispielprogramm zeigt, wie das Maximum ohne jegliche Verzweigung
+gefunden werden kann. \pagebreak[4]
+
+\begin{AsmCodeListing}[numbers=left, commandchars=\\\{\}]
+ ; file: max.asm
+ %include "asm_io.inc"
+ segment .data
+
+ message1 db     "Enter a number: ", 0
+ message2 db     "Enter another number: ", 0
+ message3 db     "The larger number is: ", 0
+
+ segment .bss
+
+ input1  resd    1               ; erste eingegebene Zahl
+
+ segment .text
+         global  _asm_main
+ _asm_main:
+         enter   0, 0            ; bereite Routine vor
+         pusha
+
+         mov     eax, message1   ; gebe erste Nachricht aus
+         call    print_string
+         call    read_int        ; lese erste Zahl
+         mov     [input1], eax
+
+         mov     eax, message2   ; gebe zweite Nachricht aus
+         call    print_string
+         call    read_int        ; lese zweite Zahl (in eax)
+
+         xor     ebx, ebx        ; ebx = 0
+         cmp     eax, [input1]   ; vergleiche zweite und erste Zahl
+         setg    bl              ; ebx = (input2 > input1) ?          1 : 0 \label{line:max.asm1}
+         neg     ebx             ; ebx = (input2 > input1) ? 0xFFFFFFFF : 0 \label{line:max.asm2}
+         mov     ecx, ebx        ; ecx = (input2 > input1) ? 0xFFFFFFFF : 0
+         and     ecx, eax        ; ecx = (input2 > input1) ?     input2 : 0
+         not     ebx             ; ebx = (input2 > input1) ?          0 : 0xFFFFFFFF
+         and     ebx, [input1]   ; ebx = (input2 > input1) ?          0 : input1
+         or      ecx, ebx        ; ecx = (input2 > input1) ?     input2 : input1
+
+         mov     eax, message3   ; gebe Ergebnis aus
+         call    print_string
+         mov     eax, ecx
+         call    print_int
+         call    print_nl
+
+         popa
+         mov     eax, 0          ; kehre zu C zur\"{u}ck
+         leave
+         ret
+\end{AsmCodeListing}
+\pagebreak[4]
+
+Der Trick besteht darin, eine Bitmaske zu schaffen, die benutzt
+werden kann, um den korrekten Wert f\"{u}r das Maximum auszuw\"{a}hlen. Der
+{\code SETG} \index{Maschinenbefehl!SET\emph{cc}} Befehl in
+Zeile~\ref{line:max.asm1} setzt BL auf 1, wenn die zweite Eingabe
+das Maximum ist, oder sonst auf 0. Das ist nicht gerade die
+gew\"{u}nschte Bitmaske. Um die ben\"{o}tigte Bitmaske zu erzeugen, benutzt
+Zeile~\ref{line:max.asm2} den {\code NEG}
+\index{Maschinenbefehl!NEG} Befehl auf das gesamte EBX Register.
+(Beachte, dass EBX vorher auf Null gesetzt wurde.) Wenn EBX 0 ist,
+bewirkt dies nichts; jedoch, wenn EBX 1 ist, ist das Ergebnis die
+Repr\"{a}sentation von $-1$ oder 0xFFFFFFFF im Zweierkomplement. Das ist
+gerade die ben\"{o}tigte Bitmaske. Der restliche Code verwendet diese
+Bitmaske, um die richtige Eingabe als Maximum auszuw\"{a}hlen.
+
+Ein alternativer Trick besteht darin, den {\code DEC} Befehl zu
+verwenden. Wenn in obigem Beispiel {\code NEG} durch {\code DEC}
+ersetzt wird, wird das Ergebnis wieder entweder 0 oder 0xFFFFFFFF
+sein. Jedoch sind die Werte gegen\"{u}ber der Benutzung des {\code NEG}
+Befehls vertauscht.
+
+
+\section{Bitmanipulationen in C \index{Bitoperationen!in C|(}}
+
+\subsection{Die bitweisen Operatoren von C}
+
+Anders als einige Hochsprachen stellt C Operatoren f\"{u}r bitweise
+Operationen bereit. Die \emph{AND} Operation wird durch den bin\"{a}ren
+{\code \&} Operator\footnote{Dieser Operator ist verschieden von den
+bin\"{a}ren {\code \&\&} und un\"{a}ren {\code \&} Operatoren!}
+repr\"{a}sentiert. Die \emph{OR} Operation wird durch den bin\"{a}ren {\code
+|} Operator repr\"{a}sentiert. Die \emph{XOR} Operation wird
+repr\"{a}sentiert durch den bin\"{a}ren {\code \verb|^| } Operator. Und die
+\emph{NOT} Operation wird durch den un\"{a}ren {\code \verb|~| }
+Operator repr\"{a}sentiert.
+
+Die Schiebeoperationen werden in C durch die bin\"{a}ren {\code <<} und
+{\code >>} Operatoren \index{Operation!bin\"{a}re} durchgef\"{u}hrt. Der
+{\code <<} Operator f\"{u}hrt Linksschiebungen und der {\code >>}
+Operator f\"{u}hrt Rechtsschiebungen aus. Diese Operatoren haben zwei
+Operanden. Der linke Operand ist der Wert, der geschoben wird, und
+der rechte Operand ist die Anzahl von Bits, um die zu schieben ist.
+Wenn der zu schiebende Wert ein vorzeichenloser Typ ist, wird
+logisch geschoben. Ist der Wert ein Typ mit Vorzeichen (wie {\code
+int}), dann wird arithmetisch geschoben. Unten ist etwas
+Beispielcode in C, der diese Operatoren verwendet:
+\begin{lstlisting}[frame=tblr, numbers=left]{}
+ short int s;          /* nimm an, short int ist 16-bit */
+ short unsigned u;
+ s = -1;               /* s = 0xFFFF (2er Komplement) */
+ u = 100;              /* u = 0x0064 */
+ u = u | 0x0100;       /* u = 0x0164 */
+ s = s & 0xFFF0;       /* s = 0xFFF0 */
+ s = s ^ u;            /* s = 0xFE94 */
+ u = u << 3;           /* u = 0x0B20 (logischer Shift) */
+ s = s >> 2;           /* s = 0xFFA5 (arithmetischer Shift) */
+\end{lstlisting}
+
+\subsection{Die Verwendung bitweiser Operatoren in C}
+
+Die bitweisen Operatoren werden in C zum gleichen Zweck benutzt wie
+sie in Assembler verwendet werden. Sie erlauben einem, individuelle
+Datenbits zu manipulieren und k\"{o}nnen f\"{u}r schnelle Multiplikationen
+und Divisionen verwendet werden. Tats\"{a}chlich wird ein schlauer C
+Compiler automatisch eine Schiebeoperation f\"{u}r eine Multiplikation
+wie {\code x *= 2} verwenden.
+\begin{table}[ht]
+\centering
+\begin{tabular}{|c|l|}
+ \hline
+ Macro & \multicolumn{1}{c|}{Bedeutung} \\
+ \hline \hline
+ {\code S\_IRUSR} & user kann lesen \\
+ {\code S\_IWUSR} & user kann schreiben \\
+ {\code S\_IXUSR} & user kann ausf\"{u}hren \\
+ \hline
+ {\code S\_IRGRP} & group kann lesen \\
+ {\code S\_IWGRP} & group kann schreiben \\
+ {\code S\_IXGRP} & group kann ausf\"{u}hren \\
+ \hline
+ {\code S\_IROTH} & others k\"{o}nnen lesen \\
+ {\code S\_IWOTH} & others k\"{o}nnen schreiben \\
+ {\code S\_IXOTH} & others k\"{o}nnen ausf\"{u}hren \\
+ \hline
+\end{tabular}
+\caption{POSIX Makros f\"{u}r Datei-Berechtigungen \label{tab:posix}}
+\end{table}
+
+Viele APIs\footnote{Application Programming Interface} \index{API}
+von Betriebssystemen (wie \emph{POSIX}\footnote{Steht f\"{u}r Portable
+Operating System Interface for Computer Environments. Ein durch die
+IEEE auf der Basis von UNIX entwickelter Standard.} und Win32)
+enthalten Funktionen, die Operanden benutzen, die Daten als Bits
+kodiert haben. Zum Beispiel unterhalten POSIX-Systeme
+Dateiberechtigungen f\"{u}r drei verschiedene Typen von Benutzern:
+\emph{user} (ein besserer Name w\"{u}rde \emph{owner} sein),
+\emph{group} und \emph{others}. Jedem Benutzertyp kann Erlaubnis
+gew\"{a}hrt werden eine Datei zu lesen, zu schreiben und/oder
+auszuf\"{u}hren. Die Berechtigung einer Datei zu \"{a}ndern, verlangt vom C
+Programmierer, individuelle Bits zu manipulieren. POSIX definiert
+als Hilfe verschiedene Makros (siehe Tabelle~\ref{tab:posix}). Die
+Funktion {\code chmod} \index{chmod()} kann zum Setzen der
+Dateiberechtigungen verwendet werden. Diese Funktion braucht zwei
+Parameter, einen String mit dem Namen der Datei und einen
+Integer\footnote{Tats\"{a}chlich ein Parameter vom Typ {\code mode\_t},
+der ein typedef zu einem ganzzahligen Typ ist.}  mit den f\"{u}r die
+gew\"{u}nschten Berechtigungen entsprechend gesetzten Bits. Zum Beispiel
+setzt der folgende Code die Berechtigungen, um dem Eigent\"{u}mer der
+Datei Lese- und Schreib-, Benutzern in der Gruppe Lese- und den
+anderen keinen Zugriff zu geben.
+\begin{lstlisting}[stepnumber=0]{}
+ chmod("foo", S_IRUSR | S_IWUSR | S_IRGRP );
+\end{lstlisting}
+
+Die POSIX {\code stat} Funktion \index{stat()} kann benutzt werden,
+um die gegenw\"{a}rtigen Berechtigungsbits f\"{u}r eine Datei
+herauszufinden. Zusammen mit der {\code chmod} Funktion benutzt, ist
+es m\"{o}glich, einige der Berechtigungen zu modifizieren, ohne andere
+zu \"{a}ndern. Hier ein Beispiel, das den Schreibzugriff f\"{u}r andere
+entfernt und Lesezugriff f\"{u}r den Eigent\"{u}mer der Datei hinzuf\"{u}gt. Die
+anderen Berechtigungen werden nicht ge\"{a}ndert.
+\begin{lstlisting}[numbers=left, frame=tblr, escapeinside={@}{@}]{}
+ struct stats file_stats;   /* struct, von stat() verwendet */
+ stat("foo", &file_stats);  /* lese Datei-Info. @\itshape{file\_stats.st\_mode}@
+                               @\itshape{enth\"{a}lt}@ die Berechtigungsbits */
+ chmod("foo", (@\itshape{file\_stats.st\_mode}@ & ~S_IWOTH) | S_IRUSR);
+\end{lstlisting}
+\index{Bitoperationen!in C|)}
+
+\section{Big and little endian Repr\"{a}sentationen\index{Bytefolge|(}}
+
+Kapitel~1 f\"{u}hrte das Konzept der big und little endian Darstellung
+von Multibyte Daten ein. Jedoch hat der Autor gefunden, dass dieses
+Thema viele Personen verwirrt. Dieser Abschnitt behandelt das Thema
+ausf\"{u}hrlicher.
+
+Der Leser wird sich erinnern, dass die Bytefolge sich auf die
+Ordnung bezieht, mit der die individuellen Bytes (\emph{nicht} Bits)
+eines Mul\-ti\-byte-Da\-ten\-e\-le\-ments im Speicher abgelegt
+werden. Big endian ist die einfachste Methode. Sie speichert das
+h\"{o}chstwertige Byte zuerst, dann das n\"{a}chstwertige Byte und so
+weiter. In anderen Worten, die \emph{gro{\ss}en} Bits werden zuerst
+gespeichert. Little endian speichert die Bytes in der umgekehrten
+Reihenfolge (niederwertigste zuerst). Die x86 Prozessorfamilie
+verwendet die little endian Repr\"{a}sentation.
+
+Betrachte als Beispiel das Doppelwort, das $12345678_{16}$
+repr\"{a}sentiert. In big endian Repr\"{a}sentation w\"{u}rden die Bytes als
+12~34~56~78 gespeichert werden. In little endian Repr\"{a}sentation
+w\"{u}rden die Bytes als 78~56~34~12 gespeichert werden.
+
+Der Leser fragt sich jetzt wahrscheinlich, warum irgendein
+vern\"{u}nftiger Chipdesigner die little endian Repr\"{a}sentation verwenden
+sollte? Sind die Ingenieure bei Intel Sadisten, weil sie durch diese
+verwirrende Repr\"{a}sentationen einer Vielzahl von Programmierern Leid
+zuf\"{u}gen? Es scheint, dass die CPU zus\"{a}tzlichen Aufwand treiben muss,
+um die Bytes r\"{u}ckw\"{a}rts im Speicher abzulegen (und die Umkehrung beim
+Auslesen aus dem Speicher r\"{u}ckg\"{a}ngig zu machen). Die Antwort ist,
+dass die CPU keinerlei zus\"{a}tzlichen Aufwand betreibt, wenn sie
+Speicher im little endian Format liest oder schreibt. Man muss sich
+klarmachen, dass die CPU aus vielen elektronischen Schaltkreisen
+aufgebaut ist, die einfach mit Bitwerten arbeiten. Die Bits (und
+Bytes) sind nicht in irgendeiner notwendigen Reihenfolge in der
+CPU\@.
+
+Betrachten wir das 2-Byte {\code AX} Register. Es kann in die
+Einzelbyte-Register {\code AH} und {\code AL} aufgeteilt werden. Es
+gibt Schaltkreise in der CPU, die die Werte von {\code AH} und
+{\code AL} halten. Schaltkreise sind in der CPU in keinerlei
+Reihenfolge. Das bedeutet, dass die Schaltkreise f\"{u}r {\code AH}
+nicht vor oder hinter den Schaltkreisen f\"{u}r {\code AL} sind. Ein
+{\code mov} Befehl, der den Wert von {\code AX} in den Speicher
+kopiert, kopiert den Wert von {\code AL}, dann {\code AH}\@. Das ist
+f\"{u}r die CPU kein bisschen schwieriger durchzuf\"{u}hren, als {\code AH}
+zuerst zu speichern.
+
+\begin{figure}[ht]
+\begin{lstlisting}[numbers=left, stepnumber=1, frame=tblr]{}
+ unsigned short word = 0x1234;
+ unsigned char *p = (unsigned char *) &word;
+
+ if ( p[0] == 0x34 )
+   printf("Little Endian Machine\n");
+ else
+   printf("Big Endian Machine\n");
+
+\end{lstlisting}
+\caption{Wie die Bytefolge bestimmt werden kann
+\label{fig:determineEndian}}
+\end{figure}
+% <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+% <<<<<< original version <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+%\begin{figure}[t]
+%\begin{lstlisting}[stepnumber=0, frame=tblr]{}
+% unsigned short word = 0x1234;   /* nimmt sizeof(short) == 2 an */
+% unsigned char *p = (unsigned char *) &word;
+%
+% if ( p[0] == 0x12 )
+%   printf("Big Endian Machine\n");
+% else
+%   printf("Little Endian Machine\n");
+%\end{lstlisting}
+%\caption{Wie die Bytefolge bestimmt werden kann
+%\label{fig:determineEndian}}
+%\end{figure}
+% <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+Das gleiche Argument l\"{a}sst sich auf die individuellen Bits in einem
+Byte anwenden. Sie sind nicht wirklich in irgendeiner Reihenfolge in
+den Schaltkreisen der CPU (oder Speicher, was dies betrifft). Da
+jedoch individuelle Bits in CPU oder Speicher nicht adressiert
+werden k\"{o}nnen, gibt es keinen Weg, zu wissen (oder sich darum zu
+k\"{u}mmern), in welcher Reihenfolge sie intern in der CPU angeordnet zu
+sein scheinen.
+
+Der C Code in Abbildung~\ref{fig:determineEndian} zeigt, wie die
+Bytefolge einer CPU bestimmt werden kann. Der Zeiger \lstinline|p|
+behandelt die Variable \lstinline|word| als einen Zeichen-Array mit
+zwei Elementen. So wird \lstinline|p[0]| zum ersten Byte von
+\lstinline|word| im Speicher entwickelt, das von der Bytefolge der
+CPU abh\"{a}ngt.
+
+\subsection{Wann man sich um die Bytefolge sorgen muss}
+
+F\"{u}r die typische Programmierung ist die Bytefolge der CPU nicht
+wesentlich. Am h\"{a}ufigsten wird sie wichtig, wenn bin\"{a}re Daten
+zwischen verschiedenen Computersystemen \"{u}bertragen werden. Das
+erfolgt gew\"{o}hnlich entweder unter Benutzung irgendeines Typs von
+physikalischem Datentr\"{a}ger (wie einer Disk) oder ein Netzwerk.
+\MarginNote{Mit dem Aufkommen von Mul\-ti\-byte-Zei\-chen\-s\"{a}t\-zen
+wie UNICODE, \index{Unicode} wird die Byteordnung selbst f\"{u}r
+Textdaten wichtig. UNICODE unterst\"{u}tzt beide Byteordnungen und
+besitzt einen Mechanismus, um zu spezifizieren, welche Byteordnung
+verwendet wird, um die Daten darzustellen.} Da ASCII \index{ASCII}
+Daten aus einzelnen Bytes bestehen, ist f\"{u}r sie die Bytefolge kein
+Thema.
+
+Alle internen TCP/IP Header speichern Integer im big endian Format
+(\emph{network byte order} genannt). TCP/IP \index{TCP/IP}
+Bibliotheken stellen C Funktionen zur Ver\-f\"{u}\-gung, um mit
+Angelegenheiten der Bytefolge auf eine portable Weise umgehen zu
+k\"{o}nnen. Zum Beispiel konvertiert die Funktion \lstinline|htonl()|
+\index{htonl()} ein Doppelwort (oder long Integer) vom \emph{host}
+ins \emph{network} Format. Die Funktion \lstinline|ntohl()|
+\index{ntohl()} f\"{u}hrt die gegenteilige Transformation
+durch.\footnote{In Wirklichkeit stellt die \"{A}nderung der Bytefolge
+eines Integers nur die Bytes um, deshalb sind die Konversionen von
+big nach little oder little nach big die gleichen Operationen.
+Folglich machen diese beiden Funktionen das Gleiche.} F\"{u}r ein big
+endian System geben die beiden Funktionen gerade ihr Argument
+unver\"{a}ndert zur\"{u}ck. Das erm\"{o}glicht einem, Netzwerkprogramme zu
+schreiben, die auf jedem System, unabh\"{a}ngig von seiner Bytefolge,
+korrekt \"{u}bersetzt und laufen werden. F\"{u}r weitere Informationen \"{u}ber
+Bytefolge und Netzwerkprogrammierung siehe W. Richard Steven's
+ausgezeichnetes Buch \emph{UNIX Network Programming}.
+
+\begin{figure}[ht]
+\begin{lstlisting}[frame=tlrb, numbers=left, escapeinside={@}{@}]{}
+ unsigned invert_endian( unsigned x )
+ {
+   unsigned invert;
+   const unsigned char *xp = ( const unsigned char * ) &x;
+   unsigned char *ip = ( unsigned char * ) &invert;
+
+   ip[0] = xp[3];   /* stelle die individuellen Bytes um */
+   ip[1] = xp[2];
+   ip[2] = xp[1];
+   ip[3] = xp[0];
+
+   return invert;   /* gib die umgestellten Bytes @\itshape{zur\"{u}ck}@ */
+ }
+\end{lstlisting}
+\caption{invert\_endian Funktion \label{fig:invertEndian}
+\index{Bytefolge!invert\_endian}}
+\end{figure}
+
+Abbildung~\ref{fig:invertEndian} zeigt eine C Funktion, die die
+Bytefolge eines Doppelworts umkehrt. Der 486 Prozessor hat einen
+neuen Maschinenbefehl namens {\code BSWAP}
+\index{Maschinenbefehl!BSWAP} eingef\"{u}hrt, der die Bytes irgendeines
+32~bit Registers umdreht. Zum Beispiel,
+\begin{AsmCodeListing}[frame=none, numbers=left]
+      bswap   edx             ; vertausche Bytes von edx
+\end{AsmCodeListing}
+Die Instruktion kann mit 16~bit Registern nicht verwendet werden.
+Jedoch kann der {\code XCHG} \index{Maschinenbefehl!XCHG} Befehl
+eingesetzt werden, um die Bytes der 16~bit Register, die in 8~bit
+Register zerlegt werden k\"{o}nnen, zu tauschen. Zum Beispiel:
+\begin{AsmCodeListing}[frame=none, numbers=left, firstnumber=last]
+      xchg    ah, al          ; vertausche Bytes von ax
+\end{AsmCodeListing}
+\index{Bytefolge|)}
+
+\section{Bits z\"{a}hlen\index{Bits z\"{a}hlen|(}}
+
+Fr\"{u}her wurde eine einfache Technik angegeben, um die Bits zu z\"{a}hlen,
+die in einem Doppelwort "`an"' sind. Dieser Abschnitt betrachtet
+andere, weniger direkte Methoden, dies zu tun, als eine \"{U}bung, die
+Bitoperationen, die in diesem Kapitel diskutiert wurden, zu
+verwenden.
+
+\subsection{Methode Eins\index{Bits z\"{a}hlen!Methode Eins|(}}
+
+Die erste Methode ist sehr einfach, aber nicht offensichtlich.
+Abbildung~\ref{fig:meth1} zeigt den Code.
+
+\begin{figure}[ht]
+\begin{lstlisting}[frame=tblr, numbers=left, escapeinside={@}{@}]{}
+ int count_bits( unsigned int data )
+ {
+   int cnt = 0;
+
+   while( data != 0 ) {
+     data = data & (data - 1); @\label{line:meth1}@
+     cnt++;
+   }
+   return cnt;
+ }
+\end{lstlisting}
+\caption{Bits z\"{a}hlen -- Methode Eins \label{fig:meth1}}
+\end{figure}
+
+Wie arbeitet diese Methode? Bei jedem Schleifendurchgang wird ein
+Bit in {\code data} abgeschaltet. Wenn alle Bits aus sind (d.\,h.\
+wenn {\code data} Null ist) wird die Schleife beendet. Die Anzahl
+der erforderlichen Durchg\"{a}nge, um {\code data} Null werden zu
+lassen, ist gleich der Zahl der Bits im urspr\"{u}nglichen Wert von
+{\code data}.
+
+In Zeile~\ref{line:meth1} ist die Stelle, an der ein Bit von {\code
+data} abgeschaltet wird. Wie funktioniert das? Betrachten wir die
+allgemeine Form der bin\"{a}ren Repr\"{a}sentation von {\code data} und die
+am weitesten rechts stehende 1 in dieser Repr\"{a}sentation. Nach
+Definition muss jedes Bit nach dieser 1 Null sein. Nun, was wird die
+bin\"{a}re Repr\"{a}sentation von {\code data~-~1} sein? Die Bits links der
+am weitesten rechts stehenden 1 werden die gleichen sein wie die f\"{u}r
+{\code data}, aber ab dem Punkt der rechtesten 1 werden die Bits das
+Komplement der originalen Bits in {\code data} sein. Zum Beispiel:\\
+\begin{tabular}{lcl}
+ {\code data}     & = & xxxxx10000 \\
+ {\code data - 1} & = & xxxxx01111 \\
+\end{tabular}\\
+wobei die x f\"{u}r beide Zahlen gleich sind. Wenn nun {\code data} und
+{\code data~-~1} durch \emph{AND} verkn\"{u}pft werden, wird das
+Ergebnis die rechteste 1 in {\code data} l\"{o}schen und alle anderen
+Bits unver\"{a}ndert lassen.
+
+\subsection{Methode Zwei\index{Bits z\"{a}hlen!Methode Zwei|(}}
+
+Eine Nachschlagetabelle kann ebenfalls benutzt werden um die Bits
+eines beliebigen Doppelworts zu z\"{a}hlen. Der einfachste Ansatz w\"{a}re,
+die Anzahl der Bits f\"{u}r jedes Doppelwort vorauszuberechnen und diese
+in einem Array zu speichern. Jedoch gibt es mit diesem Ansatz zwei
+miteinander verwandte Probleme. Es gibt etwa \emph{4 Milliarden}
+Doppelwort-Werte! Das bedeutet, dass der Array sehr gro{\ss} sein wird
+und dass auch seine Initialisierung sehr zeitaufwendig sein w\"{u}rde.
+(Tats\"{a}chlich, wenn man nicht vorhat, den Array wirklich mehr als 4
+Milliarden Mal zu benutzen, wird mehr Zeit ben\"{o}tigt, um den Array zu
+initialisieren, als ben\"{o}tigt w\"{u}rde, nur die Anzahl Bits unter
+Benutzung der Methode Eins zu berechnen!)
+
+Eine realistischere Methode w\"{u}rde die Bitzahlen f\"{u}r alle m\"{o}glichen
+Bytewerte vorausberechnen und diese in einem Array speichern. Dann
+kann das Doppelwort in vier Bytewerte aufgespaltet werden. Die
+Anzahl Bits dieser vier Bytes werden im Array nachgeschlagen und
+aufsummiert, um die Anzahl Bits im originalen Doppelwort zu finden.
+Abbildung~\ref{fig:meth2} zeigt den Code, um diesen Ansatz zu
+implementieren.
+
+\begin{figure}[ht]
+\begin{lstlisting}[frame=tlrb, numbers=left, escapeinside={@}{@}]{}
+ static unsigned char byte_bit_count[256];  /* Nachschlagetabelle */
+
+ void initialize_count_bits()
+ {
+   int cnt, i, data;
+
+   for( i = 0; i < 256; i++ ) {
+     cnt = 0;
+     data = i;
+     while( data != 0 ) {    /* Methode Eins */
+       data = data & (data - 1);
+       cnt++;
+     }
+     byte_bit_count[i] = cnt;
+   }
+ }
+
+ int count_bits( unsigned int data )
+ {
+   const unsigned char *byte = ( unsigned char * ) & data;
+
+   return byte_bit_count[byte[0]] + byte_bit_count[byte[1]] +   @\label{line:meth2_1}@
+          byte_bit_count[byte[2]] + byte_bit_count[byte[3]];    @\label{line:meth2_2}@
+ }
+\end{lstlisting}
+\caption{Bits z\"{a}hlen -- Methode Zwei \label{fig:meth2}}
+\end{figure}
+\index{Bits z\"{a}hlen!Methode Eins|)}
+
+Die {\code initialize\_count\_bits} Funktion muss vor dem ersten
+Aufruf der {\code count\_""bits} Funktion aufgerufen werden. Diese
+Funktion initialisiert den globalen  {\code byte\_""bit\_""count}
+Array. Die {\code count\_bits} Funktion sieht die Variable {\code
+data} nicht als ein Doppelwort, sondern als einen Array von vier
+Bytes an. Der {\code byte} Zeiger wirkt als Zeiger auf diesen
+vier-Byte Array. Deshalb ist {\code byte[0]} eines der Bytes in
+{\code data} (entweder das niederwertigste oder das h\"{o}chstwertige
+Byte, abh\"{a}ngig davon, ob die Hardware jeweils little oder big endian
+ist). Nat\"{u}rlich k\"{o}nnte man ein Konstrukt verwenden, wie:
+\begin{lstlisting}[stepnumber=0]{}
+ (data >> 24) & 0x000000FF
+\end{lstlisting}
+\noindent um den h\"{o}chstwertigen Bytewert zu finden und \"{a}hnliche f\"{u}r
+die anderen Bytes; jedoch w\"{u}rden diese Konstrukte langsamer als eine
+Arrayreferenz sein.
+
+Ein letzter Punkt, es k\"{o}nnte einfach eine {\code for} Schleife
+benutzt werden, um die Summe in Zeilen~\ref{line:meth2_1} und
+\ref{line:meth2_2} zu berechnen. Aber eine {\code for} Schleife
+w\"{u}rde den Overhead beinhalten, einen Schleifenindex zu
+initialisieren, den Index nach jeder Iteration zu vergleichen und
+den Index zu inkrementieren. Die Summe als explizite Summe von vier
+Werten zu berechnen, wird schneller sein. Tats\"{a}chlich w\"{u}rde ein
+smarter Compiler die Version mit der {\code for} Schleife zur
+expliziten Summe umwandeln. Der Prozess, Schleifendurchg\"{a}nge zu
+verringern oder zu eliminieren, ist eine Technik der
+Compileroptimierung und als \emph{Loop unrolling} bekannt.
+\index{Bits z\"{a}hlen!Methode Zwei|)}
+
+\subsection{Methode Drei\index{Bits z\"{a}hlen!Methode Drei|(}}
+
+Es gibt noch eine weitere clevere Methode, die Bits zu z\"{a}hlen, die
+in einem Datum gesetzt sind. Diese Methode z\"{a}hlt buchst\"{a}blich die
+Einsen und Nullen des Datums zusammen. Diese Summe muss gleich der
+Anzahl der Einsen im Datum sein. Betrachten wir als Beispiel, die
+Einsen in einem Byte, das in einer Variablen namens {\code data}
+gespeichert ist, zu z\"{a}hlen. Der erste Schritt besteht darin, die
+folgende Operation durchzuf\"{u}hren:
+\begin{lstlisting}[stepnumber=0]{}
+ data = (data & 0x55) + ((data >> 1) & 0x55);
+\end{lstlisting}
+Was tut das? Die Hexkonstante {\code 0x55} ist $01010101$ in bin\"{a}r.
+Im ersten Operanden der Addition, wird {\code data} damit per
+\emph{AND} verkn\"{u}pft, Bits an den ungeraden Bitpositionen werden
+gel\"{o}scht. Der zweite Operand {\code ((data >> 1) \& 0x55)} bewegt
+zuerst alle Bits an den geraden Positionen auf eine ungerade
+Position und benutzt die gleiche Maske, um die gleichen Bits zu
+l\"{o}schen. Nun enth\"{a}lt der erste Operand die ungeraden Bits und der
+zweite Operand die geraden Bits von {\code data}. Wenn diese beiden
+Operanden zusammengez\"{a}hlt werden, werden die geraden und ungeraden
+Bits von {\code data} zusammengez\"{a}hlt. Wenn zum Beispiel {\code
+data} $10110011_2$ ist, dann:\\
+
+\begin{tabular}{rcr|l|l|l|l|}
+ \cline{4-7}
+ {\code data \&} $01010101_2$          &      &   & 00 & 01 & 00 & 01 \\
+ + {\code (data >> 1) \&} $01010101_2$ & oder & + & 01 & 01 & 00 & 01 \\
+ \cline{1-1} \cline{3-7}
+                                       &      &   & 01 & 10 & 00 & 10 \\
+ \cline{4-7}\\
+\end{tabular}
+
+Die Addition rechts zeigt die aktuell zusammengez\"{a}hlten Bits. Die
+Bits der Bytes sind in vier 2-bit Felder geteilt, um zu zeigen, dass
+tats\"{a}chlich vier unabh\"{a}ngige Additionen durchgef\"{u}hrt werden. Da das
+gr\"{o}{\ss}te, das diese Summen sein k\"{o}nnen, zwei ist, gibt es keine
+M\"{o}glichkeit, dass die Summe ihr Feld \"{u}berlaufen wird und eine der
+Summen in den anderen Feldern zerst\"{o}rt.
+
+Nat\"{u}rlich wurde damit noch nicht die gesamte Anzahl Bits berechnet.
+Jedoch kann die gleiche Technik, die oben angewandt wurde, benutzt
+werden, um den Gesamtbetrag in einer Reihe \"{a}hnlicher Schritte zu
+berechnen. Der n\"{a}chste Schritt w\"{u}rde sein:
+\begin{lstlisting}[stepnumber=0]{}
+ data = (data & 0x33) + ((data >> 2) & 0x33);
+\end{lstlisting}
+F\"{u}hren wir das obige Beispiel weiter (erinnern wir uns, dass {\code
+data} jetzt $01100010_2$ ist):\\
+
+\begin{tabular}{rcr|l|l|}
+ \cline{4-5}
+ {\code data \&} $00110011_2$          &      &   & 0010 & 0010 \\
+ + {\code (data >> 2) \&} $00110011_2$ & oder & + & 0001 & 0000 \\
+ \cline{1-1} \cline{3-5}
+                                       &      &   & 0011 & 0010 \\
+ \cline{4-5}\\
+\end{tabular}\\
+Nun gibt es zwei 4-bit Felder, die unabh\"{a}ngig addiert werden.
+
+Der n\"{a}chste Schritt besteht darin, diese zwei Bitsummen
+zusammenzuz\"{a}hlen, um das endg\"{u}ltige Ergebnis zu bilden:
+\begin{lstlisting}[stepnumber=0]{}
+ data = (data & 0x0F) + ((data >> 4) & 0x0F);
+\end{lstlisting}
+
+Unter Benutzung des obigen Beispiels (mit {\code data} gleich $00110010_2$):\\
+
+\begin{tabular}{rcr|l|}
+ \cline{4-4}
+ {\code data \&} $00001111_2$          &      &   & 00000010 \\
+ + {\code (data >> 4) \&} $00001111_2$ & oder & + & 00000011 \\
+ \cline{1-1} \cline{3-4}
+                                       &      &   & 00000101 \\
+ \cline{4-4}\\
+ \end{tabular}\\
+% <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+%\begin{tabular}{rcrl}
+%{\code data \&} $00001111_2$          &      &   & 00000010 \\
+%+ {\code (data >> 4) \&} $00001111_2$ & oder & + & 00000011 \\
+%\cline{1-1} \cline{3-4}
+%                                      &      &   & 00000101 \\
+%\end{tabular}\\
+% <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+Jetzt ist {\code data} 5, das das korrekte Ergebnis ist.
+Abbildung~\ref{fig:method3} zeigt eine Implementierung dieser
+Methode, die die Bits in einem Doppelwort z\"{a}hlt. Sie benutzt eine
+{\code for} Schleife, um die Summe zu berechnen. Es w\"{u}rde schneller
+sein, die Schleife zu entrollen; jedoch macht es die Schleife
+klarer, wie die Methode sich f\"{u}r verschiedene Datengr\"{o}{\ss}en
+verallgemeinern l\"{a}sst. \index{Bits z\"{a}hlen!Methode Drei|)}
+\index{Bits z\"{a}hlen|)}
+
+\begin{figure}[ht]
+\begin{lstlisting}[frame=tlrb, numbers=left]{}
+ int count_bits( unsigned int x )
+ {
+   static unsigned int mask[ ] = { 0x55555555,
+                                   0x33333333,
+                                   0x0F0F0F0F,
+                                   0x00FF00FF,
+                                   0x0000FFFF };
+   int i;
+   int shift;   /* Anzahl Positionen um nach rechts zu schieben */
+
+   for( i=0, shift=1; i < 5; i++, shift *= 2 )
+     x = (x & mask[i]) + ( (x >> shift) & mask[i] );
+   return x;
+ }
+\end{lstlisting}
+\caption{Bits z\"{a}hlen -- Methode Drei \label{fig:method3}}
+\end{figure}

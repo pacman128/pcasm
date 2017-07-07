@@ -1,0 +1,1146 @@
+
+\chapter{Grundlagen der Assemblersprache}
+
+\section{Arbeiten mit Integern (Ganzzahlen)
+  \index{Integer|(}}
+
+\subsection{Die Darstellung von Integerwerten \index{Integer!Darstellung|(}}
+
+\index{Integer!ohne Vorzeichen|(} Integer treten in zwei
+Geschmacksrichtungen auf: mit und ohne Vorzeichen. Vorzeichenlose
+Integer (die nicht-negativ sind) werden in einer nahe liegenden
+bin\"{a}ren Weise repr\"{a}sentiert. Die Zahl 200 als eine ein-Byte
+vorzeichenlose Ganzzahl w\"{u}rde als 11001000 (oder C8 in hex)
+repr\"{a}sentiert werden. \index{Integer!ohne Vorzeichen|)}
+
+\index{Integer!mit Vorzeichen|(} Vorzeichenbehaftete Integer (die
+positiv oder negativ sein k\"{o}nnen) werden auf kompliziertere Weisen
+dargestellt. Betrachten wir zum Beispiel $-56$. $+56$ w\"{u}rde als Byte
+durch 00111000 dargestellt werden. Auf dem Papier k\"{o}nnte man $-56$
+als $-111000$ repr\"{a}sentieren, aber wie w\"{u}rde das in einem Byte im
+Computerspeicher repr\"{a}sentiert werden? Wie w\"{u}rde das Minuszeichen
+gespeichert werden?
+
+Es gibt drei allgemeine Techniken, die zur Darstellung von
+vorzeichenbehafteten Integern im Computerspeicher benutzt wurden.
+Alle diese Methoden benutzen das h\"{o}chstwertige Bit des Integers als
+ein \emph{Vorzeichenbit}. \index{Integer!Vorzeichenbit}
+\index{Vorzeichenbit} Dieses Bit ist 0, wenn die Zahl positiv ist
+und 1, wenn negativ.
+
+\subsubsection{Signed Magnitude
+  \index{Integer!Darstellung!signed magnitude}}
+
+Die erste Methode ist die einfachste und wird \emph{signed
+magnitude} genannt. Sie stellt den Integer in zwei Teilen dar. Der
+erste Teil ist das Vorzeichenbit und der zweite ist der Betrag des
+Integers. So w\"{u}rde 56 als das Byte $\underline{0}0111000$ (das
+Vorzeichenbit ist unterstrichen) dargestellt werden und $-56$ als
+$\underline{1}0111000$. Der gr\"{o}{\ss}te Bytewert wird
+$\underline{0}1111111$ oder $+127$ sein und der kleinste Bytewert
+w\"{a}re $\underline{1}1111111$ oder $-127$. Um einen Wert zu negieren
+wird das Vorzeichenbit umgekehrt. Diese Methode ist einfach, hat
+aber ihre Nachteile. Zuerst gibt es zwei m\"{o}gliche Werte f\"{u}r Null,
+$+0$ ($\underline{0}0000000$) und $-0$ ($\underline{1}0000000$). Da
+Null weder positiv noch negativ ist, sollten sich beide dieser
+Repr\"{a}sentationen gleich verhalten. Das kompliziert die Logik f\"{u}r die
+Arithmetik der CPU\@. Zweitens ist die allgemeine Arithmetik
+ebenfalls kompliziert. Wenn 10 zu $-56$ addiert wird, muss dies zu
+10 subtrahiert von 56 umgedeutet werden. Wiederum kompliziert dies
+die Logik der CPU\@.
+
+\subsubsection{One's Complement (Einerkomplement)
+  \index{Integer!Darstellung!Einerkomplement}
+  \index{one's complement}
+  \index{Einerkomplement}
+  }
+
+Die zweite Methode ist als Repr\"{a}sentation im \emph{Einerkomplement}
+bekannt. Das Einerkomplement einer Zahl wird gefunden, indem jedes
+Bit in der Zahl invertiert wird. (Eine andere Betrachtungsweise
+besteht darin, den neuen Bitwert als $1 - \mathrm{alter Bitwert}$
+anzusehen.) Das Einerkomplement von $\underline{0}0111000$ ($+56$)
+zum Beispiel ist $\underline{1}1000111$. In Einerkomplement-Notation
+ist das Berechnen des Einerkomplements gleichwertig zur Negation.
+Deshalb ist $\underline{1}1000111$ die Repr\"{a}sentation von $-56$.
+Beachte, dass das Vorzeichenbit automatisch durch die
+Einerkomplementierung ge\"{a}ndert wurde und dass, wie man auch erwarten
+w\"{u}rde, das Einerkomplement zwei Mal genommen, die urspr\"{u}ngliche Zahl
+ergibt. Wie bei der ersten Methode gibt es zwei Repr\"{a}sentationen der
+Null: $\underline{0}0000000$ ($+0$) und $\underline{1}1111111$
+($-0$). Arithmetik mit Einerkomplement-Zahlen ist kompliziert.
+
+Es gibt einen n\"{u}tzlichen Trick, um das Einerkomplement einer Zahl in
+hexadezimal zu finden, ohne nach bin\"{a}r zu konvertieren. Der Trick
+besteht darin, die Hexziffern von F (oder 15 in dezimal) abzuziehen.
+Diese Methode nimmt an, dass die Anzahl Bits in der Zahl ein
+Vielfaches von 4 ist. Hier ist ein Beispiel: $+56$ ist 38 in hex. Um
+das Einerkomplement zu finden, zieht man jede Ziffer von F ab, um C7
+in hex zu erhalten. Dies stimmt mit dem obigen Ergebnis \"{u}berein.
+
+\subsubsection{Two's Complement (Zweierkomplement)
+  \index{Integer!Darstellung!Zweierkomplement|(}
+  \index{two's complement}
+  \index{Zweierkomplement|(}
+  }
+
+Die ersten beiden beschriebenen Methoden wurden auf fr\"{u}hen Computern
+benutzt. Moderne Computer benutzen eine dritte Methode, die
+\emph{Zweierkomplement} genannt wird. Das Zweierkomplement einer
+Zahl wird durch die folgenden zwei Schritte gefunden:
+\begin{enumerate}
+\parskip=-0.25em %reduce the spacing <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+\item Finde das Einerkomplement der Zahl
+
+\item Addiere eins zum Ergebnis aus Schritt 1
+\end{enumerate}
+Hier ist ein Beispiel unter Verwendung von $\underline{0}0111000$
+(56). Zuerst wird das Einerkomplement berechnet:
+$\underline{1}1000111$. Dann wird eins addiert:
+\[
+\begin{array}{rr}
+  & \underline{1}1000111 \\
+ +&                    1 \\
+ \hline
+  & \underline{1}1001000
+\end{array}
+\]
+
+In Zweierkomplement-Darstellung ist die Berechnung des
+Zweierkomplements \"{a}quivalent zur Negation einer Zahl. So ist
+$\underline{1}1001000$ die Repr\"{a}sentation von $-56$ im
+Zweierkomplement. Zwei Negationen sollten wieder die urspr\"{u}ngliche
+Zahl geben. \"{U}berraschenderweise erf\"{u}llt das Zweierkomplement diese
+Forderung. Nimm das Zweierkomplement von $\underline{1}1001000$,
+indem eins zum Einerkomplement addiert wird.
+\[
+\begin{array}{rr}
+  & \underline{0}0110111 \\
+ +&                    1 \\
+ \hline
+  & \underline{0}0111000
+\end{array}
+\]
+
+Bei der Berechnung des Zweierkomplements kann die Addition der am
+weitesten links stehenden Bits einen \"{U}bertrag produzieren. Dieser
+\"{U}ber\-trag wird \emph{nicht} verwendet. Beachte, dass alle Daten im
+Computer eine feste Gr\"{o}{\ss}e (in der Anzahl Bits) haben. Das Addieren
+zweier Bytes liefert immer ein Byte als Ergebnis (genauso wie die
+Addition zweier W\"{o}rter ein Wort liefert, usw.) Diese Eigenschaft ist
+wichtig f\"{u}r die Zweierkomplement-Notation. Betrachte zum Beispiel
+Null als eine ein-Byte Zweierkomplement-Zahl
+($\underline{0}0000000$). Die Berechnung des Zweierkomplements
+liefert die Summe:
+\[
+\begin{array}{rr}
+  & \underline{1}1111111 \\
+ +&                    1 \\
+ \hline
+ c& \underline{0}0000000
+\end{array}
+\]
+wobei $c$ einen \"{U}bertrag repr\"{a}sentiert. (Sp\"{a}ter wird gezeigt werden,
+wie dieser \"{U}bertrag entdeckt werden kann, er wird aber nicht im
+Ergebnis gespeichert.) So gibt es in der Zweierkomplement-Notation
+nur eine Null. Dies macht Arithmetik im Zweierkomplement einfacher
+als die vorheriger Methoden.
+
+Bei Benutzung der Notation im Zweierkomplement kann ein
+vorzeichenbehaftetes Byte verwendet werden um die Zahlen $-128$ bis
+$+127$ zu repr\"{a}sentieren. Tabelle~\ref{tab:twocomp} zeigt einige
+ausgew\"{a}hlte Werte. Werden 16 Bits verwendet, k\"{o}nnen die
+vorzeichenbehafteten Zahlen $-32\,768$ bis $+32\,767$ repr\"{a}sentiert
+werden. $+32\,767$ wird dargestellt durch 7FFF, $-32\,768$ durch
+8000, $-128$ als FF80 und $-1$ als FFFF\@. 32-bit
+Zweierkomplement-Zahlen reichen von ungef\"{a}hr $-2$ Milliarden bis
+$+2$ Milliarden.
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{||c|c||}
+ \hline
+ Zahl & Hex Repr\"{a}sentation \\
+ \hline
+    0 & 00 \\
+    1 & 01 \\
+  127 & 7F \\
+ -128 & 80 \\
+ -127 & 81 \\
+   -2 & FE \\
+   -1 & FF \\
+ \hline
+\end{tabular}
+\caption{Darstellung im Zweierkomplement \label{tab:twocomp}}
+\end{table}
+
+Die CPU hat keine Vorstellung davon, was ein bestimmtes Byte (oder
+Wort oder Doppelwort) repr\"{a}sentieren soll. Assembler hat nicht das
+Konzept von Datentypen, die eine Hochsprache hat. Wie Daten
+interpretiert werden, h\"{a}ngt davon ab, welche Befehle auf die Daten
+angewendet werden. Ob der Hexwert FF dazu bestimmt ist, eine
+vorzeichenbehaftete $-1$ oder eine vorzeichenlose $+255$ zu
+repr\"{a}sentieren, h\"{a}ngt vom Programmierer ab. Die Sprache C definiert
+vorzeichenbehaftete und vorzeichenlose Integertypen. Diese
+erm\"{o}glicht dem C Compiler die richtigen Befehle zu bestimmen, um mit
+den Daten umzugehen.
+
+\index{Zweierkomplement|)}
+\index{Integer!Darstellung!Zweierkomplement|)}
+\index{Integer!mit Vorzeichen|)}
+
+\subsection{Vorzeichenerweiterung \index{Integer!Vorzeichenerweiterung|(}}
+
+In Assembler haben alle Daten eine festgelegte Gr\"{o}{\ss}e. Es ist nicht
+un\-\"{u}b\-lich, die Gr\"{o}{\ss}e der Daten \"{a}ndern zu m\"{u}ssen, um sie mit
+anderen Daten zu benutzen. Die Gr\"{o}{\ss}e zu verringern ist das
+Einfachste.
+
+\subsubsection{Einengung der Datengr\"{o}{\ss}e}
+
+Um die Gr\"{o}{\ss}e der Daten zu verringern, entfernt man einfach die
+h\"{o}herwertigen Bits der Daten. Hier ist ein triviales Beispiel:
+\begin{AsmCodeListing}[numbers=left, frame=none]
+      mov    ax, 0034h        ; ax = 52 (in 16 Bits gespeichert)
+      mov    cl, al           ; cl = niedere 8 Bits von ax
+\end{AsmCodeListing}
+
+Wenn die Zahl nicht korrekt in der kleineren Gr\"{o}{\ss}e repr\"{a}sentiert
+werden kann, schl\"{a}gt die Herabsetzung der Gr\"{o}{\ss}e nat\"{u}rlich fehl. Wenn
+zum Beispiel {\code AX} 0134h (oder 308 in dezimal) w\"{a}re, w\"{u}rde der
+obige Code {\code CL} immer noch auf 34h setzen. Diese Methode
+funktioniert sowohl mit vorzeichenbehafteten als auch mit
+vorzeichenlosen Zahlen. Betrachten wir vorzeichenbehaftete Zahlen.
+Wenn {\code AX} FFFFh ($-1$ als Wort) w\"{a}re, dann w\"{u}rde {\code CL}
+FFh ($-1$ als Byte) sein. Beachte jedoch, dass dies nicht korrekt
+ist, wenn der Wert in {\code AX} vorzeichenlos w\"{a}re!
+
+Die Regel f\"{u}r vorzeichenlose Zahlen ist, dass alle entfernten Bits 0
+sein m\"{u}ssen, damit die Konversion korrekt ist. Die Regel f\"{u}r
+vorzeichenbehaftete Zahlen ist, dass die entfernten Bits entweder
+alle 1 oder alle 0 sein m\"{u}ssen. Zus\"{a}tzlich muss das erste nicht
+entfernte Bit denselben Wert haben wie die entfernten Bits. Dieses
+Bit wird zum neuen Vorzeichenbit des kleineren Wertes. Es ist
+wichtig, dass es gleich dem originalen Vorzeichenbit ist!
+
+\subsubsection{Ausweitung der Datengr\"{o}{\ss}e}
+
+Heraufsetzen der Gr\"{o}{\ss}e der Daten ist komplizierter als herabsetzen.
+Betrachten wir das Hexbyte FF\@. Wenn es zu einem Wort erweitert
+wird, welchen Wert sollte dann das Wort haben? Es h\"{a}ngt davon ab,
+wie FF interpretiert wird. Ist FF ein vorzeichenloses Byte (255 in
+dezimal), dann sollte das Wort 00FF sein; wenn es jedoch ein
+vorzeichenbehaftetes Byte ($-1$ in dezimal) ist, dann sollte das
+Wort FFFF sein.
+
+Um, ganz allgemein, eine vorzeichenlose Zahl zu erweitern, macht man
+alle neuen Bits der erweiterten Zahl zu 0. So wird FF zu 00FF\@. Um
+jedoch eine vorzeichenbehaftete Zahl zu erweitern, muss man das
+Vorzeichenbit \emph{erweitern}. \index{Integer!Vorzeichenbit} Das
+bedeutet, dass die neuen Bits Kopien des Vorzeichenbits werden. Da
+das Vorzeichenbit von FF 1 ist, m\"{u}ssen die neuen Bits ebenso alle
+Einsen sein, um dann FFFF zu liefern. Wenn die vorzeichenbehaftete
+Zahl 5A (90 in dezimal) erweitert wird, w\"{u}rde das Ergebnis 005A
+sein.
+
+Es gibt mehrere Befehle, die die 80386 f\"{u}r die Zahlenerweiterung
+bereitstellt. Erinnern wir uns, dass der Computer nicht wei{\ss}, ob
+eine Zahl vorzeichenbehaftet oder vorzeichenlos ist. Es liegt am
+Programmierer, den richtigen Befehl zu verwenden.
+
+F\"{u}r vorzeichenlose Zahlen kann man mit einem {\code MOV} Befehl
+einfach Nullen in die oberen Bits laden. Um zum Beispiel das Byte in
+AL zu einem vorzeichenlosen Word in AX zu erweitern:
+\begin{AsmCodeListing}[numbers=left, firstnumber=last, frame=none]
+      mov    ah, 0            ; setze obere 8 Bits auf Null
+\end{AsmCodeListing}
+Jedoch ist es nicht m\"{o}glich, einen {\code MOV} Befehl zu verwenden,
+um das vorzeichenlose Wort in AX zu einem vorzeichenlosen Doppelwort
+in EAX zu konvertieren. Warum nicht? Es gibt keinen Weg, um mit
+einem {\code MOV} die oberen 16 Bits von EAX zu spezifizieren. Die
+80386 l\"{o}st dieses Problem, indem sie die neue Instruktion {\code
+MOVZX} \index{Maschinenbefehl!MOVZX} bereitstellt. Dieser Befehl hat
+zwei Operanden. Die Datensenke (erster Operand) muss ein 16 oder
+32~bit Register sein. Die Quelle (zweiter Operand) kann ein 8 oder
+16~bit Register oder ein Byte oder Wort im Speicher sein. Die andere
+Einschr\"{a}nkung ist, dass die Senke gr\"{o}{\ss}er als die Quelle sein muss.
+(Die meisten Befehle erfordern, dass Quelle und Ziel von der
+gleichen Gr\"{o}{\ss}e sind.) Hier sind einige Beispiele:
+\begin{AsmCodeListing}[frame=none, numbers=left, firstnumber=last]
+      movzx  eax, ax          ; erweitert ax zu eax
+      movzx  eax, al          ; erweitert al zu eax
+      movzx  ax, al           ; erweitert al zu ax
+      movzx  ebx, ax          ; erweitert ax zu ebx
+\end{AsmCodeListing}
+
+F\"{u}r vorzeichenbehaftete Zahlen gibt es keinen einfachen Weg, um den
+{\code MOV} Befehl in jedem Fall zu benutzen. Die 8086 lieferte
+mehrere Befehle, um vorzeichenbehaftete Zahlen zu erweitern. Der
+{\code CBW} \index{Maschinenbefehl!CBW} (Convert Byte to Word)
+Befehl f\"{u}hrt die Vorzeichenerweiterung des AL Registers nach AX
+durch. Die Operanden sind implizit. Der {\code CWD}
+\index{Maschinenbefehl!CWD} (Convert Word to Double word) Befehl
+erweitert das Vorzeichen in AX nach DX:AX\@. Die Notation DX:AX
+bedeutet, die DX und AX Register als ein 32~bit Register
+aufzufassen, mit den oberen 16 Bits in DX und den unteren Bits in
+AX\@. (Erinnern wir uns daran, dass die 8086 kein 32~bit Register
+hat!) Die 80386 f\"{u}gte mehrere neue Befehle hinzu. Der {\code CWDE}
+\index{Maschinenbefehl!CWDE} (Convert Word to Double word Extended)
+Befehl erweitert das Vorzeichen von AX nach EAX\@. Der {\code CDQ}
+\index{Maschinenbefehl!CDQ} (Convert Double word to Quad word)
+Befehl erweitert das Vorzeichen von EAX nach
+EDX:EAX\index{Register!EDX:EAX} (64~Bit!). Schlie{\ss}lich arbeitet der
+{\code MOVSX} \index{Maschinenbefehl!MOVSX} Befehl wie {\code
+MOVZX}, au{\ss}er dass er die Regeln f\"{u}r vorzeichenbehaftete Zahlen
+benutzt.
+
+\subsubsection{Anwendung in der C Programmierung}
+
+Die Erweiterung \MarginNote{ANSI C definiert nicht, ob der Typ
+{\code char} mit oder ohne Vorzeichen ist, es liegt an jedem
+individuellen Compiler, das zu entscheiden. Deshalb wird der Typ in
+Abbildung~\ref{fig:charExt} explizit definiert.} vorzeichenloser und
+vorzeichenbehafteter Integer tritt auch in C auf. Variable in C
+k\"{o}nnen entweder als vorzeichenbehaftet (signed) oder vorzeichenlos
+(unsigned) deklariert werden ({\code int} ist mit Vorzeichen).
+Betrachten wir den Code in Abbildung~\ref{fig:charExt}. In
+Zeile~\ref{line:CharExt1} wird die Variable {\code a} unter
+Verwendung der Regeln f\"{u}r vorzeichenlose Werte erweitert (unter
+Benutzung von {\code MOVZX}), aber in Zeile~\ref{line:CharExt2}
+werden die vorzeichenbehafteten Regeln f\"{u}r {\code b} benutzt (unter
+Benutzung von {\code MOVSX}).
+
+\begin{figure}[ht]
+\begin{lstlisting}[frame=tlrb, numbers=left, escapeinside={@}{@}]{}
+ unsigned char uchar = 0xFF;
+ signed char   schar = 0xFF;
+ int a = (int) uchar;     /* a = 255 (0x000000FF) */    @\label{line:CharExt1}@
+ int b = (int) schar;     /* b = -1  (0xFFFFFFFF) */    @\label{line:CharExt2}@
+\end{lstlisting}
+\caption{Ausweitung von {\code char} Werten} \label{fig:charExt}
+\end{figure}
+
+Es gibt einen verbreiteten Programmierfehler in C, der direkt mit
+diesem Thema in Verbindung steht. Betrachten wir den Code in
+Abbildung~\ref{fig:IObug}. Der Prototyp von {\code fgetc()} ist:
+\begin{CodeQuote}
+ int fgetc( FILE * );
+\end{CodeQuote}
+Man k\"{o}nnte sich fragen, warum die Funktion einen {\code int}
+zur\"{u}ckgibt, wenn sie doch Zeichen liest? Der Grund liegt darin, dass
+sie normalerweise einen {\code char} (unter Verwendung der
+Null-Erweiterung zu einem {\code int} erweitert) zur\"{u}ckgibt. Jedoch
+gibt es einen Wert, den sie zur\"{u}ckgeben kann, der kein Zeichen ist,
+n\"{a}mlich {\code EOF}\@. Das ist ein Makro, das gew\"{o}hnlich als $-1$
+definiert ist. Folglich gibt {\code fgetc()} entweder ein zu einem
+{\code int} erweiterten {\code char} Wert (das in hex {\code
+000000{\em xx}} w\"{a}re) oder {\code EOF} (das in hex wie {\code
+FFFFFFFF} aussieht) zur\"{u}ck.
+
+\begin{figure}[ht]
+\begin{lstlisting}[frame=tlrb, numbers=left, escapeinside={@}{@}]{}
+ char ch;
+ while( (ch = fgetc(fp)) != EOF ) {             @\label{line:IObug}@
+   /* mache etwas mit ch */
+ }
+\end{lstlisting}
+\caption{I/O Fehler}
+\label{fig:IObug}
+\end{figure}
+
+Das grundlegende Problem mit dem Programm in
+Abbildung~\ref{fig:IObug} ist, dass {\code fgetc()} einen {\code
+int} zur\"{u}ckgibt, der Wert aber in einem {\code char} gespeichert
+wird. C wird die h\"{o}herwertigen Bits abschneiden, um den {\code int}
+Wert in einen {\code char} zu pressen. Das einzige Problem ist, dass
+die Zahlen (in hex) {\code 000000FF} und {\code FFFFFFFF} beide zum
+Byte {\code FF} verkleinert werden. Deshalb kann die while-Schleife
+nicht zwischen dem von der Datei gelesenen Byte {\code FF} und dem
+Dateiende unterscheiden.
+
+Was der Code in diesem Fall genau tut, h\"{a}ngt davon ab, ob {\code
+char} mit oder ohne Vorzeichen ist. Warum? Weil in
+Zeile~\ref{line:IObug} {\code ch} mit {\code EOF} verglichen wird.
+Da {\code EOF} ein {\code int} Wert ist,\footnote{Es ist ein
+allgemeines Missverst\"{a}ndnis, dass Dateien ein EOF Zeichen an ihrem
+Ende h\"{a}tten. Dies ist \emph{nicht} der Fall!} wird {\code ch} zu
+einem {\code int} erweitert, sodass die beiden verglichenen Werte
+von der gleichen Gr\"{o}{\ss}e sind.\footnote{Der Grund f\"{u}r diese Forderung
+wird sp\"{a}ter gezeigt werden.} Wie Abbildung~\ref{fig:charExt} zeigte,
+ist es sehr wichtig, ob die Variable mit oder ohne Vorzeichen ist.
+
+Ist {\code char} ohne Vorzeichen, wird {\code FF} zu {\code
+000000FF} erweitert. Dies wird mit {\code EOF} ({\code FFFFFFFF})
+verglichen und als nicht gleich gefunden. Deshalb wird die Schleife
+niemals beendet!
+
+Ist {\code char} mit Vorzeichen, wird {\code FF} zu {\code FFFFFFFF}
+erweitert. Der Vergleich wird wahr und die Schleife endet. Da das
+Byte {\code FF} jedoch von der Datei gelesen werden kann, k\"{o}nnte die
+Schleife vorzeitig beendet werden.
+
+Die L\"{o}sung dieses Problems ist, die Variable {\code ch} als einen
+{\code int}, nicht als {\code char} zu definieren. Wird dies getan,
+wird in Zeile~\ref{line:IObug} weder abgeschnitten noch erweitert.
+Innerhalb der Schleife ist es sicher, den Wert abzuschneiden, da
+{\code ch} dort wirklich ein einfaches Byte sein \emph{muss}.
+
+\index{Integer!Vorzeichenerweiterung|)}
+\index{Integer!Darstellung|)}
+
+\subsection{Arithmetik im Zweierkomplement \index{Zweierkomplement!Arithmetik|(}}
+
+Wie fr\"{u}her gezeigt wurde, f\"{u}hrt der {\code add} Befehl Additionen
+und der {\code sub} Befehl f\"{u}hrt Subtraktionen durch. Zwei der Bits
+im FLAGS Register, die diese Befehle setzen, sind das
+\emph{Overflow} und das \emph{Carry Flag}. Das Overflowflag wird
+gesetzt, wenn das wahre Ergebnis der Operation zu gro{\ss} ist, um bei
+vorzeichenbehafteter Arithmetik in das Ziel zu passen. Das Carryflag
+wird gesetzt, wenn es einen \"{U}bertrag im MSB einer Addition oder
+einer Subtraktion gibt. Deshalb kann es verwendet werden, um einen
+\"{U}bertrag bei vorzeichenloser Arithmetik zu entdecken. Der Gebrauch
+des Carryflags f\"{u}r vorzeichenbehaftete Arithmetik wird in K\"{u}rze
+gezeigt werden. Einer der gro{\ss}en Vorteile des 2er~Komplements ist,
+dass die Regeln f\"{u}r Addition und Subtraktion genau die gleichen sind
+wie f\"{u}r vorzeichenlose Integer. Deshalb k\"{o}nnen {\code add} und
+{\code sub} f\"{u}r Integer mit und ohne Vorzeichen verwendet werden.
+\[
+\begin{array}{rrcrr}
+  & 002\mathrm{C} & & & 44~\\
+ +& \mathrm{FFFF} & &+&(-1)\\
+ \cline{1-2} \cline{4-5}
+  & 002\mathrm{B} & & & 43~\\
+\end{array}
+\]
+Dabei wird ein \"{U}bertrag gebildet, der aber nicht Bestandteil der
+Antwort ist.
+
+\index{Integer!Multiplikation|(} \index{Maschinenbefehl!MUL|(}
+\index{Maschinenbefehl!IMUL|(} Es gibt zwei verschiedene
+Multiplizier- und Divisionsbefehle. Um zu multiplizieren, verwendet
+man entweder den {\code MUL} oder den {\code IMUL} Befehl. Der
+{\code MUL} Befehl wird benutzt, um vorzeichenlose Integer zu
+multiplizieren und {\code IMUL} wird benutzt, um vorzeichenbehaftete
+Integer zu multiplizieren. Warum werden zwei verschiedene Befehle
+ben\"{o}tigt? Die Regeln f\"{u}r die Multiplikation sind f\"{u}r vorzeichenlose
+und vorzeichenbehaftete Zahlen im 2er~Komplement unterschiedlich.
+Wie kommt das? Betrachten wir die Multiplikation des Bytes FF mit
+sich selbst zu einem Ergebnis mit Wortgr\"{o}{\ss}e. Unter Benutzung von
+vorzeichenloser Multiplikation ist dies 255 mal 255 oder 65\,025
+(oder FE01 in hex). Mit vorzeichenbehafteter Multiplikation ist dies
+$-1$ mal $-1$ oder 1 (0001 in hex).
+
+Es gibt verschiedene Formen der Multiplikationsbefehle. Die \"{a}lteste
+Form sieht so aus:
+\begin{AsmCodeListing}[numbers=none, frame=none]
+      mul   source
+\end{AsmCodeListing}
+\emph{source} ist entweder ein Register oder eine Speicherreferenz.
+Es kann kein unmittelbarer Wert sein. Welche Multiplikation genau
+ausgef\"{u}hrt wird, h\"{a}ngt von der Gr\"{o}{\ss}e des Quelloperanden ab. Ist der
+Operand von Bytegr\"{o}{\ss}e, wird er mit dem Byte im AL Register
+multipliziert und das Ergebnis wird in den 16 Bits von AX
+gespeichert. Hat die Quelle 16 Bits, wird sie mit dem Wort in AX
+multipliziert und das 32 bit Ergebnis wird in DX:AX gespeichert. Hat
+die Quelle 32 Bits, wird sie mit EAX multipliziert und das 64 bit
+Ergebnis wird nach EDX:EAX\index{Register!EDX:EAX} gespeichert.
+\index{Maschinenbefehl!MUL|)}
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{|c|c|c|l|}
+\hline
+ { \bf dest} & { \bf source1 } & {\bf source2} & \multicolumn{1}{c|}{\bf Aktion} \\
+\hline
+             & reg/mem8        &               & AX = AL $\star\,$ source1 \\
+             & reg/mem16       &               & DX:AX = AX $\star\,$ source1 \\
+             & reg/mem32       &               & EDX:EAX = EAX $\star\,$ source1 \\
+ reg16       & reg/mem16       &               & dest $\star$= source1 \\
+ reg32       & reg/mem32       &               & dest $\star$= source1 \\
+ reg16       & immed8          &               & dest $\star$= immed8 \\
+ reg32       & immed8          &               & dest $\star$= immed8 \\
+ reg16       & immed16         &               & dest $\star$= immed16 \\
+ reg32       & immed32         &               & dest $\star$= immed32 \\
+ reg16       & reg/mem16       & immed8        & dest = source1 $\star\,$ source2 \\
+ reg32       & reg/mem32       & immed8        & dest = source1 $\star\,$ source2 \\
+ reg16       & reg/mem16       & immed16       & dest = source1 $\star\,$ source2 \\
+ reg32       & reg/mem32       & immed32       & dest = source1 $\star\,$ source2 \\
+\hline
+\end{tabular}
+\caption{{\code imul} Befehle \label{tab:imul}}
+\end{table}
+
+Der {\code IMUL} Befehl hat die gleichen Formate wie {\code MUL},
+f\"{u}gt aber einige weitere Befehlsformen hinzu. Es gibt Formate mit
+zwei und drei Operanden:
+\begin{AsmCodeListing}[numbers=none, frame=none]
+      imul   dest, source1
+      imul   dest, source1, source2
+\end{AsmCodeListing}
+\noindent Tabelle~\ref{tab:imul} zeigt die m\"{o}glichen Kombinationen.
+\index{Maschinenbefehl!IMUL|)} \index{Integer!Multiplikation|)}
+
+\index{Integer!Division|(} \index{Maschinenbefehl!DIV} Die zwei
+Divisionsbefehle sind {\code DIV} und {\code IDIV}\@. Sie f\"{u}hren
+Integerdivisionen ohne bzw.\ mit Vorzeichen aus. Das allgemeine
+Format ist:  \enlargethispage*{3\baselineskip} % 2 is not enough; \samepage{} wont't work
+\begin{AsmCodeListing}[numbers=none, frame=none]
+      div   source
+\end{AsmCodeListing}
+Wenn die Quelle 8~bit gro{\ss} ist, dann wird AX durch den Operanden
+geteilt. Der Quotient wird in AL gespeichert und der Rest in AH\@.
+Hat die Quelle 16~Bits, dann wird DX:AX durch den Operanden
+dividiert. Der Quotient wird in AX gespeichert, der Rest in DX\@.
+Hat die Quelle 32~Bits, wird EDX:EAX \index{Register!EDX:EAX} durch
+den Operanden geteilt, der Quotient in EAX gespeichert und der Rest
+in EDX\@. Der {\code IDIV} \index{Maschinenbefehl!IDIV} Befehl
+arbeitet auf die gleiche Weise. Es gibt keine speziellen {\code
+IDIV} Befehlsformen wie bei {\code IMUL}\@. Wenn der Quotient zu
+gro{\ss} ist um in sein Register zu passen oder der Teiler Null ist,
+wird das Programm unterbrochen und beendet. Ein sehr verbreiteter
+Fehler ist es, vor der Division zu vergessen DX oder EDX zu
+initialisieren. \index{Integer!Division|)}
+
+Der {\code NEG} \index{Maschinenbefehl!NEG} Befehl negiert seinen
+einzigen Operanden, indem er dessen Zweierkomplement berechnet. Sein
+Operand kann jedes 8-, 16- oder 32-bit Register oder Speicherstelle
+sein.
+
+\subsection{Beispielprogramm}
+\index{math.asm|(}
+\begin{AsmCodeListing}[label=math.asm, numbers=left, commandchars=\\\{\}]
+ %include "asm_io.inc"
+ segment .data                     ; Ausgabe-Strings
+ prompt          db    "Enter a number: ", 0
+ square_msg      db    "Square of input is ", 0
+ cube_msg        db    "Cube of input is ", 0
+ cube25_msg      db    "Cube of input times 25 is ", 0
+ quot_msg        db    "Quotient of cube/100 is ", 0
+ rem_msg         db    "Remainder of cube/100 is ", 0
+ neg_msg         db    "The negation of the remainder is ", 0
+
+ segment .bss
+ input   resd    1
+
+ segment .text
+         global  _asm_main
+ _asm_main:
+         enter   0, 0              ; bereite Routine vor
+         pusha
+
+         mov     eax, prompt
+         call    print_string
+
+         call    read_int
+         mov     [input], eax
+
+         imul    eax               ; edx:eax = eax * eax
+         mov     ebx, eax          ; sichere Antwort in ebx
+         mov     eax, square_msg
+         call    print_string
+         mov     eax, ebx
+         call    print_int
+         call    print_nl
+
+         mov     ebx, eax
+         imul    ebx, [input]      ; ebx *= [input]
+         mov     eax, cube_msg
+         call    print_string
+         mov     eax, ebx
+         call    print_int
+         call    print_nl
+
+         imul    ecx, ebx, 25      ; ecx = ebx*25
+         mov     eax, cube25_msg
+         call    print_string
+         mov     eax, ecx
+         call    print_int
+         call    print_nl
+
+         mov     eax, ebx
+         cdq                       ; initialisiere edx durch Vorzeichenerweiterung
+         mov     ecx, 100          ; kann nicht durch unmittelbaren Wert teilen
+         idiv    ecx               ; edx:eax / ecx
+         mov     ecx, eax          ; sichere Quotient in ecx
+         mov     eax, quot_msg
+         call    print_string
+         mov     eax, ecx
+         call    print_int
+         call    print_nl
+         mov     eax, rem_msg
+         call    print_string
+         mov     eax, edx
+         call    print_int
+         call    print_nl
+
+         neg     edx               ; negiere den Teilerrest
+         mov     eax, neg_msg
+         call    print_string
+         mov     eax, edx
+         call    print_int
+         call    print_nl
+
+         popa
+         mov     eax, 0            ; kehre zu C zur\"{u}ck
+         leave
+         ret
+\end{AsmCodeListing}
+\index{math.asm|)}
+
+\subsection{Arithmetik mit erh\"{o}hter Genauigkeit \label{sec:ExtPrecArith}
+\index{Integer!erh\"{o}hte Genauigkeit|(}}
+
+Die Assemblersprache besitzt ebenso Befehle, die einem erlauben,
+Addition und Subtraktion auch mit Zahlen durchzuf\"{u}hren, die gr\"{o}{\ss}er
+als Doppelw\"{o}rter sind. Diese Befehle benutzen das Carryflag. Wie
+oben erw\"{a}hnt, modifizieren {\code ADD} \index{Maschinenbefehl!ADD}
+und {\code SUB} \index{Maschinenbefehl!SUB} Befehle das Carryflag,
+wenn ein \"{U}bertrag generiert wird. Diese im Carryflag gespeicherte
+Information kann benutzt werden, um gro{\ss}e Zahlen zu addieren oder
+subtrahieren, indem die Operation in einzelne Doppelwort- (oder
+kleinere) St\"{u}cke aufgeteilt wird.
+
+Die {\code ADC} \index{Maschinenbefehl!ADC} und {\code SBB}
+\index{Maschinenbefehl!SBB} Befehle benutzen diese Information im
+Carryflag. Der {\code ADC} Befehl f\"{u}hrt die folgende Operation
+durch:
+\begin{center}
+{\code \emph{operand1} = \emph{operand1} + carry flag + \emph{operand2} }
+\end{center}
+Der {\code SBB} Befehl f\"{u}hrt aus:
+\begin{center}
+{\code \emph{operand1} = \emph{operand1} - carry flag - \emph{operand2} }
+\end{center}
+Wie werden diese benutzt? Betrachten wir die Summe von 64~bit
+Integern in EDX:EAX \index{Register!EDX:EAX} und EBC:ECX\@. Der
+folgende Code w\"{u}rde die Summe in EDX:EAX speichern:
+\begin{AsmCodeListing}[frame=none, numbers=left, commandchars=\\\{\}]
+      add    eax, ecx         ; addiere untere 32 Bits
+      adc    edx, ebx         ; addiere obere 32 Bits und \"{U}bertrag
+\end{AsmCodeListing}
+Die Subtraktion ist sehr \"{a}hnlich. Folgender Code zieht EBX:ECX von
+EDX:EAX ab:
+\begin{AsmCodeListing}[frame=none, numbers=left, firstnumber=last, commandchars=\\\{\}]
+      sub    eax, ecx         ; subtrahiere untere 32 Bits
+      sbb    edx, ebx         ; subtrahiere obere 32 Bits und \"{U}bertrag
+\end{AsmCodeListing}
+
+F\"{u}r \emph{wirklich} gro{\ss}e Zahlen k\"{o}nnte eine Schleife benutzt werden
+(siehe Abschnitt~\ref{sec:control}). In einer Summationsschleife
+w\"{u}rde es bequemer sein, den {\code ADC} Befehl bei jeder Iteration
+zu verwenden (anstatt f\"{u}r alle au{\ss}er der ersten Iteration). Das kann
+getan werden, wenn der {\code CLC} \index{Maschinenbefehl!CLC}
+(CLear Carry) Befehl direkt vor der Schleife verwendet wird, um das
+Carryflag mit 0 zu initialisieren. Wenn das Carryflag 0 ist, gibt es
+keine Unterschiede zwischen den {\code ADD} und {\code ADC}
+Befehlen. Die gleiche Idee kann auch f\"{u}r die Subtraktion verwendet
+werden. \index{Integer!erh\"{o}hte Genauigkeit|)}
+\index{Zweierkomplement!Arithmetik|)}
+
+\section{Kontrollstrukturen}
+\label{sec:control}
+
+Hochsprachen verf\"{u}gen \"{u}ber Kontrollstrukturen auf einem hohen Niveau
+(z.\,B.\ die \emph{if} und \emph{while} Statements), die den
+Ausf\"{u}hrungsfluss kontrollieren. Assembler bietet keine solchen
+komplexen Kontrollstrukturen. Er benutzt stattdessen das ber\"{u}chtigte
+\emph{goto} und unangemessen benutzt, kann es zu Spaghetticode
+f\"{u}hren! Es \emph{ist} jedoch m\"{o}glich, strukturierte
+Assemblerprogramme zu schreiben. Die grunds\"{a}tzliche Vorgehensweise
+ist, die Programme m\"{o}glichst unter Verwendung der vertrauten
+Kontrollstrukturen der Hochsprachen zu entwerfen und den Entwurf in
+die entsprechende Assemblersprache zu \"{u}bersetzen (etwa so, wie es
+ein Compiler machen w\"{u}rde).
+
+\subsection{Vergleiche \index{Integer!Vergleiche|(} \index{Maschinenbefehl!CMP|(}}
+%TODO: Make a table of all the FLAG bits
+
+\index{Register!FLAGS|(} Kontrollstrukturen entscheiden auf der
+Grundlage des Vergleichs von Daten, was zu tun ist. In Assembler
+wird das Ergebnis eines Vergleichs im FLAGS Register (Tabelle
+\ref{tab:FLAGS}) gespeichert, um sp\"{a}ter benutzt zu werden. Die 80x86
+stellt den {\code CMP} Befehl zur Verf\"{u}gung, um Vergleiche
+durchzuf\"{u}hren. Das FLAGS Register wird auf der Grundlage der
+Differenz der beiden Operanden des {\code CMP} Befehls gesetzt. Die
+Operanden werden subtrahiert und die FLAGS werden auf Grund des
+Ergebnisses gesetzt, allerdings wird das Ergebnis \emph{nirgends}
+gespeichert. Wenn man das Ergebnis ben\"{o}tigt, benutzt man den {\code
+SUB} anstatt des {\code CMP} Befehls.
+
+% <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+\begin{table}[ht]
+\center
+ \begin {tabular}{r|c|c|c|c|c|c|c|c|}
+ \cline{2-9}
+ Bit  &   7  &   6  &    5    &  4  &    3    &    2   &    1    &   0  \\
+ \cline{2-9}
+ Flag &  SF  &  ZF  & \,~0~\, &  AF & \,~0~\, &   PF   & \,~1~\, &  CF  \\
+ \cline{2-9}
+      & sign & zero &         & aux &         & parity &         & carry\\
+ \cline{2-9}
+ \end{tabular}
+\caption{Die Flagbits im unteren Byte des (E)FLAGS Registers \label{tab:FLAGS}}       % ### german ###
+%\caption{The flag bits in the lower byte of the (E)FLAGS register \label{tab:FLAGS}} % ### english ###
+\end{table}
+% <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+\index{Integer!ohne Vorzeichen|(} F\"{u}r vorzeichenlose Integer sind
+zwei Flags (Bits im FLAGS Register) wichtig: das Zero- (ZF)
+\index{Register!FLAGS!ZF} und das Carry-Flag (CF).
+\index{Register!FLAGS!CF} Das Zero\-flag wird gesetzt (1), wenn die
+resultierende Differenz Null sein w\"{u}rde. Das Carryflag wird als
+Borrowflag bei der Subtraktion benutzt. Betrachten wir einen
+Vergleich wie:
+\begin{AsmCodeListing}[frame=none, numbers=none]
+      cmp    vleft, vright
+\end{AsmCodeListing}
+Die Differenz {\code vleft~-~vright} wird berechnet und die Flags
+entsprechend gesetzt. Ist die Differenz von {\code CMP} Null, {\code
+vleft~=~vright}, dann wird ZF gesetzt (d.\,h.~1) und CF gel\"{o}scht
+(d.\,h.~0). Ist {\code vleft~>~vright}, dann wird ZF gel\"{o}scht und CF
+wird gel\"{o}scht (kein Borrow). Ist {\code vleft~<~vright}, dann wird
+ZF gel\"{o}scht und CF wird gesetzt (Borrow). \index{Integer!ohne
+Vorzeichen|)}
+
+\index{Integer!mit Vorzeichen|(} F\"{u}r Integer mit Vorzeichen
+\MarginNote{Warum ist SF~=~OF, wenn {\code vleft~>~vright}? Wenn es
+keinen \"{U}berlauf gibt, dann hat die Differenz den richtigen Wert und
+muss nicht-negativ sein. Deshalb ist SF~=~OF~=~0. Jedoch, wenn es
+einen \"{U}berlauf gibt, wird die Differenz nicht den richtigen Wert
+haben (und wird tats\"{a}chlich negativ sein). Folglich ist
+SF~=~OF~=~1.} gibt es drei Flags, die wichtig sind: das Zero\-flag
+\index{Register!FLAGS!ZF} (ZF), das Overflowflag
+\index{Register!FLAGS!OF} (OF) und das Signflag
+\index{Register!FLAGS!SF} (SF). Das Over\-flow\-flag wird gesetzt,
+wenn das Ergebnis einer Operation \"{u}berl\"{a}uft (oder unterl\"{a}uft). Das
+Sign\-flag wird gesetzt, wenn das Ergebnis einer Operation negativ
+ist. Ist {\code vleft~= vright}, wird das ZF gesetzt (genauso wie
+f\"{u}r vorzeichenlose Integer). Ist {\code vleft~> vright}, wird ZF
+gel\"{o}scht und SF~=~OF\@. Ist {\code vleft~< vright}, wird ZF gel\"{o}scht
+und SF~$\neq$~OF\@. \index{Integer!mit Vorzeichen|)}
+
+Vergessen Sie nicht, dass auch andere Befehle das FLAGS Register
+\"{a}ndern k\"{o}nnen, nicht nur {\code CMP}\@.
+\index{Maschinenbefehl!CMP|)} \index{Integer!Vergleiche|)}
+\index{Register!FLAGS|)} \index{Integer|)}
+
+\subsection{Sprungbefehle}
+
+Sprungbefehle k\"{o}nnen die Ausf\"{u}hrung zu beliebigen Punkten eines
+Programms f\"{u}hren. In anderen Worten, sie wirken wie ein \emph{Goto}.
+Es gibt zwei Arten von Sprungbefehlen: unbedingte und bedingte. Ein
+unbedingter Sprung ist genau wie ein Goto, die Verzweigung wird
+immer durchgef\"{u}hrt. Ein bedingter Sprung kann die Verzweigung
+durchf\"{u}hren oder nicht, abh\"{a}ngig von den Flags im FLAGS Register.
+F\"{u}hrt ein bedingter Sprung die Verzweigung nicht durch, geht die
+Kontrolle zum n\"{a}chsten Befehl \"{u}ber.
+
+\index{Maschinenbefehl!JMP|(} Der {\code JMP} (kurz f\"{u}r \emph{jump})
+Befehl f\"{u}hrt unbedingte Spr\"{u}nge \index{Sprung!unbedingter|(} aus.
+Sein einziges Argument ist gew\"{o}hnlich ein \emph{Codelabel} des
+Befehls, zu dem gesprungen werden soll. Der Assembler oder Linker
+wird das Label durch die korrekte Adresse des Befehls ersetzen. Dies
+ist eine weitere der m\"{u}hseligen Operationen, die der Assembler
+ausf\"{u}hrt, um das Leben des Programmierers einfacher zu machen. Es
+ist wichtig, sich zu vergegenw\"{a}rtigen, dass der Befehl unmittelbar
+nach dem {\code JMP} Befehle niemals ausgef\"{u}hrt wird, es sei denn,
+ein anderer Befehl verzweigt zu ihm!
+
+Es gibt verschiedene Varianten des Sprungbefehls:
+\begin{description}
+\parskip=-0.25em %reduce the spacing <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+\item[SHORT]
+Dieser Sprung ist in der Reichweite sehr begrenzt. Er kann nur um
+128 Bytes im Speicher vor oder zur\"{u}ck springen. Der Vorteil dieses
+Typs ist, dass er weniger Speicher als die anderen ben\"{o}tigt. Er
+verwendet ein einzelnes vorzeichenbehaftetes Byte um das
+\emph{Displacement} des Sprungs zu speichern. Der Wert des
+Displacements entscheidet, um wie viele Bytes vor oder zur\"{u}ck
+gesprungen werden soll. (Das Displacement wird zu EIP addiert.) Um
+einen kurzen Sprung zu spezifizieren, benutzt man das Schl\"{u}sselwort
+{\code SHORT} unmittelbar vor dem Label im {\code JMP} Befehl.
+
+\item[NEAR]
+Dieser Sprung ist der vorgegebene Typ sowohl f\"{u}r unbedingte als auch
+f\"{u}r bedingte Spr\"{u}nge; er kann verwendet werden, um zu jeder Stelle
+in einem Segment zu springen. Tats\"{a}chlich unterst\"{u}tzt die 80386 zwei
+Typen von nahen Spr\"{u}ngen. Einer verwendet zwei Bytes f\"{u}r das
+Displacement. Dies erlaubt einem, sich ungef\"{a}hr 32\,000 Bytes vor
+oder zur\"{u}ck zu bewegen. Der andere Typ benutzt vier Bytes f\"{u}r das
+Displacement, das einem nat\"{u}rlich erm\"{o}glicht, sich zu jeder Stelle
+im Codesegment zu bewegen. Der Typ mit vier Bytes ist der
+vorgegebene im protected Mode der 386. Der Typ mit zwei Bytes kann
+spezifiziert werden, indem das Schl\"{u}sselwort {\code WORD} vor das
+Label im {\code JMP} Befehl gestellt wird.
+
+\item[FAR]
+Dieser Sprung erlaubt der Kontrolle, sich in ein anderes Codesegment
+zu bewegen. Dies zu tun ist im protected Mode der 386 eine sehr
+seltene Sache. \index{Sprung!unbedingter|)}
+\end{description}
+
+G\"{u}ltige Codelabels folgen denselben Regeln wie Datenlabels.
+Codelabels werden definiert, indem sie im Codesegment vor die
+Anweisung, die sie markieren, gesetzt werden. An das Label wird am
+Ort seiner Definition ein Doppelpunkt angeh\"{a}ngt. Der Doppelpunkt ist
+\emph{nicht} Bestandteil des Namens. \index{Maschinenbefehl!JMP|)}
+\index{Sprung!bedingter|(}
+\begin{table}[ht]
+\center
+\begin{tabular}{|ll|}
+\hline
+ JZ  & verzweigt nur, wenn ZF gesetzt ist \\
+ JNZ & verzweigt nur, wenn ZF nicht gesetzt ist \\
+ JO  & verzweigt nur, wenn OF gesetzt ist \\
+ JNO & verzweigt nur, wenn OF nicht gesetzt ist \\
+ JS  & verzweigt nur, wenn SF gesetzt ist \\
+ JNS & verzweigt nur, wenn SF nicht gesetzt ist \\
+ JC  & verzweigt nur, wenn CF gesetzt ist \\
+ JNC & verzweigt nur, wenn CF nicht gesetzt ist \\
+ JP  & verzweigt nur, wenn PF gesetzt ist \\
+ JNP & verzweigt nur, wenn PF nicht gesetzt ist \\
+\hline
+\end{tabular}
+\caption{Einfache bedingte Verzweigungen \label{tab:SimpBran}
+%\index{Maschinenbefehl!JZ} \index{Maschinenbefehl!JNZ}
+%\index{Maschinenbefehl!JO} \index{Maschinenbefehl!JNO}
+%\index{Maschinenbefehl!JS} \index{Maschinenbefehl!JNS}
+%\index{Maschinenbefehl!JC} \index{Maschinenbefehl!JNC}
+%\index{Maschinenbefehl!JP} \index{Maschinenbefehl!JNP}
+}
+\end{table}
+\index{Maschinenbefehl!J\emph{cc}|(}
+
+Es gibt viele verschiedene bedingte Sprunganweisungen. Auch sie
+ben\"{o}tigen ein Codelabel als ihren einzigen Operanden. Die
+einfachsten betrachten nur ein einziges Flag im FLAGS Register, um
+zu entscheiden, ob sie verzweigen oder nicht. Siehe
+Tabelle~\ref{tab:SimpBran} f\"{u}r eine Liste dieser Instruktionen. (PF
+ist das \emph{ Parityflag}, \index{Register!FLAGS!PF} das anzeigt,
+ob die Anzahl der gesetzten Bits in den niederwertigen 8 bit des
+Ergebnisses gerade oder ungerade ist.)
+
+{\samepage Der folgende Pseudocode:
+\begin{Verbatim}[numbers=none]
+ if ( EAX == 0 )
+   EBX = 1;
+ else
+   EBX = 2;
+\end{Verbatim}
+k\"{o}nnte in Assembler geschrieben werden als:}
+\begin{AsmCodeListing}[frame=none, numbers=left, commandchars=\\\{\}]
+      cmp    eax, 0           ; setze Flags (ZF gesetzt, wenn eax - 0 = 0)
+      jz     thenblock        ; wenn ZF gesetzt ist verzweige zu thenblock
+      mov    ebx, 2           ; ELSE Teil von IF
+      jmp    next             ; \"{u}berspringe THEN Teil von IF
+ thenblock:
+      mov    ebx, 1           ; THEN Teil von IF
+ next:
+\end{AsmCodeListing}
+
+Andere Vergleiche sind unter Verwendung der bedingten Verzweigungen
+in Tabelle~\ref{tab:SimpBran} nicht so einfach. Um das zu zeigen,
+betrachten wie den folgenden Pseudocode:
+\begin{Verbatim}[numbers=none]
+ if ( EAX >= 5 )
+   EBX = 1;
+ else
+   EBX = 2;
+\end{Verbatim}
+Wenn EAX gr\"{o}{\ss}er als oder gleich f\"{u}nf ist, dann kann das ZF gesetzt
+sein oder nicht und SF ist gleich OF\@. Hier ist Assemblercode, der
+auf dieses Bedingungen testet (unter der Annahme, dass EAX
+vorzeichenbehaftet ist):
+\begin{AsmCodeListing}[frame=none, numbers=left]
+      cmp    eax, 5
+      js     signon           ; goto signon wenn SF = 1
+      jo     elseblock        ; goto elseblock wenn SF = 0 und OF = 1
+      jmp    thenblock        ; goto thenblock wenn SF = 0 und OF = 0
+ signon:
+      jo     thenblock        ; goto thenblock wenn SF = 1 und OF = 1
+ elseblock:
+      mov    ebx, 2
+      jmp    next
+ thenblock:
+      mov    ebx, 1
+ next:
+\end{AsmCodeListing}
+
+\begin{table}
+\center
+\begin{tabular}{|ll|ll|}
+\hline
+\multicolumn{2}{|c|}{\textbf{mit Vorzeichen}} & \multicolumn{2}{c|}{\textbf{ohne Vorzeichen}} \\
+\hline
+ JE       & Sprung bei {\code vleft $=$ vright}    & JE       & Sprung bei {\code vleft $=$ vright} \\
+ JNE      & Sprung bei {\code vleft $\neq$ vright} & JNE      & Sprung bei {\code vleft $\neq$ vright} \\
+ JL, JNGE & Sprung bei {\code vleft $<$ vright}    & JB, JNAE & Sprung bei {\code vleft $<$ vright} \\
+ JLE, JNG & Sprung bei {\code vleft $\leq$ vright} & JBE, JNA & Sprung bei {\code vleft $\leq$ vright} \\
+ JG, JNLE & Sprung bei {\code vleft $>$ vright}    & JA, JNBE & Sprung bei {\code vleft $>$ vright} \\
+ JGE, JNL & Sprung bei {\code vleft $\geq$ vright} & JAE, JNB & Sprung bei {\code vleft $\geq$ vright} \\
+\hline
+\end{tabular}
+\caption{Befehle f\"{u}r Vergleiche mit und ohne Vorzeichen
+\label{tab:CompBran}
+%\index{Maschinenbefehl!JE} \index{Maschinenbefehl!JNE}  % <<< we're inside "Jcc"
+%\index{Maschinenbefehl!JL} \index{Maschinenbefehl!JNGE}
+%\index{Maschinenbefehl!JLE} \index{Maschinenbefehl!JNG}
+%\index{Maschinenbefehl!JG} \index{Maschinenbefehl!JNLE}
+%\index{Maschinenbefehl!JGE} \index{Maschinenbefehl!JNL}
+%\index{Maschinenbefehl!JB} \index{Maschinenbefehl!JNAE}
+%\index{Maschinenbefehl!JBE} \index{Maschinenbefehl!JNA}
+%\index{Maschinenbefehl!JA} \index{Maschinenbefehl!JNBE}
+%\index{Maschinenbefehl!JAE} \index{Maschinenbefehl!JNB}
+}
+\end{table}
+
+Der obige Code ist sehr unhandlich. Gl\"{u}cklicherweise besitzt die
+80x86 zus\"{a}tzliche Sprunganweisungen, die diese Art von Tests
+\emph{viel} einfacher machen. Von jedem gibt es vorzeichenbehaftete
+und vorzeichenlose Versionen. Tabelle~\ref{tab:CompBran} zeigt diese
+Befehle. Die gleich und ungleich Verzweigungen (JE und JNE) sind die
+selben sowohl f\"{u}r Integer mit Vorzeichen als auch ohne Vorzeichen.
+(In Wirklichkeit sind JE und JNE wirklich identisch mit jeweils JZ
+und JNZ.) Jeder der anderen Sprunganweisungen hat zwei Synonyme. Zum
+Beispiel betrachten wir JL (Jump Less than) und JNGE (Jump Not
+Greater than or Equal to). Dies sind die gleichen Instruktionen, da:
+\[ x < y \Longleftrightarrow \mathbf{not}( x \geq y ) \]
+Die vorzeichenlosen Vergleiche verwenden A f\"{u}r \emph{above} und B
+f\"{u}r \emph{below} anstatt L und G\@.
+
+Unter Verwendung dieser neuen Sprunganweisungen kann der obige
+Pseudocode viel leichter in Assembler \"{u}bersetzt werden.
+% <<< here you have to code the ELSE before the THEN part <<<<<<<<<<<<<<<<<<<<<
+\begin{AsmCodeListing}[frame=none, numbers=left, firstnumber=last]
+      cmp    eax, 5
+      jge    thenblock
+      mov    ebx, 2
+      jmp    next
+ thenblock:
+      mov    ebx, 1
+ next:
+\end{AsmCodeListing}
+% <<< do as compilers do <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+%\begin{AsmCodeListing}[frame=none, numbers=left, firstnumber=last]
+%      cmp    eax, 5
+%      jnge   elseblock
+%      mov    ebx, 1
+%      jmp    next
+% elseblock:
+%      mov    ebx, 2
+% next:
+%\end{AsmCodeListing}
+% <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+\index{Sprung!bedingter|)} \index{Maschinenbefehl!J\emph{cc}|)}
+
+\subsection{Der {\code LOOP} Befehl}
+
+Die 80x86 stellt mehrere Befehle zur Verf\"{u}gung, die zur
+Implementierung von \emph{for}-\"{a}hnlichen Schleifen entwickelt
+wurden. Jeder dieser Befehle benutzt ein Code\-la\-bel als seinen
+einzigen Operanden.
+\begin{description}
+\parskip=-0.10em %reduce the spacing <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+\item[LOOP]
+\index{Maschinenbefehl!LOOP} Dekrementiert ECX und verzweigt zum
+Label, wenn ECX $\neq$ 0
+
+\item[LOOPE, LOOPZ]
+\index{Maschinenbefehl!LOOPE/LOOPZ} Dekrementiert ECX (das FLAGS
+Register wird nicht ver\-\"{a}n\-dert) und verzweigt, wenn ECX $\neq$ 0
+und ZF = 1
+
+\item[LOOPNE, LOOPNZ]
+\index{Maschinenbefehl!LOOPNE/LOOPNZ} Dekrementiert ECX (FLAGS
+unver\"{a}ndert), verzweigt, wenn ECX $\neq$ 0 und ZF = 0
+\end{description}
+
+Die letzten beiden Befehle sind f\"{u}r sequenzielle Suchschleifen
+n\"{u}tzlich. Der folgende Pseudocode:
+\begin{lstlisting}[numbers=none]{}
+ sum = 0;
+ for( i = 10; i > 0; i-- )
+   sum += i;
+\end{lstlisting}
+\noindent k\"{o}nnte so in Assemblersprache \"{u}bersetzt werden:
+\begin{AsmCodeListing}[frame=none, numbers=left]
+      mov    eax, 0           ; eax ist sum
+      mov    ecx, 10          ; ecx ist i
+ loop_start:
+      add    eax, ecx
+      loop   loop_start
+\end{AsmCodeListing}
+
+\section[\"{U}bersetzung von Standard-Kontrollstrukturen]{Die \"{U}bersetzung von
+Standard-Kontrollstrukturen}
+
+Dieser Abschnitt betrachtet, wie die Standard-Kontrollstrukturen der
+Hochsprachen in Assembler implementiert werden k\"{o}nnen.
+
+\subsection{If Anweisungen \index{if Anweisung|(}}
+Der folgende Pseudocode:
+\begin{lstlisting}[numbers=none]{}
+ if ( Bedingung )
+   then_block;
+ else
+   else_block;
+\end{lstlisting}
+\noindent k\"{o}nnte implementiert werden als:
+\begin{AsmCodeListing}[frame=none, numbers=left, commandchars=\\\{\}]
+      ; Code um FLAGS zu setzen
+      jxx    else_block       ; w\"{a}hle xx f\"{u}r Sprung wenn Bedingung falsch
+      ; Code f\"{u}r then Block
+      jmp    endif
+ else_block:
+      ; Code f\"{u}r else Block
+ endif:
+\end{AsmCodeListing}
+
+Wenn es kein else gibt, dann kann der Sprung zu {\code else\_block}
+durch einen Sprung zu {\code endif} ersetzt werden.
+\begin{AsmCodeListing}[frame=none, numbers=left, firstnumber=last, commandchars=\\\{\}]
+      ; Code um FLAGS zu setzen
+      jxx    endif            ; w\"{a}hle xx f\"{u}r Sprung wenn Bedingung falsch
+      ; Code f\"{u}r then Block
+ endif:
+\end{AsmCodeListing}
+\index{if Anweisung|)}
+
+\subsection{While Schleifen \index{while Schleife|(}}
+Die \emph{while} Schleife ist eine kopfgesteuerte Schleife:
+\begin{lstlisting}[numbers=none]{}
+ while ( Bedingung ) {
+   Rumpf der Schleife;
+ }
+\end{lstlisting}
+\noindent Das k\"{o}nnte \"{u}bersetzt werden zu:
+\begin{AsmCodeListing}[frame=none, numbers=left, commandchars=\\\{\}]
+ while:
+      ; Code um FLAGS auf Grundlage der Bedingung zu setzen
+      jxx    endwhile         ; w\"{a}hle xx f\"{u}r Sprung wenn falsch
+      ; Schleifen-Rumpf
+      jmp    while
+ endwhile:
+\end{AsmCodeListing}
+\index{while Schleife|)}
+
+\subsection{Do while Schleifen \index{do while Schleife|(}}
+Die \emph{do while} Schleife ist eine fu{\ss}gesteuerte Schleife:
+\begin{lstlisting}[numbers=none]{}
+ do {
+   Rumpf der Schleife;
+ } while ( Bedingung );
+\end{lstlisting}
+\noindent Das k\"{o}nnte \"{u}bersetzt werden zu:
+\begin{AsmCodeListing}[frame=none, numbers=left, commandchars=\\\{\}]
+ do:
+      ; Schleifen-Rumpf
+      ; Code um FLAGS auf Grundlage der Bedingung zu setzen
+      jxx    do               ; w\"{a}hle xx f\"{u}r Sprung wenn wahr
+\end{AsmCodeListing}
+\index{do while Schleife|)}
+
+\section{Beispiel: Primzahlsuche}
+Dieser Abschnitt betrachtet ein Programm, das Primzahlen findet. Um
+das zu tun, gibt es keine Formel. Erinnern wir uns, dass Primzahlen
+nur durch 1 und sich selbst ohne Rest teilbar sind. Die grundlegende
+Methode, die dieses Programm benutzt, ist, die Faktoren aller
+ungeraden Zahlen\footnote{2 ist die einzige gerade Primzahl.} unter
+einer gegebenen Grenze zu finden. Wenn f\"{u}r eine ungerade Zahl kein
+Faktor gefunden werden kann, dann ist sie prim.
+Abbildung~\ref{fig:primec} zeigt den grundlegenden Algorithmus,
+geschrieben in C\@.
+
+\begin{figure}[ht]
+\begin{lstlisting}[frame=tlrb, numbers=left, escapeinside={@}{@}]{}
+ unsigned guess;   /* laufende Testzahl @\itshape{f\"{u}r}@ Primtest */
+ unsigned factor;  /* @\itshape{m\"{o}glicher}@ Faktor von guess */
+ unsigned limit;   /* Finde PZ bis zu diesem Wert */
+
+ printf("Find primes up to: ");
+ scanf("%u", &limit);
+ printf("2\n");    /* behandle die ersten beiden */
+ printf("3\n");    /* Primzahlen als Spezialfall */
+ guess = 5;        /* @\itshape{anf\"{a}ngliche}@ Testzahl */
+ while ( guess <= limit ) {
+   /* suche einen Faktor von guess */
+   factor = 3;
+   while ( factor*factor < guess &&
+           guess % factor != 0 )
+     factor += 2;
+   if ( guess % factor != 0 )
+     printf("%d\n", guess);
+   guess += 2;     /* beachte nur ungerade Zahlen  */
+ }
+\end{lstlisting}
+\caption{Primzahlsuche in C}\label{fig:primec}
+\end{figure}
+
+\pagebreak[2] Hier ist die Assemblerversion: \index{prime.asm|(}
+\begin{AsmCodeListing}[label=prime.asm, commandchars=\\\{\}]
+ %include "asm_io.inc"
+ segment .data
+ Message db      "Find primes up to: ", 0
+
+ segment .bss
+ Limit   resd    1                    ; finde PZ bis zu dieser Grenze
+ Guess   resd    1                    ; laufende Testzahl f\"{u}r prime
+
+ segment .text
+         global  _asm_main
+ _asm_main:
+         enter   0, 0                 ; bereite Routine vor
+         pusha
+
+         mov     eax, Message
+         call    print_string
+         call    read_int             ; scanf("%u", &limit );
+         mov     [Limit], eax
+
+         mov     eax, 2               ; printf("2\symbol{"5C}n");
+         call    print_int
+         call    print_nl
+         mov     eax, 3               ; printf("3\symbol{"5C}n");
+         call    print_int
+         call    print_nl
+
+         mov     dword [Guess], 5     ; guess = 5;
+ while_limit:                         ; while ( guess <= limit )
+         mov     eax, [Guess]
+         cmp     eax, [Limit]
+         jnbe    end_while_limit      ; jnbe, da Zahlen ohne VZ sind
+
+         mov     ebx, 3               ; ebx ist factor = 3;
+ while_factor:
+         mov     eax, ebx
+         mul     eax                  ; edx:eax = eax*eax
+         jo      end_while_factor     ; wenn Produkt nicht in eax allein passt
+         cmp     eax, [Guess]
+         jnb     end_while_factor     ; if !(factor*factor < guess)
+         mov     eax, [Guess]
+         mov     edx, 0
+         div     ebx                  ; edx = edx:eax % ebx
+         cmp     edx, 0
+         je      end_while_factor     ; if !(guess % factor != 0)
+
+         add     ebx, 2               ; factor += 2;
+         jmp     while_factor
+ end_while_factor:
+         je      end_if               ; if !(guess % factor != 0)
+         mov     eax, [Guess]         ; printf("%u\symbol{"5C}n")
+         call    print_int
+         call    print_nl
+ end_if:
+         add     dword [Guess], 2     ; guess += 2
+         jmp     while_limit
+ end_while_limit:
+
+         popa
+         mov     eax, 0               ; kehre zu C zur\"{u}ck
+         leave
+         ret
+\end{AsmCodeListing}
+\index{prime.asm|)}

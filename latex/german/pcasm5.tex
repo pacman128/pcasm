@@ -1,0 +1,1144 @@
+% -*-latex-*-
+\chapter{Arrays}
+\index{Arrays|(}
+\section{Einf\"{u}hrung}
+
+Ein \emph{Array} ist ein zusammenh\"{a}ngender Block einer Liste von
+Daten im Speicher. Jedes Element der Liste muss den gleichen Typ
+haben und genau die gleiche Anzahl Bytes f\"{u}r die Speicherung
+benutzen. Wegen diesen Eigenschaften erlauben Arrays effizienten
+Zugriff auf die Daten \"{u}ber ihre Position (oder Index) im Array. Die
+Adresse jeden Elements kann berechnet werden, wenn drei Angaben
+bekannt sind:
+\begin{itemize}
+\parskip=-0.25em %reduce the spacing <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+\item
+Die Adresse des ersten Elements des Arrays
+
+\item
+Die Anzahl Bytes in jedem Element
+
+\item
+Der Index des Elements
+
+\end{itemize}
+
+Es ist bequem, den Index des ersten Arrayelements als Null zu
+betrachten (genau wie in C). Es ist m\"{o}glich, andere Werte f\"{u}r den
+ersten Index zu verwenden, aber es kompliziert die Berechnungen.
+
+\subsection{Arrays definieren\index{Arrays!Definition|(}}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single, numbers=left, commandchars=\\\{\}]
+ segment .data
+ ; definiere Array aus 10 Doppelw\"{o}rtern initialisiert mit 1,2,..,10
+ a1           dd    1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+ ; definiere Array aus 10 W\"{o}rtern initialisiert mit 0
+ a2           dw    0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+ ; das Gleiche wie zuvor unter Benutzung von TIMES
+ a3           times 10 dw 0
+ ; definiere Array aus Bytes mit 200 0en und dann 100 1en
+ a4           times 200 db 0
+              times 100 db 1
+
+ segment .bss
+ ; definiere einen Array aus 10 uninitialisierten Doppelw\"{o}rtern
+ a5           resd  10
+ ; definiere einen Array aus 100 uninitialisierten W\"{o}rtern
+ a6           resw  100
+\end{AsmCodeListing}
+\caption{Arrays definieren \label{fig:DataArrays}}
+\end{figure}
+
+\subsubsection{Arrays im {\code data} und {\code bss} Segment definieren
+\index{Arrays!Definition!statisch}}
+
+Um einen initialisierten Array im {\code data} Segment zu
+definieren, benutzt man die normalen {\code db}, {\code dw}, usw.\/
+\index{Direktive!D\emph{x}}Direktiven. NASM stellt auch eine
+n\"{u}tzliche Direktive namens {\code TIMES} \index{Direktive!TIMES} zur
+Verf\"{u}gung, die verwendet werden kann, um eine Anweisung viele Male
+zu wiederholen, ohne die Anweisung von Hand duplizieren zu m\"{u}ssen.
+Abbildung~\ref{fig:DataArrays} zeigt verschiedene Bespiele dazu.
+
+Um einen uninitialisierten Array im {\code bss} Segment zu
+definieren, benutzt man die {\code resb}, {\code resw},
+\index{Direktive!RES\emph{x}} usw.\ Direktiven. Erinnern wir uns,
+dass diese Direktiven einen Operanden haben, der angibt, wie viele
+Speichereinheiten zu reservieren sind.
+Abbildung~\ref{fig:DataArrays} zeigt ebenso Beispiele dieses Typs
+von Definitionen.
+
+\subsubsection{Arrays als lokale Variable auf dem Stack definieren
+\index{Arrays!Definition!lokale Variable}}
+
+Es gibt keinen direkten Weg, eine lokale Arrayvariable auf dem Stack
+zu definieren. Wie zuvor berechnet man die gesamte Bytezahl, die f\"{u}r
+\emph{alle} lokalen Variable ben\"{o}tigt werden, einschlie{\ss}lich Arrays
+und zieht dies von ESP (entweder direkt oder unter Verwendung des
+{\code ENTER} Befehls) ab. Wenn eine Funktion zum Beispiel eine
+Charaktervariable br\"{a}uchte, zwei Doppelwortinteger und einen
+50-elementigen Wortarray, w\"{u}rde man  $1 + 2 \times 4 + 50 \times 2 =
+109$ Byte ben\"{o}tigen. Jedoch sollte die von ESP subtrahierte Zahl ein
+Vielfaches von vier sein (112 in diesem Fall), um ESP auf einer
+Doppelwortgrenze zu halten. Man k\"{o}nnte die Variablen innerhalb
+dieser 109 Byte auf verschiedene Weisen anordnen.
+Abbildung~\ref{fig:StackLayouts} zeigt zwei m\"{o}gliche Arten. Der
+unbenutzte Teil der ersten Anordnung ist dazu da, die Doppelw\"{o}rter
+auf Doppelwortgrenzen zu halten, um die Speicherzugriffe zu
+beschleunigen. \index{Arrays!Definition|)}
+
+\begin{figure}[ht]
+\centering
+\begin{tabular}{l|c|ll|c|}
+ \cline{2-2} \cline{5-5}
+ EBP - 1   & char      & \hspace{2em} &           & \\
+ \cline{2-2}
+           & unbenutzt &              &           & \\
+ \cline{2-2}
+ EBP - 8   & dword 1   &              &           & \\
+ \cline{2-2}
+ EBP - 12  & dword 2   &              &           & word \\
+ \cline{2-2}
+           &           &              &           & Array \\
+           &           &              &           & \\
+           & word      &              &           & \\
+           & Array     &              & EBP - 100 & \\
+ \cline{5-5}
+           &           &              & EBP - 104 & dword 1 \\
+ \cline{5-5}
+           &           &              & EBP - 108 & dword 2 \\
+ \cline{5-5}
+           &           &              & EBP - 109 & char \\
+ \cline{5-5}
+ EBP - 112 &           &              &           & unbenutzt \\
+ \cline{2-2} \cline{5-5}
+\end{tabular}
+\caption{Anordnungen des Stacks \label{fig:StackLayouts}}
+\end{figure}
+
+\subsection{Auf Elemente des Arrays zugreifen
+\index{Arrays!Zugriff|(}}
+
+Es gibt in Assembler keinen {\code [\,]} Operator wie in C\@. Um auf
+ein Element eines Arrays zuzugreifen, muss seine Adresse berechnet
+werden. Betrachten wir die folgenden zwei Arraydefinitionen:
+\begin{AsmCodeListing}[frame=none, numbers=left, commandchars=\\\{\}]
+ array1       db     5, 4, 3, 2, 1     ; Array von Bytes
+ array2       dw     5, 4, 3, 2, 1     ; Array von W\"{o}rtern
+\end{AsmCodeListing}
+Hier sind einige Beispiele, die diese Arrays benutzen:
+\begin{AsmCodeListing}[frame=none, numbers=left, firstnumber=last, commandchars=\\\{\}]
+      mov    al, [array1]     ; al = array1[0]
+      mov    al, [array1 + 1] ; al = array1[1]
+      mov    [array1 + 3], al ; array1[3] = al
+      mov    ax, [array2]     ; ax = array2[0]
+      mov    ax, [array2 + 2] ; ax = array2[1] (NICHT array2[2]!)   \label{line:ArrayRef1}
+      mov    [array2 + 6], ax ; array2[3] = ax
+      mov    ax, [array2 + 1] ; ax = ??                             \label{line:ArrayRef2}
+\end{AsmCodeListing}
+In Zeile~\ref{line:ArrayRef1} wird Element 1 des Wortarrays
+referenziert, nicht Element 2. Warum? W\"{o}rter sind zwei-Byte
+Einheiten, so muss man zwei Bytes weitergehen, um sich zum n\"{a}chsten
+Element in einem Wortarray zu bewegen, nicht eins.
+Zeile~\ref{line:ArrayRef2} liest ein Byte vom ersten Element und
+eins vom zweiten. In C schaut der Compiler auf den Typ eines
+Zeigers, um zu bestimmen, wie viele Bytes er in einem Ausdruck, der
+Zeiger Arithmetik verwendet, voranschreiten muss, sodass es der
+Programmierer nicht tun muss. Jedoch liegt es in Assembler beim
+Programmierer, die Gr\"{o}{\ss}e der Arrayelemente zu ber\"{u}cksichtigen, wenn
+er sich von Element zu Element bewegt.
+
+\begin{figure}[ht]
+\begin{AsmCodeListing}[frame=single, numbers=left, commandchars=\\\{\}]
+      mov    ebx, array1      ; ebx = Adresse von array1
+      mov    dx, 0            ; dx enth\"{a}lt die Summe
+      mov    ah, 0            ; ?                       \label{line:SumArray10}
+      mov    ecx, 5
+ lp:
+      mov    al, [ebx]        ; al = *ebx               \label{line:SumArray11}
+      add    dx, ax           ; dx += ax (nicht al!)    \label{line:SumArray12}
+      inc    ebx              ; ebx++
+      loop   lp
+\end{AsmCodeListing}
+\caption{Die Elemente eines Arrays zusammenz\"{a}hlen (Version 1)
+\label{fig:SumArray1}}
+\end{figure}
+
+Abbildung~\ref{fig:SumArray1} zeigt ein Codefragment, das alle
+Elemente von {\code array1} aus dem vorigen Beispielcode
+aufsummiert. In Zeile~\ref{line:SumArray12} wird AX zu DX summiert.
+Warum nicht AL? Erstens m\"{u}ssen die beiden Operanden des {\code ADD}
+Befehls von der gleichen Gr\"{o}{\ss}e sein. Zweitens k\"{o}nnte es leicht
+passieren, Bytes aufzusummieren und eine Summe zu erhalten, die zu
+gro{\ss} war, um in ein Byte zu passen. Indem DX benutzt wird, sind
+Summen bis hinauf zu 65\,535 erlaubt. Es ist jedoch wichtig, sich
+klar zu machen, dass AH ebenfalls addiert wird. Das ist der Grund,
+warum AH in Zeile~\ref{line:SumArray10} auf Null\footnote{Indem AH
+auf Null gesetzt wird, wird implizit angenommen, dass AL eine
+vorzeichenlose Zahl ist. Wenn sie vorzeichenbehaftet w\"{a}re, w\"{u}rde die
+passende Aktion sein, stattdessen einen {\code CBW} Befehl zwischen
+Zeilen~\ref{line:SumArray11} und \ref{line:SumArray12} einzuf\"{u}gen.}
+gesetzt wurde.
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single, numbers=left, commandchars=\\\{\}]
+      mov    ebx, array1      ; ebx = Adresse von array1
+      mov    dx, 0            ; dx enth\"{a}lt die Summe
+      mov    ecx, 5
+ lp:
+ \textit{     add    dl, [ebx]        ; dl += *ebx}
+ \textit{     jnc    next             ; if no carry goto next}
+ \textit{     inc    dh               ; inc dh}
+ \textit{next:}
+      inc    ebx              ; ebx++
+      loop   lp
+\end{AsmCodeListing}
+\caption{Die Elemente eines Arrays zusammenz\"{a}hlen (Version 2)
+\label{fig:SumArray2}}
+\end{figure}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single, numbers=left, commandchars=\\\{\}]
+      mov    ebx, array1      ; ebx = Adresse von array1
+      mov    dx, 0            ; dx enth\"{a}lt die Summe
+      mov    ecx, 5
+ lp:
+ \textit{     add    dl, [ebx]        ; dl += *ebx}
+ \textit{     adc    dh, 0            ; dh += carry flag + 0}
+      inc    ebx              ; ebx++
+      loop   lp
+\end{AsmCodeListing}
+\caption{Die Elemente eines Arrays zusammenz\"{a}hlen (Version 3)
+\label{fig:SumArray3}}
+\end{figure}
+
+Abbildungen~\ref{fig:SumArray2} und \ref{fig:SumArray3} zeigen zwei
+alternative Wege, um die Summe zu berechnen. Die Zeilen in
+Schr\"{a}gschrift ersetzen Zeilen~\ref{line:SumArray11} und
+\ref{line:SumArray12} von Abbildung~\ref{fig:SumArray1}.
+
+\subsection{Fortgeschrittenere indirekte Adressierung
+                 \index{indirekte Adressierung!Arrays|(}}
+
+Es d\"{u}rfte nicht \"{u}berraschen, dass indirekte Adressierung oft mit
+Arrays verwendet wird. Die allgemeinste Form einer indirekten
+Speicherreferenz ist:
+\begin{center}
+{\code [ \emph{base reg} + \emph{factor}\,*\,\emph{index reg} +
+      \emph{constant}]}
+\end{center}
+wobei:
+\begin{description}
+\parskip=-0.25em %reduce the spacing <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+\item[base reg]
+eines der Register EAX, EBX, ECX, EDX, EBP, ESP, ESI oder EDI ist.
+
+\item[factor]
+ist entweder 1, 2, 4 oder 8. (Wenn 1, wird {\code factor}
+weggelassen.)
+
+\item[index reg]
+ist eines der Register  EAX, EBX, ECX, EDX, EBP, ESI, EDI. (Beachte,
+dass ESP nicht in der Liste ist.)
+
+\item[constant]
+ist eine 8- oder 32-bit Konstante. Die Konstante kann ein Label
+(oder ein Labelausdruck) sein.
+\end{description}
+
+\subsection{Beispiel}
+Hier ist ein Beispiel, das einen Array benutzt und ihn an eine
+Funktion \"{u}bergibt. Es benutzt als Treiber das {\code array1c.c}
+Programm (unten aufgef\"{u}hrt), nicht das {\code driver.c} Programm.
+\index{array1.asm|(}
+\begin{AsmCodeListing}[label=array1.asm, numbers=left, commandchars=\\\{\}]
+ %define ARRAY_SIZE 100
+ %define NEW_LINE 10
+
+ segment .data
+ FirstMsg        db   "First 10 elements of array", 0
+ Prompt          db   "Enter index of element to display: ", 0
+ SecondMsg       db   "Element %d is %d", NEW_LINE, 0
+ ThirdMsg        db   "Elements 20 through 29 of array", 0
+ InputFormat     db   "%d", 0
+
+ segment .bss
+ array   resd    ARRAY_SIZE
+
+ segment .text
+         extern  _puts, _printf, _scanf, _dump_line
+         global  _asm_main
+ _asm_main:
+         enter   4, 0                   ; lokale Dword Variable bei EBP - 4
+         push    ebx
+         push    esi
+
+ ; initialisiere Array mit 100, 99, 98, 97, ...
+
+         mov     ecx, ARRAY_SIZE
+         mov     ebx, array
+ init_loop:
+         mov     [ebx], ecx
+         add     ebx, 4
+         loop    init_loop
+
+         push    dword FirstMsg         ; gebe FirstMsg aus
+         call    _puts
+         pop     ecx
+
+         push    dword 10
+         push    dword array
+         call    _print_array           ; gebe erste 10 Elemente von array aus
+         add     esp, 8
+
+ ; frage Benutzer nach Index des Elements
+ Prompt_loop:
+         push    dword Prompt
+         call    _printf
+         pop     ecx
+
+         lea     eax, [ebp-4]           ; eax = Adresse des lokalen Dwords
+         push    eax
+         push    dword InputFormat
+         call    _scanf
+         add     esp, 8
+         cmp     eax, 1                 ; eax = R\"{u}ckgabewert von scanf
+         je      InputOK
+
+         call    _dump_line             ; bei ung\"{u}ltiger Eingabe verwerfe Rest
+         jmp     Prompt_loop            ; der Zeile und beginne nochmals
+
+ InputOK:
+         mov     esi, [ebp-4]
+         push    dword [array + 4*esi]
+         push    esi
+         push    dword SecondMsg        ; gebe Wert des Elements aus
+         call    _printf
+         add     esp, 12
+
+         push    dword ThirdMsg         ; gebe Elemente 20-29 aus
+         call    _puts
+         pop     ecx
+
+         push    dword 10
+         push    dword array + 20*4     ; Adresse von array[20]
+         call    _print_array
+         add     esp, 8
+
+         pop     esi
+         pop     ebx
+         mov     eax, 0                 ; kehre zu C zur\"{u}ck
+         leave
+         ret
+
+ ;
+ ; Routine _print_array
+ ; Von C aufrufbare Routine die die Elemente eines Doppelwort-Arrays
+ ; als Integer mit Vorzeichen ausgibt.
+ ; C Prototyp:
+ ; void print_array( const int *a, int n );
+ ; Parameter:
+ ;   a - Zeiger zum auszugebenden Array (bei ebp + 8 auf Stack)
+ ;   n - Anzahl auszugebender Integer (bei ebp + 12 auf Stack)
+
+ segment .data
+ OutputFormat    db   "%-5d %5d", NEW_LINE, 0
+
+ segment .text
+         global  _print_array
+ _print_array:
+         enter   0, 0
+         push    esi
+         push    ebx
+
+         xor     esi, esi               ; esi = 0
+         mov     ecx, [ebp + 12]        ; ecx = n
+         mov     ebx, [ebp + 8]         ; ebx = Adresse des Arrays
+ print_loop:
+         push    ecx                    ; printf k\"{o}nnte ecx \"{a}ndern!
+
+         push    dword [ebx + 4*esi]    ; push array[esi]
+         push    esi
+         push    dword OutputFormat
+         call    _printf
+         add     esp, 12                ; entferne Parameter (lasse ecx!)
+
+         inc     esi
+         pop     ecx
+         loop    print_loop
+
+         pop     ebx
+         pop     esi
+         leave
+         ret
+\end{AsmCodeListing}
+
+\LabelLine{array1c.c}
+\begin{lstlisting}[numbers=left, escapeinside={@}{@}]{}
+ #include <stdio.h>
+
+ int asm_main( void );
+ void dump_line( void );
+
+ int main()
+ {
+   int ret_status;
+   ret_status = asm_main();
+   return ret_status;
+ }
+
+ /*
+  * Funktion dump_line
+  * verwirft alle im Eingabepuffer @\itshape{\"{u}brig}@ gebliebenen Zeichen
+  */
+ void dump_line()
+ {
+   int ch;
+
+   while( (ch = getchar()) != EOF && ch != '\n')
+     /* leerer Rumpf */ ;
+ }@\\[-20pt]@
+\end{lstlisting}
+\LabelLine{array1c.c}
+ \index{array1.asm|)}
+ \index{indirekte Adressierung!Arrays|)}
+ \index{Arrays!Zugriff|)}
+
+\subsubsection{Nochmals der {\code LEA} Befehl\index{Maschinenbefehl!LEA|(}}
+
+Der {\code LEA} Befehl kann noch f\"{u}r weitere Aufgaben verwendet
+werden, als nur Adressen zu berechnen. Eine ziemlich einfache ist
+f\"{u}r schnelle Berechnungen. Betrachten wir das Folgende:
+\begin{AsmCodeListing}[numbers=none, frame=none]
+      lea    ebx, [4*eax + eax]
+\end{AsmCodeListing}
+Dies speichert effektiv den Wert von $5 \times \mathtt{EAX}$ in
+{\code EBX}\@. Die Verwendung von {\code LEA} f\"{u}r diesen Zweck ist
+sowohl einfacher als auch schneller als die Verwendung von {\code
+MUL}\@. \index{Maschinenbefehl!MUL} Jedoch muss man sich klarmachen,
+dass der Ausdruck innerhalb der eckigen Klammern eine g\"{u}ltige
+indirekte Adresse sein \emph{muss}. Deshalb kann dieser Befehl zum
+Beispiel nicht verwendet werden, um schnell mit 6 zu multiplizieren.
+\index{Maschinenbefehl!LEA|)}
+
+
+\subsection{Mehrdimensionale Arrays\index{Arrays!mehrdimensionale|(}}
+
+Mehrdimensionale Arrays unterscheiden sich nicht wirklich sehr stark
+von den bereits betrachteten einfachen eindimensionalen Arrays.
+Tats\"{a}chlich werden sie im Speicher als genau das repr\"{a}sentiert, als
+ein einfacher eindimensionaler Array.
+
+\subsubsection{Zweidimensionale Arrays\index{Arrays!mehrdimensionale!zwei-dimensionale|(}}
+Nicht \"{u}berraschend ist der einfachste mehrdimensionale Array ein
+zweidimensionaler. Ein zweidimensionaler Array wird oft als Gitter
+von Elementen dargestellt. Jedes Element wird durch ein Paar von
+Indizes identifiziert. Per \"{U}ber"-einkunft wird der erste Index mit
+der Reihe des Elements identifiziert und der zweite Index mit der
+Spalte.
+
+Betrachten wir einen Array mit drei Reihen und zwei Spalten, der
+definiert ist als:
+\begin{lstlisting}[stepnumber=0]{}
+  int a[3][2];
+\end{lstlisting}
+Der C Compiler w\"{u}rde Platz f\"{u}r einen 6 ($= 2 \times 3$) elementigen
+Integerarray reservieren und die Elemente wie folgt anlegen:
+
+\parbox{\textwidth}{
+\vspace{0.5em}
+\centering
+\begin{tabular}{||l|c|c|c|c|c|c||}
+ \hline
+ Index   &    0    &    1    &    2    &    3    &    4    &    5    \\
+ \hline
+ Element & a[0][0] & a[0][1] & a[1][0] & a[1][1] & a[2][0] & a[2][1] \\
+ \hline
+\end{tabular}
+\vspace{0.5em} } \noindent Was die Tabelle zu zeigen versucht, ist,
+dass das Element, auf das mit {\code a[0][0]} zugegriffen wird, am
+Anfang des 6-elementigen eindimensionalen Arrays gespeichert wird.
+Element {\code a[0][1]} wird an der n\"{a}chsten Position (Index~1)
+gespeichert und so weiter. Jede Reihe des zweidimensionalen Arrays
+wird fortlaufend im Speicher abgelegt. Das letzte Element einer
+Reihe wird vom ersten Element der n\"{a}chsten Reihe gefolgt. Das ist
+als eine \emph{reihenweise} Repr\"{a}sentation des Arrays bekannt und
+ist, wie ein C/C++ Compiler einen Array repr\"{a}sentieren w\"{u}rde.
+
+Wie bestimmt der Compiler, wo {\code a[i][j]} in einer reihenweisen
+Repr\"{a}sentation erscheint? Eine einfache Formel berechnet den Index
+aus {\code i} und {\code j}. Die Formel ist in diesem Fall $2i + j$.
+Es ist nicht zu schwer zu sehen, wovon sich diese Formel ableitet.
+Jede Zeile ist zwei Elemente lang; so liegt das erste Element von
+Reihe $i$ an der Stelle $2i$. Dann wird die Position von Spalte $j$
+gefunden, indem $j$ zu $2i$ addiert wird. Diese Analyse zeigt auch,
+wie die Formel f\"{u}r einen Array mit {\code N} Spalten verallgemeinert
+wird: $N \times i + j$. Beachte, dass die Formel \emph{nicht} von
+der Anzahl der Reihen abh\"{a}ngt.
+
+\begin{figure}[ht]
+\begin{AsmCodeListing}[numbers=left]
+     mov    eax, [ebp-44]       ; ebp - 44 ist i's Platz
+     sal    eax, 1              ; multipliziere i mit 2
+     add    eax, [ebp-48]       ; addiere j
+     mov    eax, [ebp+4*eax-40] ; ebp - 40 ist die Adresse von a[0][0]
+     mov    [ebp-52], eax       ; speichere Ergebnis in x (bei ebp - 52)
+\end{AsmCodeListing}
+\caption{ Assemblercode f\"{u}r \lstinline|x = a[i][j]| \label{fig:aij}}
+\end{figure}
+
+Als ein Beispiel werden wir uns ansehen, wie \emph{gcc}
+\index{Compiler!gcc} den folgenden Code kompiliert (unter Verwendung
+des oben definierten Arrays {\code a}):
+\begin{lstlisting}[stepnumber=0]{}
+  x = a[i][j];
+\end{lstlisting}
+Abbildung~\ref{fig:aij} zeigt den Assemblercode, in den dies
+\"{u}bersetzt wurde. Somit konvertiert der Compiler den Code im
+Wesentlichen zu:
+\begin{lstlisting}[stepnumber=0]{}
+  x = *(&a[0][0] + 2*i + j);
+\end{lstlisting}
+und in der Tat k\"{o}nnte der Programmierer ihn in dieser Weise mit
+demselben Ergebnis schreiben.
+
+Es ist nichts Magisches an der Wahl der reihenweisen Repr\"{a}sentation
+des Arrays. Eine spaltenweise Repr\"{a}sentation w\"{u}rde genauso gut
+arbeiten:
+
+\parbox{\textwidth}{
+\vspace{0.5em}
+\centering
+\begin{tabular}{||l|c|c|c|c|c|c||}
+ \hline
+ Index   &    0    &    1    &    2    &    3    &    4    &    5    \\
+ \hline
+ Element & a[0][0] & a[1][0] & a[2][0] & a[0][1] & a[1][1] & a[2][1]  \\
+ \hline
+\end{tabular}
+\vspace{0.5em} }
+
+\noindent In der \emph{spaltenweisen} Repr\"{a}sentation wird jede
+Spalte fortlaufend gespeichert. Element {\code [i][j]} wird an
+Position $i + 3j$ gespeichert. Andere Sprachen (FORTRAN zum
+Beispiel\footnote{mit 1- statt 0-basierten Indizes [Anm.\ d.\
+\"{U}\@.]}) benutzen die spaltenweise Repr\"{a}sentation. Das ist wichtig,
+wenn man Code mit mehreren Sprachen verbindet.
+\index{Arrays!mehrdimensionale!zwei-dimensionale|)}
+
+\subsubsection{Dimensionen \"{u}ber zwei}
+Bei Dimensionen \"{u}ber zwei wird die gleiche grundlegende Idee
+angewandt. Betrachten wir einen dreidimensionalen Array:
+\begin{lstlisting}[stepnumber=0]{}
+  int b[4][3][2];
+\end{lstlisting}
+Dieser Array w\"{u}rde gespeichert, wie wenn er vier zweidimensionale
+Arrays, jeder mit Gr\"{o}{\ss}e {\code [3][2]} fortlaufend im Speicher w\"{a}re.
+Die unten stehende Tabelle zeigt, wie er beginnt:
+
+\begin{center} % <<< ok, here <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+\parbox{\textwidth}{
+\vspace{0.5em} % brings table onto next page <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+%\centering % <<< will not work here <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+\begin{tabular}{||l|c|c|c|c|c|c||}
+ \hline
+ Index   &      0     &      1     &      2     &      3     & 4 & 5  \\
+ \hline
+ Element & b[0][0][0] & b[0][0][1] & b[0][1][0] & b[0][1][1]
+         & b[0][2][0]  &  b[0][2][1]  \\
+ \hline
+ \hline
+ Index   &      6     &      7     &      8     &      9     & 10 & 11 \\
+ \hline
+ Element & b[1][0][0] & b[1][0][1] & b[1][1][0] & b[1][1][1]
+         & b[1][2][0] & b[1][2][1] \\
+ \hline
+\end{tabular}
+\vspace{0.5em} %helps later on filling page on 'Bespiel' <<<<<<<<<<<<<<<<<<<<<<
+}
+\end{center} % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+\noindent Die Formel, um die Position von {\code b[i][j][k]} zu
+berechnen, ist $6i + 2j + k$. Die 6 ist gegeben durch die Gr\"{o}{\ss}e des
+{\code [3][2]} Arrays. Im Allgemeinen wird die Position des Elements
+{\code a[i][j][k]} in einem als {\code a[L][M][N]} dimensionierten
+Array $M\times N\times i + N \times j + k$ sein. Beachte wieder,
+dass die erste Dimension ({\code L}) nicht in der Formel erscheint.
+
+F\"{u}r h\"{o}here Dimensionen wird derselbe Prozess generalisiert. F\"{u}r
+einen $n$ dimensionalen Array mit Dimensionen $D_1$ bis $D_n$ ist
+die Position des durch die Indizes $i_1$ bis $i_n$ bezeichneten
+Elements durch die Formel:
+\begin{displaymath}
+D_2 \times D_3 \cdots \times D_n \times i_1 + D_3 \times D_4 \cdots \times D_n
+\times i_2 + \cdots + D_n \times i_{n-1} + i_n
+\end{displaymath}
+gegeben oder f\"{u}r die Mathefreaks kann es pr\"{a}gnanter geschrieben
+werden als:
+\begin{displaymath}
+\sum_{j=1}^{n} \: \left( \prod_{k=j+1}^{n} D_k \right) \: i_j
+\end{displaymath}
+\MarginNote{Hier ist die Stelle, an der man erkennen kann, dass der
+Autor Physik als Hauptfach hatte. (Oder hat ihn die Erw\"{a}hnung von
+FORTRAN verraten?)} Die erste Dimension, $D_1$, tritt in der Formel
+nicht auf.
+
+F\"{u}r die spaltenweise Repr\"{a}sentation, w\"{a}re die allgemeine Formel:
+\begin{displaymath}
+i_1 + D_1 \times i_2 + \cdots + D_1 \times D_2 \times \cdots \times D_{n-2}
+\times i_{n-1} + D_1 \times D_2 \times \cdots \times D_{n-1} \times i_n
+\end{displaymath}
+oder in der Notation f\"{u}r Mathefreaks:
+\begin{displaymath}
+\sum_{j=1}^{n} \: \left( \prod_{k=1}^{j-1} D_k \right) \: i_j
+\end{displaymath}
+In diesem Fall ist es die letzte Dimension, $D_n$, die in der Formel
+nicht auftritt.
+
+\subsubsection{Die \"{U}bergabe mehrdimensionaler Arrays als Parameter in C
+\index{Arrays!mehrdimensionale!Parameter|(}}
+
+Die reihenweise Repr\"{a}sentation mehrdimensionaler Arrays hat einen
+direkten Einfluss auf die C Programmierung. F\"{u}r eindimensionale
+Arrays wird die Gr\"{o}{\ss}e des Arrays nicht ben\"{o}tigt, um zu berechnen, wo
+irgendein spezifisches Element im Speicher liegt. Das trifft auf
+mehrdimensionale Arrays nicht zu. Um auf die Elemente dieser Arrays
+zuzugreifen, muss der Compiler alle au{\ss}er der ersten Dimension
+kennen. Dies wird offenbar, wenn man den Prototypen einer Funktion
+betrachtet, die einen mehrdimensionalen Array als Parameter hat. Das
+Folgende wird nicht kompiliert:
+%\begin{small}
+\begin{lstlisting}[stepnumber=0, escapeinside={@}{@}]{}
+  void f( int a[@\(\!\,\,\)@][@\(\,\,\!\)@] );  /* keine Dimensionsinformation */
+\end{lstlisting}
+%\end{small}
+Jedoch wird das Folgende kompiliert:
+%\begin{small}
+\begin{lstlisting}[stepnumber=0, escapeinside={@}{@}]{}
+  void f( int a[@\(\!\,\,\)@][2] );
+\end{lstlisting}
+%\end{small}
+
+Jeder zweidimensionale Array mit zwei Spalten kann an diese Funktion
+\"{u}bergeben werden. Die erste Dimension wird nicht
+ben\"{o}tigt.\footnote{Eine Gr\"{o}{\ss}e kann hier angegeben werden, wird aber
+vom Compiler ignoriert.}
+
+Nicht verwirren lassen durch eine Funktion mit diesem Prototypen:
+\begin{lstlisting}[stepnumber=0, escapeinside={@}{@}]{}
+  void f( int *a[@\(\,\,\)@] );
+\end{lstlisting}
+Dies definiert einen eindimensionalen Array von Integerzeigern (der
+nebenbei dazu verwendet werden kann, um einen Array von Arrays zu
+schaffen, der sich ganz so wie ein zweidimensionaler Array verh\"{a}lt).
+
+F\"{u}r h\"{o}herdimensionale Arrays m\"{u}ssen bei Parametern alle au{\ss}er der
+ersten Dimension angegeben werden. Zum Beispiel k\"{o}nnte ein
+vierdimensionaler Array so \"{u}bergeben werden:
+\begin{lstlisting}[stepnumber=0, escapeinside={@}{@}]{}
+  void f( int a[@\(\!\!\,\)@][4][3][2] );
+\end{lstlisting}
+\index{Arrays!mehrdimensionale!Parameter|)}
+\index{Arrays!mehrdimensionale|)}
+
+\section{Array/String Befehle}
+\index{String Befehle|(}
+
+Die 80x86 Familie von Prozessoren stellt verschiedene Befehle, die
+f\"{u}r die Arbeit mit Arrays geschaffen wurden, zur Verf\"{u}gung. Diese
+Befehle werden \emph{Stringbefehle} genannt. Sie benutzen die
+Indexregister (ESI und EDI) \index{Register!EDI, ESI} um eine
+Operation durchzuf\"{u}hren und erh\"{o}hen oder vermindern dann automatisch
+eines oder beide der Indexregister. Das \emph{Richtungsflag}
+(\emph{direction flag}, DF) \index{Register!FLAGS!DF} im FLAGS
+Register bestimmt, ob die Indexregister erh\"{o}ht oder vermindert
+werden. Es gibt zwei Befehle, die das Richtungsflag \"{a}ndern:
+\begin{description}
+\parskip=-0.25em %reduce the spacing <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+\item[CLD]
+\index{Maschinenbefehl!CLD} l\"{o}scht das Richtungsflag. In diesem
+Zustand werden die Indexregister erh\"{o}ht.
+
+\item[STD]
+\index{Maschinenbefehl!STD} setzt das Richtungsflag. In diesem
+Zustand werden die Indexregister vermindert.
+\end{description}
+Ein \emph{sehr} verbreitertes Versehen in der 80x86 Programmierung
+ist, zu vergessen, das Richtungsflag explizit in den richtigen
+Zustand zu setzen. Das f\"{u}hrt oft zu Code, der die meiste Zeit
+funktioniert (wenn sich das Richtungsflag zuf\"{a}llig im gew\"{u}nschten
+Zustand befindet), aber er funktioniert nicht \emph{immer}.
+
+\begin{figure}[t]
+\centering
+{\code
+\begin{tabular}{|lp{1.5in}|lp{1.5in}|}
+ \hline
+ LODSB & AL = [DS:ESI]\newline ESI = ESI $\pm$ 1 &
+ STOSB & [ES:EDI] = AL\newline EDI = EDI $\pm$ 1 \\
+ \hline
+ LODSW & AX = [DS:ESI]\newline ESI = ESI $\pm$ 2 &
+ STOSW & [ES:EDI] = AX\newline EDI = EDI $\pm$ 2 \\
+ \hline
+ LODSD & EAX = [DS:ESI]\newline ESI = ESI $\pm$ 4 &
+ STOSD & [ES:EDI] = EAX\newline EDI = EDI $\pm$ 4 \\
+ \hline
+\end{tabular}
+} \caption{Lesende und schreibende Stringbefehle
+\label{fig:rwString} \index{Maschinenbefehl!LODS\emph{x}}
+\index{Maschinenbefehl!STOS\emph{x}}}
+\end{figure}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single, numbers=left, commandchars=\\\{\}]
+ segment .data
+ array1  dd     1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+
+ segment .bss
+ array2  resd   10
+
+ segment .text
+         cld                     ; dies nicht vergessen!
+         mov    esi, array1
+         mov    edi, array2
+         mov    ecx, 10
+ lp:                   \label{line:lodEx0}
+         lodsd         \label{line:lodEx1}
+         stosd         \label{line:lodEx2}
+         loop   lp     \label{line:lodEx3}
+\end{AsmCodeListing}
+\caption{Load und store Beispiel\label{fig:lodEx}}
+\end{figure}
+
+\subsection{ Speicherbereiche lesen und schreiben}
+
+Die einfachsten Stringbefehle lesen entweder aus oder schreiben in
+den Speicher oder beides. Sie k\"{o}nnen auf einmal ein Byte, Wort oder
+Doppelwort lesen oder schreiben. Abbildung~\ref{fig:rwString} zeigt
+diese Befehle mit einer kurzen Beschreibung in Pseudocode dessen was
+sie tun. Es gibt hier verschiedene Punkte zu beachten. Zuerst wird
+ESI zum Lesen verwendet und EDI zum Schreiben. Es ist einfach, sich
+an das zu erinnern, wenn man bedenkt, dass SI f\"{u}r \emph{Source
+Index} und DI f\"{u}r \emph{Destination Index} \index{Register!EDI, ESI}
+steht. Als n\"{a}chstes muss man beachten, dass das Register, das die
+Daten h\"{a}lt, festgelegt ist (entweder AL, AX oder EAX). Schlie{\ss}lich
+muss man beachten, dass die speichernden Befehle ES benutzen, um das
+Segment zu bestimmen in das sie schreiben, nicht DS\@. In der
+protected Mode Programmierung ist dies gew\"{o}hnlich kein Problem, da
+es nur ein einziges Datensegment gibt und ES automatisch
+initialisiert sein sollte um sich auf dieses zu beziehen (genauso
+wie DS es ist). In der real Mode Programmierung jedoch, ist es f\"{u}r
+den Programmierer \emph{sehr} wichtig, ES mit dem korrekten
+\index{Register!Segment} Segmentwert\footnote{Eine weitere
+Komplikation ist, dass man, unter Benutzung eines einzelnen {\code
+MOV} Befehls, den Wert des DS Registers nicht direkt in das ES
+Register kopieren kann. Stattdessen muss der Wert von DS in ein
+Allzweckregister (wie AX) kopiert werden, um dann aus diesem
+Register nach ES kopiert zu werden, unter Verwendung von zwei {\code
+MOV} Befehlen.} zu initialisieren. Abbildung~\ref{fig:lodEx} zeigt
+ein Beispiel der Benutzung dieser Befehle, das einen Array in einen
+anderen kopiert.
+
+\begin{figure}[t]
+\centering
+{\code
+\begin{tabular}{|lp{2.5in}|}
+ \hline
+ MOVSB & byte [ES:EDI] = byte [DS:ESI] \newline
+        ESI = ESI $\pm$ 1 \newline
+        EDI = EDI $\pm$ 1 \\
+ \hline
+ MOVSW & word [ES:EDI] = word [DS:ESI] \newline
+        ESI = ESI $\pm$ 2 \newline
+        EDI = EDI $\pm$ 2 \\
+ \hline
+ MOVSD & dword [ES:EDI] = dword [DS:ESI] \newline
+        ESI = ESI $\pm$ 4 \newline
+        EDI = EDI $\pm$ 4 \\
+ \hline
+\end{tabular}
+} \caption{Die Memory move String Befehle \label{fig:movString}
+\index{Maschinenbefehl!MOVS\emph{x}}}
+\end{figure}
+
+Die Kombination eines {\code LODS\emph{x}} mit einem {\code
+STOS\emph{x}} Befehl (wie in Zeilen~\ref{line:lodEx1} und
+\ref{line:lodEx2}  von Abbildung~\ref{fig:lodEx}) ist sehr
+verbreitet. Tats\"{a}chlich kann diese Kombination mit einem einzelnen
+{\code MOVS\emph{x}} Stringbefehl durchgef\"{u}hrt werden.
+Abbildung~\ref{fig:movString} beschreibt die Operationen, die diese
+Befehle ausf\"{u}hren. Zeilen~\ref{line:lodEx1} und \ref{line:lodEx2}
+von Abbildung~\ref{fig:lodEx} k\"{o}nnten mit dem gleichen Effekt durch
+einen einzelnen {\code MOVSD} Befehl ersetzt werden. Der einzige
+Unterschied w\"{a}re, dass das EAX Register in der Schleife \"{u}berhaupt
+nicht verwendet werden w\"{u}rde.
+
+\subsection{Das {\code REP} Befehlspr\"{a}fix
+\index{Maschinenbefehl!REP|(}}
+
+Die 80x86 Familie stellt ein spezielles Befehlspr\"{a}fix\footnote{Ein
+Befehlspr\"{a}fix ist kein Befehl, es ist ein spezielles Byte, das vor
+einen Stringbefehl gesetzt wird, um das Verhalten des Befehls zu
+modifizieren. Andere Pr\"{a}fixe werden auch benutzt, um die
+Segmentvoreinstellungen f\"{u}r die Speicherzugriffe zu \"{u}berschreiben.},
+{\code REP} genannt, zur Verf\"{u}gung, das mit den obigen
+Stringbefehlen verwendet werden kann. Dieses Pr\"{a}fix sagt der CPU,
+den n\"{a}chsten Stringbefehl eine gegebene Anzahl mal zu wiederholen.
+Das ECX Register wird benutzt, um die Iterationen zu z\"{a}hlen (genauso
+wie bei einem {\code LOOP} Befehl). Unter Benutzung des {\code REP}
+Pr\"{a}fixes k\"{o}nnte die Schleife in Abbildung~\ref{fig:lodEx}
+(Zeilen~\ref{line:lodEx0} bis \ref{line:lodEx3}) durch eine einzelne
+Zeile ersetzt werden:
+\begin{AsmCodeListing}[frame=none, numbers=none]
+      rep movsd
+\end{AsmCodeListing}
+Abbildung~\ref{fig:zeroArrayEx} zeigt ein weiteres Beispiel, das den
+Inhalt eines Arrays l\"{o}scht. \index{Maschinenbefehl!REP|)}
+
+\begin{figure}[ht]
+\begin{AsmCodeListing}[frame=single, numbers=left]
+ segment .bss
+ array   resd   10
+
+ segment .text
+         cld                     ; dies nicht vergessen!
+         mov    edi, array
+         mov    ecx, 10
+         xor    eax, eax
+         rep stosd
+\end{AsmCodeListing}
+\caption{Beispiel einen Array zu l\"{o}schen\label{fig:zeroArrayEx}}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+{\code
+\begin{tabular}{|lp{3.5in}|}
+ \hline CMPSB & vergleicht Byte [DS:ESI] mit Byte [ES:EDI]
+ \newline ESI = ESI $\pm$ 1
+        \newline EDI = EDI $\pm$ 1 \\
+ \hline
+ CMPSW & vergleicht Word [DS:ESI] mit Word [ES:EDI] \newline ESI = ESI $\pm$ 2
+        \newline EDI = EDI $\pm$ 2 \\
+ \hline
+ CMPSD & vergleicht Dword [DS:ESI] mit Dword [ES:EDI] \newline ESI = ESI $\pm$ 4
+        \newline EDI = EDI $\pm$ 4 \\
+ \hline
+ SCASB & vergleicht AL mit [ES:EDI] \newline EDI $\pm$ 1 \\
+ \hline
+ SCASW & vergleicht AX mit [ES:EDI] \newline EDI $\pm$ 2 \\
+ \hline
+ SCASD & vergleicht EAX mit [ES:EDI] \newline EDI $\pm$ 4 \\
+ \hline
+\end{tabular}
+} \caption{Vergleichende Stringbefehle \label{fig:cmpString}}
+\index{Maschinenbefehl!CMPS\emph{x}}
+\index{Maschinenbefehl!SCAS\emph{x}}
+\end{figure}
+
+\begin{figure}[ht]
+\begin{AsmCodeListing}[frame=single, numbers=left, commandchars=\\\{\}]
+ segment .bss
+ array resd  100
+
+ segment .text
+      cld
+      mov    edi, array       ; Zeiger zum Anfang des Arrays
+      mov    ecx, 100         ; Anzahl Elemente
+      mov    eax, 12          ; zu suchende Zahl
+ lp:
+      scasd                                                     \label{line:scasdSrchStrEx}
+      je     found
+      loop   lp
+      ; Code auszuf\"{u}hren, wenn nicht gefunden
+      jmp    onward
+ found:
+      sub    edi, 4           ; edi zeigt nun zur 12 im Array   \label{line:subSrchStrEx}
+      ; Code auszuf\"{u}hren, wenn gefunden
+ onward:
+\end{AsmCodeListing}
+\caption{Suchbeispiel \label{fig:srchStrEx}}
+\end{figure}
+
+\subsection{Vergleichende Stringbefehle}
+
+Abbildung~\ref{fig:cmpString} zeigt verschiedene neue Stringbefehle,
+die verwendet werden k\"{o}nnen, um Speicher mit anderem Speicher oder
+einem Register zu vergleichen. Sie sind n\"{u}tzlich, um Arrays zu
+vergleichen oder zu durchsuchen. Sie setzen das FLAGS Register
+genauso wie der {\code CMP} Befehl. Die {\code CMPS\emph{x}} Befehle
+vergleichen entsprechende Speicherstellen und die {\code
+SCAS\emph{x}} \index{Maschinenbefehl!SCAS\emph{x}} suchen
+Speicherstellen nach einem bestimmten Wert ab.
+
+Abbildung~\ref{fig:srchStrEx} zeigt ein kurzes Codefragment, das die
+Zahl 12 in einem Doppelwortarray sucht. Der {\code SCASD} Befehl in
+Zeile~\ref{line:scasdSrchStrEx} addiert immer 4 zu EDI, sogar wenn
+der gesuchte Wert gefunden wurde. Folglich, wenn man w\"{u}nscht, die
+Adresse der im Array gefundenen 12 zu erhalten, ist es notwendig, 4
+von EDI \index{Register!EDI, ESI} abzuziehen (wie in
+Zeile~\ref{line:subSrchStrEx} getan).
+
+\begin{figure}[ht]
+\centering
+\begin{tabular}{|l|p{4in}|}
+ \hline
+ {\code REPE}, {\code REPZ} & wiederhole Befehl solange ZF gesetzt ist,
+        aber h\"{o}chstens ECX mal \\
+ \hline
+ {\code REPNE}, {\code REPNZ} & wiederhole Befehl solange ZF gel\"{o}scht ist,
+        aber h\"{o}chstens ECX mal \\
+ \hline
+\end{tabular}
+\caption{Die {\code REP\emph{x}} Befehls-Pr\"{a}fixe \label{fig:repx}
+          \index{Maschinenbefehl!REPE/REPZ}
+          \index{Maschinenbefehl!REPNE/REPNZ}}
+\end{figure}
+
+\begin{figure}[ht]
+\begin{AsmCodeListing}[frame=single, numbers=left, commandchars=\\\{\}]
+ segment .text
+      cld
+      mov    esi, block1      ; Adresse des ersten Blocks
+      mov    edi, block2      ; Adresse des zweiten Blocks
+      mov    ecx, size        ; Gr\"{o}{\ss}e der Bl\"{o}cke in Byte
+      repe   cmpsb            ; wiederhole, solange ZF gesetzt
+      je     equal            ; Bl\"{o}cke sind gleich, wenn ZF = 1 \label{line:cmpBlocksEx}
+      ; Code ausf\"{u}hren, wenn Bl\"{o}cke nicht gleich sind
+      jmp    onward
+ equal:
+      ; Code ausf\"{u}hren, wenn gleich
+ onward:
+\end{AsmCodeListing}
+\caption{Speicherbl\"{o}cke vergleichen \label{fig:cmpBlocksEx}}
+\end{figure}
+
+\subsection{Die {\code REP\emph{x}} Befehlspr\"{a}fixe}
+
+Es gibt verschiedene andere {\code REP}-\"{a}hnliche Befehlspr\"{a}fixe, die
+mit den vergleichenden Stringbefehlen verwendet werden k\"{o}nnen.
+Abbildung~\ref{fig:repx} zeigt die beiden neuen Pr\"{a}fixe und
+beschreibt ihre Operationen. {\code REPE}
+\index{Maschinenbefehl!REPE/REPZ} und {\code REPZ} sind nur
+Sy"-nonyme f\"{u}r dasselbe Pr\"{a}fix (so wie {\code REPNE}
+\index{Maschinenbefehl!REPNE/REPNZ} und {\code REPNZ}). Wenn der
+wiederholte vergleichende Stringbefehl auf Grund des Vergleichs
+stoppt, wird das oder die Indexregister noch erh\"{o}ht und ECX
+vermindert; jedoch h\"{a}lt das FLAGS Register noch den Zustand, der die
+Wiederholung beendete. \MarginNote{Warum kann man nicht einfach
+nachsehen, ob ECX nach dem wiederholten Vergleich Null ist?} So ist
+es m\"{o}glich, das Z Flag zu benutzen, um festzustellen, ob die
+wiederholten Vergleiche auf Grund eines Vergleichs oder weil ECX
+Null wurde, beendet wurden.
+
+Abbildung~\ref{fig:cmpBlocksEx} zeigt als Beispiel ein Codefragment,
+das bestimmt, ob zwei Speicherbl\"{o}cke gleich sind. Das {\code JE} in
+Zeile~\ref{line:cmpBlocksEx} des Beispiels testet, um das Ergebnis
+des vorangehenden Befehls zu sehen. Wenn der wiederholte Vergleich
+anhielt, da er zwei ungleiche Bytes fand, wird das Z Flag immer noch
+gel\"{o}scht sein und es wird kein Sprung durchgef\"{u}hrt; wenn die
+Vergleiche jedoch anhielten, weil ECX Null wurde, wird das Z Flag
+immer noch gesetzt sein und der Code verzweigt zum {\code equal}
+Label.
+
+\subsection{Beispiel}
+
+Dieser Abschnitt enth\"{a}lt eine Assembler Quelldatei mit mehreren
+Funktionen, die Arrayoperationen mit den Stringbefehlen ausf\"{u}hren.
+Viele der Funktionen duplizieren bekannte C Bibliotheksfunktionen.
+\pagebreak
+\index{memory.asm|(}
+\begin{AsmCodeListing}[label=memory.asm, numbers=left, commandchars=\\\{\}]
+ global _asm_copy, _asm_find, _asm_strlen, _asm_strcpy
+
+ segment .text
+ ; Funktion _asm_copy
+ ; kopiert einen Speicherblock
+ ; C Prototyp:
+ ; void asm_copy( void *dest, const void *src, unsigned sz );
+ ; Parameter:
+ ;   dest - Zeiger zum Ziel-Puffer
+ ;   src  - Zeiger zum Quell-Puffer
+ ;   sz   - Anzahl der zu kopierenden Bytes
+
+ ; als n\"{a}chstes werden einige hilfreiche Symbole definiert
+
+ %define dest [ebp+8]
+ %define src  [ebp+12]
+ %define sz   [ebp+16]
+ _asm_copy:
+         enter   0, 0
+         push    esi
+         push    edi
+
+         mov     esi, src        ; esi = Adresse des Quell-Puffers
+         mov     edi, dest       ; edi = Adresse des Ziel-Puffers
+         mov     ecx, sz         ; ecx = Anzahl zu kopierender Bytes
+
+         cld                     ; l\"{o}sche Richtungsflag
+         rep     movsb           ; f\"{u}hre movsb ECX mal aus
+
+         pop     edi
+         pop     esi
+         leave
+         ret
+
+
+ ; Funktion _asm_find
+ ; durchsucht Speicher nach einem gegebenen Byte
+ ; void *asm_find( const void *src, char target, unsigned sz );
+ ; Parameter:
+ ;   src    - Zeiger zum zu durchsuchenden Puffer
+ ;   target - zu suchender Bytewert
+ ;   sz     - Anzahl der Bytes im Puffer
+ ; R\"{u}ckgabewert:
+ ;   wenn target gefunden wird, wird der Zeiger zum ersten Auftreten
+ ;     von target im Puffer zur\"{u}ckgegeben
+ ;   sonst
+ ;     wird NULL zur\"{u}ckgegeben
+ ; Hinweis: target ist ein Bytewert, wird aber als Doppelwort auf den Stack geschoben.
+ ;          Der Bytewert wird in den niederen 8 Bits gespeichert.
+ ;
+ ^\pagebreak[4]  ^% here are not two empty lines !!! \pagebreak needs one, the comment the other
+ ^\pagebreak will not work here, an (additional!!!) empty line  forces the page to break
+
+
+ %define src    [ebp+8]
+ %define target [ebp+12]
+ %define sz     [ebp+16]
+
+ _asm_find:
+         enter   0, 0
+         push    edi
+
+         mov     eax, target     ; zu suchender Wert in al
+         mov     edi, src
+         mov     ecx, sz
+         cld
+
+         repne   scasb           ; scan bis ECX == 0 oder [ES:EDI] == AL
+
+         je      found_it        ; wenn ZF gesetzt, wurde Wert gefunden
+         mov     eax, 0          ; wenn nicht gefunden, gebe NULL zur\"{u}ck
+         jmp     short quit
+ found_it:
+         mov     eax, edi
+         dec     eax             ; wenn gefunden, gebe (EDI - 1) zur\"{u}ck
+ quit:
+         pop     edi
+         leave
+         ret
+
+ ; Funktion _asm_strlen
+ ; liefert die Gr\"{o}{\ss}e eines Strings
+ ; unsigned asm_strlen( const char * );
+ ; Parameter:
+ ;   src - Zeiger zum String
+ ; R\"{u}ckgabewert:
+ ;   Anzahl Zeichen im String (ohne 0 am Ende) (in EAX)
+
+ %define src [ebp+8]
+ _asm_strlen:
+         enter   0, 0
+         push    edi
+
+         mov     edi, src        ; edi = Zeiger zum String
+         mov     ecx, 0FFFFFFFFh ; benutze gr\"{o}{\ss}tm\"{o}gliches ECX
+         xor     al, al          ; al = 0
+         cld
+
+         repnz   scasb           ; durchsuche nach 0 Terminator
+\enlargethispage{\baselineskip} ^% will  n o t  work!!!!! <<<<<<<<<<<<<<<<<<<<<
+^% here is not an empty line, this damned comment needs one to gobble <<<<<<<<<
+
+ ;
+ ; repnz geht einen Schritt zu weit, deshalb ist L\"{a}nge FFFFFFFE - ECX,
+ ; nicht FFFFFFFF - ECX
+ ;
+         mov     eax, 0FFFFFFFEh
+         sub     eax, ecx        ; length = 0FFFFFFFEh - ecx
+
+         pop     edi
+         leave
+         ret
+
+ ; Funktion _asm_strcpy
+ ; kopiert einen String
+ ; void asm_strcpy( char *dest, const char *src );
+ ; Parameter:
+ ;   dest - Zeiger zum Ziel-String
+ ;   src  - Zeiger zum Quell-String
+ ;
+ %define dest [ebp+8]
+ %define src  [ebp+12]
+ _asm_strcpy:
+         enter   0, 0
+         push    esi
+         push    edi
+
+         mov     edi, dest
+         mov     esi, src
+         cld
+ cpy_loop:
+         lodsb                   ; lade AL & inc ESI
+         stosb                   ; speichere AL & inc EDI
+         or      al, al          ; setze Bedingungsflags
+         jnz     cpy_loop        ; wenn nicht hinter 0 Terminator, weiter
+
+         pop     edi
+         pop     esi
+         leave
+         ret
+\end{AsmCodeListing}
+
+\LabelLine{memex.c}
+\begin{lstlisting}[numbers=left, escapeinside={@}{@}]{}
+ #include <stdio.h>
+
+ #define STR_SIZE 30
+ /* Prototypen */
+
+ void asm_copy( void *, const void *, unsigned ) __attribute__((cdecl));
+ void *asm_find( const void *,
+                 char target, unsigned ) __attribute__((cdecl));
+ unsigned asm_strlen( const char * ) __attribute__((cdecl));
+ void asm_strcpy( char *, const char * ) __attribute__((cdecl));
+@\pagebreak@
+ int main()
+ {
+   char st1[STR_SIZE] = "test string";
+   char st2[STR_SIZE];
+   char *st;
+   char  ch;
+
+   asm_copy(st2, st1, STR_SIZE); /* kopiere alle 30 Zeichen des Strings */
+   printf("%s\n", st2);
+
+   printf("Enter a char: "); /* suche nach Byte im String */
+   scanf("%c%*[^\n]", &ch);
+   st = asm_find(st2, ch, STR_SIZE);
+   if ( st )
+     printf("Found it: %s\n", st);
+   else
+     printf("Not found\n");
+
+   st1[0] = 0;
+   printf("Enter string:");
+   scanf("%s", st1);
+   printf("len = %u\n", asm_strlen(st1));
+
+   asm_strcpy(st2, st1); /* kopiere nur bedeutungsvolle Daten im String */
+   printf("%s\n", st2);
+
+   return 0;
+ }
+\end{lstlisting}
+\LabelLine{memex.c}
+\index{memory.asm|)}
+\index{String Befehle|)}
+\index{Arrays|)}

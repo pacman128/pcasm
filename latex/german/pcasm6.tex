@@ -1,0 +1,1332 @@
+% -*-latex-*-
+\chapter[Flie{\ss}punkt]{Flie{\ss}punkt\footnote{Im Deutschen ist das
+Dezimaltrennzeichen das Komma. Programmiersprachen verwenden den im
+Englischen \"{u}blichen Dezimalpunkt. Um den Text mit den Beispielen und
+Programmen konsistent zu halten, ist vom Flie{\ss}punkt statt dem
+Flie{\ss}komma die Rede und wird der Punkt als Trennzeichen verwendet.
+[Anm.\ d.\ \"{U}\@.]}} \index{Flie{\ss}punkt|(}
+
+\section{Flie{\ss}punkt-Darstellung} \index{Flie{\ss}punkt!Darstellung|(}
+
+\subsection{Nicht-ganzzahlige bin\"{a}re Zahlen}
+
+Als im ersten Kapitel Zahlensysteme besprochen wurden, wurden nur
+ganzzahlige Werte betrachtet. Offensichtlich muss es m\"{o}glich sein,
+nicht-ganzzahlige Zahlen genauso in anderen Basen zu repr\"{a}sentieren
+wie in dezimal. In dezimal haben Ziffern rechts vom Dezimalpunkt
+zugeordnete negative Potenzen von Zehn:
+\[ 0.123 = 1 \times 10^{-1} + 2 \times 10^{-2} + 3 \times 10^{-3} \]
+
+Nicht \"{u}berraschend, funktionieren bin\"{a}re Zahlen \"{a}hnlich:
+\[ 0.101_2 = 1 \times 2^{-1} + 0 \times 2^{-2} + 1 \times 2^{-3} = 0.625 \]
+Diese Idee kann mit den ganzzahligen Methoden aus Kapitel~1
+kombiniert werden, um eine allgemeine Zahl zu konvertieren:
+\[ 110.011_2 = 4 + 2 + 0.25 + 0.125 = 6.375 \]
+
+Die Umwandlung von dezimal nach bin\"{a}r ist ebenfalls nicht sehr
+schwierig. Im Allgemeinen wird die dezimale Zahl in zwei Teile
+geteilt: Ganzzahl und Bruchteil. Den ganzzahligen Teil konvertiert
+man nach bin\"{a}r unter Verwendung der Methoden aus
+Kapitel~\ref{sec:intro}. Der gebrochene Anteil wird unter Verwendung
+der unten beschriebenen Methode umgewandelt.
+
+\begin{figure}[t]
+\centering
+\fbox{
+\begin{tabular}{p{2in}p{2in}}
+\begin{eqnarray*}
+ 0.5625 \times 2 & = & 1.125 \\
+ 0.125 \times 2 & = & 0.25 \\
+ 0.25 \times 2 & = & 0.5 \\
+ 0.5 \times 2 & = & 1.0 \\
+\end{eqnarray*}
+&
+\begin{eqnarray*}
+ \mbox{erstes Bit} & = & 1 \\
+ \mbox{zweites Bit} & = & 0 \\
+ \mbox{drittes Bit} & = & 0 \\
+ \mbox{viertes Bit} & = & 1 \\
+\end{eqnarray*}
+\end{tabular}
+} \caption{Umwandlung von 0.5625 nach bin\"{a}r \label{fig:binConvert1}}
+\end{figure}
+
+Betrachten wir einen bin\"{a}ren Bruch mit den mit $a, b, c, \ldots$
+bezeichneten Bits. Die Zahl sieht in bin\"{a}r dann so aus:
+ \[ 0.abcde\ldots \]
+Multiplizieren wir die Zahl mit zwei. Die bin\"{a}re Darstellung der
+neuen Zahl wird sein:
+ \[ a.bcde\ldots \]
+Beachte, dass das erste Bit nun in der Einerstelle ist. Ersetzen wir
+$a$ durch $0$, bekommen wir:
+ \[ 0.bcde\ldots \]
+und multiplizieren wieder mit zwei und erhalten:
+ \[ b.cde\ldots \]
+Nun ist das zweite Bit ($b$) in der Einerstelle. Dieses Verfahren
+kann so lange wiederholt werden, bis so viele Bits wie ben\"{o}tigt,
+gefunden wurden. Abbildung~\ref{fig:binConvert1} zeigt ein
+wirkliches Beispiel, das 0.5625 ins Bin\"{a}re umwandelt. Die Methode
+h\"{a}lt an, wenn der Bruchteil Null geworden ist.
+
+\begin{figure}[th]
+\centering
+\fbox{\parbox{2in}{
+\begin{eqnarray*}
+ 0.85 \times 2 & = & 1.7 \\
+ 0.7 \times 2 & = &  1.4 \\
+ 0.4 \times 2 & = &  0.8 \\
+ 0.8 \times 2 & = &  1.6 \\
+ 0.6 \times 2 & = &  1.2 \\
+ 0.2 \times 2 & = &  0.4 \\
+ 0.4 \times 2 & = &  0.8 \\
+ 0.8 \times 2 & = &  1.6 \\
+\end{eqnarray*}
+}} \caption{Umwandlung von 0.85 nach bin\"{a}r \label{fig:binConvert2}}
+\end{figure}
+
+Als weiteres Beispiel betrachten wir die Konversion von 23.85 ins
+Bin\"{a}re. Es ist einfach, den ganzzahligen Teil umzuwandeln ($23 =
+10111_2$), aber was ist mit dem Bruchteil ($0.85$)?
+Abbildung~\ref{fig:binConvert2} zeigt den Anfang dieser Berechnung.
+Wenn man sich die Zahlen sorgf\"{a}ltig ansieht, wird eine unendliche
+Schleife gefunden! Das bedeutet, dass 0.85 eine periodische
+Bin\"{a}rzahl ist (im Gegensatz zu einer periodischen Dezimalzahl in
+Basis 10)\footnote{Es sollte nicht so \"{u}berraschen, dass eine Zahl in
+einer Basis periodisch ist, aber nicht in einer anderen. Denken wir
+an $\frac{1}{3}$, es ist periodisch im Dezimalen, aber im Tern\"{a}ren
+(Basis 3) w\"{u}rde es $0.1_3$ sein.}. Es ist ein Muster in den Zahlen
+der Berechnung. Sieht man auf das Muster, kann man erkennen, dass
+$0.85 = 0.11\overline{0110}_2$. Folglich ist $23.85 =
+10111.11\overline{0110}_2$.
+
+Eine wichtige Konsequenz aus der obigen Berechnung ist, dass 23.85
+unter Benutzung einer endlichen Anzahl von Bits bin\"{a}r nicht
+\emph{exakt} repr\"{a}sentiert werden kann. (Genauso wie $\frac{1}{3}$
+in dezimal nicht mit einer endlichen Anzahl von Ziffern dargestellt
+werden kann.) Wie dieses Kapitel zeigt, werden in C {\code float}
+und {\code double} Variable bin\"{a}r gespeichert. Folglich k\"{o}nnen Werte
+wie 23.85 nicht exakt in diesen Variablen gespeichert werden. Nur
+eine N\"{a}herung von 23.85 kann gespeichert werden.
+
+Um die Hardware zu vereinfachen, werden Flie{\ss}punktzahlen in einem
+konsistenten Format gespeichert. Dieses Format benutzt die
+wissenschaftliche Notation (aber in bin\"{a}r, unter Verwendung der
+Potenzen von zwei, nicht zehn). Zum Beispiel w\"{u}rde 23.85 oder
+$10111.11011001100110\ldots_2$ so gespeichert werden:
+\[ 1.011111011001100110\ldots \times 2^{100} \]
+(wobei der Exponent (100) in bin\"{a}r ist). Eine \emph{normalisierte}
+Flie{\ss}punktzahl hat die Form:
+\[ 1.ssssssssssssssss \times 2^{eeeeeeee} \]
+wobei $1.ssssssssssssssss$ die \emph{Signifikante} und $eeeeeeee$
+der \emph{Exponent} ist.
+
+\subsection{IEEE Flie{\ss}punkt Repr\"{a}sentation} \index{Flie{\ss}punkt!Darstellung!IEEE|(}
+%extra-char {\ss} or formatting e.g. \emph{cc} needs the index-def outside the subsection <<<<<<<<<<<<
+
+Die IEEE (Institute of Electrical and Electronic Engineers) ist eine
+internationale Organisation, die spezifische bin\"{a}re Formate
+geschaffen hat, um Flie{\ss}punktzahlen zu speichern. Dieses Format wird
+auf den meisten (aber nicht allen!) Computern verwendet, die heute
+gefertigt werden. Oft wird sie durch die Hardware des Computers
+selbst unterst\"{u}tzt. Zum Beispiel benutzen es die numerischen (oder
+mathematischen) Coprozessoren von Intel (die in allen CPUs seit dem
+Pentium eingebaut sind). Die IEEE definiert zwei verschiedene
+Formate mit unterschiedlichen Genauigkeiten: einfache und doppelte
+Genauigkeit. Einfache Genauigkeit wird in C f\"{u}r {\code float}
+Variable benutzt und doppelte Genauigkeit wird f\"{u}r {\code double}
+Variable benutzt.
+
+Intels mathematischer Coprozessor verwendet dar\"{u}ber hinaus eine
+dritte, h\"{o}here Genauigkeit, \emph{extended precision} genannt.
+Tats\"{a}chlich sind alle Daten im Coprozessor selbst in dieser
+Genauigkeit. Wenn sie vom Coprozessor in den Speicher \"{u}bertragen
+werden, werden sie automatisch entweder in die einfache oder
+doppelte Genauigkeit umgewandelt.\footnote{Die {\code long double}
+Typen einiger Compiler (wie Borland) \index{Compiler!Borland}
+verwenden diese erh\"{o}hte Genauigkeit. Jedoch benutzen andere Compiler
+die doppelte Genauigkeit sowohl f\"{u}r {\code double} wie auch f\"{u}r
+{\code long double}. (Das ist in ANSI C zul\"{a}ssig.)} Extended
+precision verwendet ein gegen\"{u}ber den IEEE Float- und
+Double-Formaten leicht unterschiedliches allgemeines Format und wird
+daher hier nicht besprochen.
+
+\subsubsection{IEEE Zahlen einfacher Genauigkeit} \index{Flie{\ss}punkt!Darstellung!single
+precision|(}
+
+\begin{figure}[t]
+\fbox{
+\centering
+%\parbox{5in}{ % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+\parbox{118mm}{
+\begin{tabular}{|c|c|c|}
+ \multicolumn{1}{p{0.3cm}}{31} &
+ \multicolumn{1}{p{2.5cm}}{30 \hfill 23} &
+ \multicolumn{1}{p{6cm}}{22 \hfill 0} \\
+ \hline
+ s & e & f \\
+ \hline
+\end{tabular}
+\\[0.4cm]
+%\begin{tabular}{cp{4.5in}} % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+\begin{tabular}{cp{106.3mm}}
+ s & Vorzeichenbit - 0 = positiv, 1 = negativ \\
+ e & biased Exponent (8 Bits) = wahrer Exponent + 7F (127 dezimal).
+  Die Werte 00 und FF haben eine spezielle Bedeutung (siehe Text). \\
+ f & Bruchteil - die ersten 23 Bits nach dem 1.\ in der Signifikanten.
+\end{tabular}
+}} \caption{IEEE single precision Format \label{fig:IEEEsingle}}
+\end{figure}
+
+Flie{\ss}punkt einfache Genauigkeit verwendet 32 Bits um die Zahlen zu
+kodieren. Es ist gew\"{o}hnlich auf 7 signifikante dezimale Ziffern
+genau. Flie{\ss}punktzahlen werden in einem sehr viel komplizierteren
+Format gespeichert als Ganzzahlen. Abbildung~\ref{fig:IEEEsingle}
+zeigt das grundlegende Format einer IEEE Zahl einfacher Genauigkeit.
+Es gibt mehrere Eigenarten bei diesem Format. Flie{\ss}punktzahlen
+benutzen f\"{u}r negative Zahlen keine Repr\"{a}sentation im
+Zweierkomplement. Sie benutzen eine signed magnitude Repr\"{a}sentation.
+Bit 31 bestimmt das Vorzeichen der Zahl wie angegeben.
+
+Der bin\"{a}re Exponent wird nicht direkt gespeichert. Stattdessen wird
+die Summe des Exponenten und 7F in Bits 23 bis 30 gespeichert.
+Dieser \emph{biased exponent} \index{Flie{\ss}punkt!Darstellung!biased
+exponent} ist stets nicht-negativ.
+
+Der gebrochene Anteil setzt eine normalisierte Signifikante (in der
+Form $1.ssssssssssssssss$) voraus. Da das erste Bit immer gesetzt
+ist, wird die f\"{u}hrende Eins \emph{nicht gespeichert!} Dies
+erm\"{o}glicht die Speicherung eines zus\"{a}tzlichen Bits am Ende und
+erh\"{o}ht so geringf\"{u}gig die Genauigkeit. Diese Idee ist bekannt als
+die \emph{hidden one representation}.
+\index{Flie{\ss}punkt!Darstellung!hidden one}
+
+Wie w\"{u}rde 23.85 gespeichert werden? Zuerst ist es positiv, deshalb
+ist das Vorzeichenbit 0. Als n\"{a}chstes ist der wahre Exponent 4,
+sodass der biased Exponent $7\mathrm{F} + 4 = 83_{16}$ ist.
+Schlie{\ss}lich ist der gebrochene Anteil
+011""1110""1100""1100""1100""1100 (denken wir daran, dass die
+f\"{u}hrende Eins verborgen ist). Indem wir das alles zusammenf\"{u}gen (zur
+Hilfe f\"{u}r die Erkennung der verschiedenen Abschnitte des
+Flie{\ss}punktformats wurden das Vorzeichenbit und der gebrochene Anteil
+unterstrichen und die Bits wurden in 4-bit Nibbles gruppiert):
+ \[ \underline{0}\,100\;0001\;1
+     \,\underline{011\;1110\;1100\;1100\;1100\;1100}_2 = 41 \mathrm{BE}
+ \mathrm{CC} \mathrm{CC}_{16} \]
+Das ist nicht exakt 23.85 (da es ein periodischer Bin\"{a}rbruch ist).
+Wenn man das Obige zur\"{u}ck nach dezimal konvertiert, wird man finden,
+dass es ungef\"{a}hr 23.849998474 ist. Diese Zahl ist sehr nahe an
+23.85, aber es ist es nicht genau. \MarginNote{Man sollte immer im
+Ged\"{a}chtnis behalten, dass die Bytes 41\,BE\,CC\,CD auf verschiedene
+Arten interpretiert werden k\"{o}nnen, in Abh\"{a}ngigkeit davon, was ein
+Programm mit ihnen macht! Als eine einfachgenaue Flie{\ss}punktzahl
+repr\"{a}sentieren sie 23.850000381, aber als ein Doppelwortinteger
+repr\"{a}sentieren sie 1\,103\,023\,309! Die CPU wei{\ss} nicht, welches die
+richtige Interpretation ist!} In Wirklichkeit w\"{u}rde 23.85 in C nicht
+genau wie gezeigt repr\"{a}sentiert werden. Da das am weitesten links
+stehende Bit, das von der exakten Repr\"{a}sentation abgeschnitten
+wurde, 1 ist, wird das letzte Bit auf 1 aufgerundet. Deshalb w\"{u}rde
+23.85 als 41\,BE\,CC\,CD in hex in einfacher Genauigkeit
+repr\"{a}sentiert werden. Dies nach dezimal gewandelt, gibt
+23.850000381, das eine geringf\"{u}gig bessere Approximation von 23.85
+ist.
+
+Wie w\"{u}rde $-23.85$ repr\"{a}sentiert? Nur das Vorzeichenbit \"{a}ndern:
+C1\,BE\,\linebreak[1]CC\,CD\@. \emph{Nicht} das Zweierkomplement
+nehmen!
+
+\begin{table}[t]
+\fbox{
+\begin{tabular}{lp{3.1in}}
+$e=0 \quad\mathrm{und}\quad f=0$ & bezeichnet die Zahl Null (die
+nicht normalisiert werden kann). Beachte, dass es eine $+0$ und $-0$
+gibt. \\
+$e=0 \quad\mathrm{und}\quad f \neq 0$ & bezeichnet eine
+\emph{denormalisierte Zahl}. Diese werden im n\"{a}chsten Abschnitt
+besprochen. \\
+$e=\mathrm{FF} \quad\mathrm{und}\quad f=0$ & bezeichnet unendlich
+($\infty$). Es gibt beides, positives und negatives Unendlich. \\
+$e=\mathrm{FF} \quad\mathrm{und}\quad f\neq 0$ & bezeichnet ein
+undefiniertes Ergebnis, als \emph{NaN} (Not a Number) bekannt.
+\end{tabular}
+} \caption{Spezielle Werte von \emph{f} und \emph{e}
+\label{tab:floatSpecials}}
+\end{table}
+
+Bestimmte Kombinationen von \emph{e} und \emph{f} haben spezielle
+Bedeutungen f\"{u}r IEEE Floats. Tabelle~\ref{tab:floatSpecials}
+beschreibt diese speziellen Werte. Unendlich wird durch einen
+\"{U}berlauf oder einer Division durch Null produziert. Ein
+undefiniertes Ergebnis wird produziert durch eine ung\"{u}ltige
+Operation, wie dem Versuch, die Quadratwurzel aus einer negativen
+Zahl zu ziehen, zwei Unendliche zu addieren, usw.
+
+Normalisierte Zahlen einfacher Genauigkeit reichen in ihrer Gr\"{o}{\ss}e
+von $1.0 \times 2^{-126}$ ($\approx 1.1755 \times 10^{-38}$) bis
+$1.11111\ldots \times 2^{127}$ ($\approx 3.4028 \times 10^{38}$).
+
+\subsubsection{Denormalisierte Zahlen}
+\index{Flie{\ss}punkt!Darstellung!denormalized|(}
+
+Denormalisierte Zahlen k\"{o}nnen mit Betr\"{a}gen verwendet werden, die zu
+klein sind, um normalisiert zu werden (d.\,h.\ unter $1.0 \times
+2^{-126}$). Betrachten wir zum Beispiel die Zahl $1.001_2 \times
+2^{-129}$ ($\approx 1.6530 \times 10^{-39}$). In der gegebenen
+normalisierten Form ist der Exponent zu klein. Jedoch kann sie in
+der unnormalisierten Form repr\"{a}sentiert werden: $0.01001_2 \times
+2^{-127}$. Um diese Zahl zu speichern, wird der biased Exponent auf
+0 gesetzt (siehe Tabelle~\ref{tab:floatSpecials}) und der Bruchteil
+ist die vollst\"{a}ndige Signifikante der Zahl, geschrieben als ein
+Produkt mit $2^{-127}$ (d.\,h.\ alle Bits werden gespeichert,
+einschlie{\ss}lich der Eins links des Dezimalpunkts). Die Repr\"{a}sentation
+von $1.001 \times 2^{-129}$ ist dann:
+\[ \underline{0}\,000\;0000\;0
+   \,\underline{001\;0010\;0000\;0000\;0000\;0000} \]
+\index{Flie{\ss}punkt!Darstellung!denormalized|)}
+\index{Flie{\ss}punkt!Darstellung!single precision|)}
+
+
+\subsubsection{IEEE Zahlen doppelter Genauigkeit} \index{Flie{\ss}punkt!Darstellung!double
+precision|(}
+
+IEEE doppelte Genauigkeit verwendet 64 Bits um Zahlen darzustellen
+und ist gew\"{o}hnlich bis auf ungef\"{a}hr 15 signifikante Dezimalstellen
+genau. Wie Abbildung~\ref{fig:IEEEdouble} zeigt, ist das
+grundlegende Format sehr \"{a}hnlich dem der einfachen Genauigkeit. Es
+werden mehr Bits f\"{u}r den biased Exponent (11) und den Bruchteil (52)
+verwendet als bei einfacher Genauigkeit.
+
+\begin{figure}[ht]
+\centering
+\begin{tabular}{|c|c|c|}
+ \multicolumn{1}{p{0.3cm}}{63} &
+ \multicolumn{1}{p{3cm}}{62 \hfill 52} &
+ \multicolumn{1}{p{7cm}}{51 \hfill 0} \\
+ \hline
+ s & e & f \\
+ \hline
+\end{tabular}
+\caption{IEEE double precision Format \label{fig:IEEEdouble}}
+\end{figure}
+
+Der gr\"{o}{\ss}ere Bereich f\"{u}r den biased Exponent hat zwei Konsequenzen.
+Die erste ist, dass er als Summe des wahren Exponenten und 3FF
+(1023) berechnet wird (nicht 7F wie bei einfacher Genauigkeit).
+Zweitens ist ein gro{\ss}er Bereich von wahren Exponenten (und daher ein
+gr\"{o}{\ss}erer Gr\"{o}{\ss}enbereich) erlaubt. Gr\"{o}{\ss}en doppelter Genauigkeit
+reichen von etwa $2.2251 \times 10^{-308}$ bis $1.7977 \times
+10^{308}$.
+
+Es ist das gr\"{o}{\ss}ere Feld f\"{u}r den Bruchteil, das f\"{u}r das Anwachsen der
+Anzahl signifikanter Ziffern f\"{u}r Double-Werte verantwortlich ist.
+
+Als ein Beispiel betrachten wir wieder 23.85. Der biased Exponent
+wird $4 + \mathrm{3FF} = 403$ in hex sein. Folglich w\"{u}rde die Double
+Repr\"{a}sentation sein:
+%\[ \underline{0}\,100\;0000\;0011\;\underline{0111\;1101\;1001\;1001\;1001\;
+%  1001\;1001\;1001\;1001\;1001\;1001\;1001\;1010} \]
+\[ \underline{0}\,100\,0000\,0011\,\underline{0111\,1101\,1001\,1001\,1001\,
+   1001\,1001\,1001\,1001\,1001\,1001\,1001\,1010} \]
+oder 40~37~D9~99~99~99~99~9A in hex. Wenn man dies zur\"{u}ck nach
+dezimal konvertiert, findet man 23.8500000000000014 (es sind 12
+Nullen!), was eine viel bessere Approximation von 23.85 ist.
+
+Die doppelte Genauigkeit hat dieselben Spezialwerte wie bei
+einfacher Genauigkeit.\footnote{Der einzige Unterschied ist, dass
+f\"{u}r die Unendlich- und undefinierten Werte, der biased Exponent 7FF
+und nicht FF ist.} Denormalisierte Zahlen sind ebenfalls sehr
+\"{a}hnlich. Der einzige haupt\-s\"{a}ch\-li\-che Unterschied ist, dass
+unnormalisierte Double-Zahlen $2^{-1023}$ anstatt $2^{-127}$
+benutzen. \index{Flie{\ss}punkt!Darstellung!double precision|)}
+\index{Flie{\ss}punkt!Darstellung!IEEE|)}
+\index{Flie{\ss}punkt!Darstellung|)}
+
+\section{Flie{\ss}punkt-Arithmetik} \index{Flie{\ss}punkt!Arithmetik|(}
+
+Flie{\ss}punktarithmetik auf einem Computer unterscheidet sich von der
+kontinuierlichen Mathematik. In der Mathematik k\"{o}nnen alle Zahlen
+als exakt betrachtet werden. Wie im vorhergehenden Abschnitt
+gezeigt, k\"{o}nnen auf einem Computer viele Zahlen, mit einer endlichen
+Anzahl von Bits, nicht exakt dargestellt werden. Alle Berechnungen
+werden mit einer begrenzten Genauigkeit durchgef\"{u}hrt. In den
+Beispielen dieses Abschnitts werden zur Einfachheit Zahlen mit einer
+8-bit Signifikanten benutzt.
+
+\subsection{Addition}
+Um zwei Flie{\ss}punktzahlen zu addieren, m\"{u}ssen die Exponenten gleich
+sein. Wenn sie nicht schon gleich sind, m\"{u}ssen sie gleich gemacht
+werden, indem die Signifikante der Zahl mit dem kleineren Exponenten
+verschoben wird. Betrachten wir als Beispiel $10.375 + 6.34375 =
+16.71875$ oder in bin\"{a}r:
+\[
+\begin{array}{rr}
+  & 1.0100110 \times 2^3 \\
+ +& 1.1001011 \times 2^2 \\ \hline
+\end{array}
+\]
+Diese beiden Zahlen haben keine gleichen Exponenten, so verschieben
+wir die Signifikante um die Exponenten gleich zu machen und addieren
+dann:
+\[
+\begin{array}{rr@{.}l}
+  &  1&0100110 \times 2^3 \\
+ +&  0&1100110 \times 2^3 \\ \hline
+  & 10&0001100 \times 2^3
+\end{array}
+\]
+Beachte, dass das Verschieben von $1.1001011 \times 2^2$ die
+niederwertigste Eins wegfallen l\"{a}sst und nach der Rundung $0.1100110
+\times 2^3$ gibt. Das Ergebnis der Addition, $10.0001100 \times 2^3$
+(oder $1.00001100 \times 2^4$) ist gleich $10000.110_2$ oder 16.75.
+Das ist \emph{nicht} gleich der exakten Antwort (16.71875)! Es ist
+nur eine N\"{a}herung, hervorgerufen durch die Rundungsfehler des
+Additionsprozesses.
+
+Es ist wichtig, sich klar zu machen, dass Flie{\ss}punktarithmetik auf
+einem Computer (oder sonstigem Rechner) immer eine N\"{a}herung ist. Die
+Gesetze der Mathematik gelten mit Flie{\ss}punktzahlen auf einem
+Computer nicht immer. Die Mathematik setzt unendliche Genauigkeit
+voraus, der kein Computer entsprechen kann. Zum Beispiel lehrt die
+Mathematik, dass $(a + b) - b = a$ ist, jedoch muss das auf einem
+Computer nicht unbedingt exakt gelten!
+
+\subsection{Subtraktion}
+Subtraktion arbeitet sehr \"{a}hnlich und hat die gleichen Probleme wie
+die Addition. Als ein Beispiel betrachten wir $16.75 - 15.9375 =
+0.8125$:
+\[
+\begin{array}{rr}
+  & 1.0000110 \times 2^4 \\
+ -& 1.1111111 \times 2^3 \\ \hline
+\end{array}
+\]
+Verschieben von $1.1111111 \times 2^3$ gibt (mit aufrunden)
+$1.0000000 \times 2^4$
+\[
+\begin{array}{rr}
+  & 1.0000110 \times 2^4 \\
+ -& 1.0000000 \times 2^4 \\ \hline
+  & 0.0000110 \times 2^4
+\end{array}
+\]
+$0.0000110 \times 2^4 = 0.11_2 = 0.75$, das nicht exakt richtig ist.
+
+\subsection{Multiplikation und Division}
+
+Zur Multiplikation werden die Signifikanten multipliziert und die
+Exponenten werden addiert. Betrachten wir $10.375 \times 2.5 =
+25.9375$:
+\[
+\begin{array}{rr@{}l}
+  &  1.0&100110 \times 2^3 \\
+ \times &  1.0&100000 \times 2^1 \\ \hline
+  &     &10100110 \\
+ +&   10&100110   \\ \hline
+  &   1.1&0011111000000 \times 2^4
+\end{array}
+\]
+Nat\"{u}rlich w\"{u}rde das wirkliche Ergebnis auf 8 Bits gerundet werden um
+zu geben:
+\[1.1010000 \times 2^4 = 11010.000_2 = 26 \]
+
+Division ist komplizierter, hat aber \"{a}hnliche Problemen mit
+Rundungsfehlern.
+
+\subsection{Ableger f\"{u}r die Programmierung}
+
+Der Hauptpunkt dieses Abschnitts ist, dass Flie{\ss}punktrechnungen
+nicht exakt sind. Dem Programmierer muss dies bewusst sein. Ein
+verbreiteter Irrtum, den Programmierer mit Flie{\ss}punktzahlen machen,
+ist, sie unter der Annahme zu vergleichen, dass eine Berechnung
+exakt sei. Betrachten wir zum Beispiel eine Funktion
+\lstinline|f(x)|, die eine komplexe Berechnung durchf\"{u}hrt und ein
+Programm, das versucht, die Wurzeln der Funktion zu
+finden.\footnote{Eine Wurzel einer Funktion ist ein Wert $x$,
+derart, dass $f(x) = 0$ ist. [Nullstelle; Anm.\ d.\ \"{U}\@.]} Man
+k\"{o}nnte versucht sein, das folgende Statement zu verwenden, um zu
+testen, ob \lstinline|x| eine Wurzel ist:
+\begin{lstlisting}[stepnumber=0]{}
+  if ( f(x) == 0.0 )
+\end{lstlisting}
+Aber was ist, wenn \lstinline|f(x)| $1 \times 10^{-30}$ zur\"{u}ckgibt?
+Es ist sehr wahrscheinlich, dass dies bedeutet, dass \lstinline|x|
+eine \emph{sehr} gute N\"{a}herung einer wahren Wurzel ist; jedoch wird
+der Vergleich falsch liefern. Es mag f\"{u}r \lstinline|x| gar keinen
+IEEE Flie{\ss}punktwert geben, der genau Null zur\"{u}ckgibt, hervorgerufen
+durch die Rundungsfehler in \lstinline|f(x)|. \pagebreak[1]
+
+Eine viel bessere Methode w\"{u}rde:
+\begin{lstlisting}[stepnumber=0]{}
+  if ( fabs(f(x)) < EPS )
+\end{lstlisting}
+benutzen, wobei \lstinline|EPS| ein Makro ist, das als ein sehr
+kleiner positiver Wert (wie $1 \times 10^{-10}$) definiert ist. Dies
+ist wahr, sobald \lstinline|f(x)| sehr nahe Null ist. Im Allgemeinen
+benutzt man beim Vergleich eines Flie{\ss}punktwerts (sagen wir
+\lstinline|x|) mit einem anderen (\lstinline|y|):
+\begin{lstlisting}[stepnumber=0, escapeinside={@}{@}]{}
+  if ( fabs((x - y) / y) < EPS )
+@%  if ( fabs(x - y)/fabs(y) < EPS )@<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+\end{lstlisting}
+\index{Flie{\ss}punkt!Arithmetik|)}
+
+\section{Der numerische Coprozessor}
+\index{Coprozessor|(}
+\subsection{Hardware}
+\index{Coprozessor!Hardware|(} Die fr\"{u}hesten Intelprozessoren hatten
+keine Hardwareunterst\"{u}tzung f\"{u}r Flie{\ss}punktoperationen. Das bedeutet
+nicht, dass sie keine Flie{\ss}punktoperationen durchf\"{u}hren konnten. Es
+meint nur, dass sie von Prozeduren durchgef\"{u}hrt werden mussten, die
+aus vielen nicht-Flie{\ss}punktbefehlen zusammengesetzt waren. F\"{u}r diese
+fr\"{u}hen Systeme lieferte Intel einen zus\"{a}tzlichen Chip, der
+\emph{mathematischer Coprozessor} genannt wurde. Ein mathematischer
+Coprozessor hat Maschinenbefehle, die viele Flie{\ss}punktoperationen
+viel schneller ausf\"{u}hren als bei der Benutzung von
+Softwareprozeduren (auf fr\"{u}hen Prozessoren wenigstens 10 Mal
+schneller!). Der Coprozessor f\"{u}r die 8086/8088 wurde 8087 genannt.
+F\"{u}r die 80286 gab es einen 80287 und f\"{u}r die 80386 einen 80387. Der
+80486DX Prozessor integrierte den mathematischen Coprozessor in die
+80486 selbst.\footnote{Jedoch hatte die 80486SX \emph{keinen}
+integrierten Coprozessor. Es gab f\"{u}r diese Maschinen einen separaten
+80487SX Chip.} Seit dem Pentium haben alle Generationen von 80x86
+Prozessoren einen eingebauten mathematischen Coprozessor; er wird
+jedoch immer noch programmiert, als ob er eine getrennte Einheit
+w\"{a}re. Sogar fr\"{u}here Systeme ohne einen Coprozessor k\"{o}nnen Software
+installieren, die einen mathematischen Coprozessor emuliert. Diese
+Emulationspakete werden automatisch aktiviert, wenn ein Programm
+einen Coprozessorbefehl ausf\"{u}hrt und lassen eine Softwareprozedur
+laufen, die das gleiche Ergebnis liefert, wie es der Coprozessor
+getan h\"{a}tte (obwohl nat\"{u}rlich viel langsamer).
+
+Der numerische Coprozessor verf\"{u}gt \"{u}ber acht Flie{\ss}punktregister.
+Jedes Register enth\"{a}lt 80 Datenbits. Flie{\ss}punktzahlen werden
+\emph{immer} als 80-bit extended precision Zahlen in diesen
+Registern gespeichert. Die Register hei{\ss}en {\code ST0}, {\code ST1},
+{\code ST2}, $\ldots$, {\code ST7}. Die Flie{\ss}punktregister werden
+anders als die Integer-Register der Haupt-CPU benutzt. Die
+Flie{\ss}punktregister sind als \emph{Stack} organisiert. Rufen wir uns
+in Erinnerung, dass ein Stack eine \emph{Last-In First-Out} (LIFO)
+Liste ist. {\code ST0} bezieht sich immer auf den Wert an der Spitze
+des Stacks (TOS). \index{Top Of Stack, \emph{TOS}} Alle neuen Zahlen
+werden am TOS hinzugef\"{u}gt. Existierende Zahlen wandern in den Stack
+hinein, um Platz f\"{u}r die neue Zahl zu machen.
+
+Es gibt auch ein Statusregister im numerischen Coprozessor. Es
+enth\"{a}lt mehrere Flags. Es werden nur die 4 Flags, die f\"{u}r Vergleiche
+verwendet werden, besprochen: C$_0$, C$_1$, C$_2$ und C$_3$. Der
+Nutzen derselben wird sp\"{a}ter diskutiert.
+\index{Coprozessor!Hardware|)}
+
+\subsection{Befehle}
+
+Um es einfach zu machen, die normalen CPU Befehle, von denen des
+Coprozessors zu unterscheiden, beginnen alle Mnemonics des
+Coprozessors mit einem {\code F}.
+
+%\newlength{\colA} \setlength{\colA}{29mm} % this not smaller!...
+%\newlength{\colB} \setlength{\colB}{86mm} % ...else the layout suffers considerably
+\newlength{\colA} \setlength{\colA}{30mm} % to only move the separation between the two...
+\newlength{\colB} \setlength{\colB}{85mm} % ...columns, keep the sum of the widths the same
+\newlength{\tabsp} \setlength{\tabsp}{0.25em} %incease the spacing <<<<<<<<<<<<
+
+\subsubsection{Laden und Speichern\index{Coprozessor!Daten laden und speichern|(}}
+Es gibt mehrere Befehle, die Daten auf die Spitze des Coprozessor
+Registerstacks laden:\\[0.3em]
+\begin{tabular}{p{\colA} p{\colB}}
+{\code FLD \emph{source}} \index{Maschinenbefehl!FLD} & l\"{a}dt eine
+Flie{\ss}punktzahl vom Speicher auf den TOS\@. \emph{source} kann eine
+einfach, doppelt oder extended genaue Zahl oder ein
+Coprozessorregister sein. \\[\tabsp]
+
+{\code FILD \emph{source}} \index{Maschinenbefehl!FILD} & liest
+einen \emph{Integer} aus dem Speicher, konvertiert ihn zu Flie{\ss}punkt
+und speichert das Ergebnis auf dem TOS\@. \emph{source} kann
+entweder ein Wort, Doppelwort oder Quadwort sein. \\[\tabsp]
+
+{\code FLD1} \index{Maschinenbefehl!FLD1} & speichert eine Eins auf
+den TOS\@. \\[\tabsp]
+
+{\code FLDZ} \index{Maschinenbefehl!FLDZ} & speichert eine Null auf
+den TOS\@.
+\end{tabular}
+
+Es gibt auch mehrere Befehle, die Daten vom Stack in den Speicher
+schreiben. Einige dieser Befehle f\"{u}hren auch eine
+\emph{pop}-Operation aus, d.\,h.\ entfernen die Zahl vom Stack,
+w\"{a}hrend sie sie speichern.\\[0.3em]
+\begin{tabular}{p{\colA} p{\colB}}
+{\code FST \emph{dest}} \index{Maschinenbefehl!FST} & speichert den
+TOS ({\code ST0}) in den Speicher. \emph{dest} kann entweder eine
+einfach oder doppelt genaue Zahl oder ein Coprozessorregister sein.\\[\tabsp]
+
+{\code FSTP \emph{dest}} \index{Maschinenbefehl!FSTP} & speichert
+den TOS in den Speicher genau wie {\code FST}; jedoch wird der Wert,
+nachdem die Zahl gespeichert ist, vom Stack entfernt. \emph{dest}
+kann entweder eine einfach, doppelt oder extended genaue Zahl oder
+ein Coprozessorregister sein.\\[\tabsp]
+
+{code FIST \emph{dest}} \index{Maschinenbefehl!FIST} & speichert den
+Wert im TOS, zu einem Integer gewandelt, in den Speicher.
+\emph{dest} kann entweder ein Wort oder ein Doppelwort sein. Der
+Stack selbst bleibt unver\"{a}ndert. Wie die Flie{\ss}punktzahl in einen
+Integer gewandelt wird, h\"{a}ngt von einigen Bits im
+\emph{Kontrollwort} des Coprozessors ab. Dies ist ein spezielles
+(nicht-Flie{\ss}punkt) Wortregister, das kontrolliert, wie der
+Coprozessor arbeitet. In der Grundeinstellung ist das Kontrollwort
+so initialisiert, dass er bei der Umwandlung in Integer zum n\"{a}chsten
+Integer rundet. Jedoch k\"{o}nnen die Befehle {\code FSTCW} (Store
+Control Word) \index{Maschinenbefehl!FSTCW} und {\code FLDCW} (Load
+Control Word) \index{Maschinenbefehl!FLDCW} verwendet werden, um
+dieses Verhalten zu \"{a}ndern.\\[\tabsp]
+
+{\code FISTP \emph{dest}} \index{Maschinenbefehl!FISTP} & genau wie
+{\code FIST} mit Ausnahme zweier Dinge. Der Wert wird vom TOS
+entfernt und \emph{dest} kann auch ein Quadwort sein.
+\end{tabular}
+
+\pagebreak[4]
+
+Es gibt zwei weitere Befehle, die Daten auf dem Stack selbst bewegen
+oder entfernen k\"{o}nnen.\\[0.3em]
+\begin{tabular}{p{\colA} p{\colB}}
+{\code FXCH ST\emph{n}} \index{Maschinenbefehl!FXCH}  & vertauscht
+die Werte in {\code ST0} und {\code ST\emph{n}} auf dem Stack (wobei
+\emph{n} die Registernummer von 0 bis 7 ist). \\[\tabsp]
+
+{\code FFREE ST\emph{n}} \index{Maschinenbefehl!FFREE} & gibt ein
+Register auf dem Stack frei, indem das Register als unbenutzt oder
+leer gekennzeichnet wird.
+\end{tabular}
+\index{Coprozessor!Daten laden und speichern|)}
+
+\subsubsection{Addition und Subtraktion \index{Coprozessor!Addition und
+Subtraktion|(}}
+
+Jeder der Additionsbefehle berechnet die Summe von {\code ST0} und
+einem weiteren Operanden. Das Ergebnis wird immer in einem Register
+des Coprozessors gespeichert. \\[0.3em]
+\begin{tabular}{p{\colA} p{\colB}}
+{\code FADD \emph{src}} \index{Maschinenbefehl!FADD} & {\code ST0 +=
+\emph{src}}. \emph{src} kann jedes Coprozessorregister oder eine
+einfach oder doppelt genaue Zahl im Speicher sein. \\[\tabsp]
+
+{\code FADD \emph{dest}, ST0} & {\code \emph{dest} += ST0}.
+\emph{dest} kann jedes Coprozessorregister sein. \\[\tabsp]
+
+{\code FADDP \emph{dest}} oder \newline {\code FADDP \emph{dest},
+STO} \index{Maschinenbefehl!FADDP} & {\code \emph{dest} += ST0},
+dann wird der Wert vom TOS entfernt. \emph{dest} kann jedes
+Coprozessorregister sein. \\[\tabsp]
+
+{\code FIADD \emph{src}} \index{Maschinenbefehl!FIADD} & {\code ST0
++= (float)\,\emph{src}}. Addiert einen Integer zu {\code ST0}.
+\emph{src} muss ein Wort oder Doppelwort im Speicher sein.
+\end{tabular}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single, numbers=left, commandchars=\\\{\}]
+ segment .bss
+ array resq   SIZE
+ sum   resq   1
+
+ segment .text
+       mov    ecx, SIZE
+       mov    esi, array
+       fldz                   ; ST0 = 0
+ lp:
+       fadd   qword [esi]     ; ST0 += *(esi)               \label{line:addEx1}
+       add    esi, 8          ; gehe zum n\"{a}chsten Double
+       loop   lp
+       fstp   qword sum       ; speichere Ergebnis in sum   \label{line:addEx2}
+\end{AsmCodeListing}
+\caption{Beispiel einer Arraysummation \label{fig:addEx}}
+\end{figure}
+
+Es gibt doppelt so viele Subtraktionsbefehle wie Additionen, weil
+die Reihenfolge der Operanden bei der Subtraktion wichtig ist
+(d.\,h.\ $a + b = b + a$, aber $a - b \neq b - a$!). Zu jedem
+Befehle gibt es einen alternativen, der in der umgekehrten Anordnung
+subtrahiert. Diese umgekehrten Befehle enden alle entweder mit
+{\code R} oder {\code RP}. Abbildung~\ref{fig:addEx} zeigt ein
+kurzes Codefragment, das die Elemente eines Double-Arrays
+aufsummiert. In Zeilen~\ref{line:addEx1} und \ref{line:addEx2} muss
+man die Gr\"{o}{\ss}e des Speicheroperanden angeben. Andernfalls w\"{u}rde der
+Assembler nicht wissen, ob der Operand ein Float (Doppelwort) oder
+ein Double (Quadwort) ist.\\[0.3em]
+\begin{tabular}{p{\colA} p{\colB}}
+{\code FSUB \emph{src}} \index{Maschinenbefehl!FSUB} & {\code ST0 -=
+\emph{src}}. \emph{src} kann jedes Coprozessorregister oder eine
+einfach oder doppelt genaue Zahl im Speicher sein. \\[\tabsp]
+
+{\code FSUBR \emph{src}} \index{Maschinenbefehl!FSUBR} & {\code ST0
+= \emph{src}\,-\,ST0}. \emph{src} kann jedes Coprozessorregister
+oder
+eine einfach oder doppelte genaue Zahl im Speicher sein. \\[\tabsp]
+
+{\code FSUB \emph{dest}, ST0} & {\code \emph{dest} -= ST0}.
+\emph{dest} kann jedes Coprozessorregister sein. \\[\tabsp]
+
+{\code FSUBR \emph{dest}, ST0} & {\code \emph{dest} =
+ST0\,-\,\emph{dest}}. \emph{dest} kann jedes Coprozessorregister
+sein.
+\\[\tabsp]
+
+{\code FSUBP \emph{dest}} oder \newline {\code FSUBP \emph{dest},
+STO} \index{Maschinenbefehl!FSUBP} & {\code \emph{dest} -= ST0},
+dann wird der Wert vom TOS entfernt. \emph{dest} kann jedes
+Coprozessorregister sein. \\[\tabsp]
+
+{\code FSUBRP \emph{dest}} \index{Maschinenbefehl!FSUBRP} oder
+\newline {\code FSUBRP \emph{dest}, STO} & {\code \emph{dest} =
+ST0\,-\,\emph{dest}}, dann wird der Wert vom TOS entfernt.
+\emph{dest} kann jedes Coprozessorregister sein. \\[\tabsp]
+
+{\code FISUB \emph{src}} \index{Maschinenbefehl!FISUB} & {\code ST0
+-= (float)\,\emph{src}}. Zieht einen Integer von {\code ST0} ab.
+\emph{src} muss ein Wort oder Doppelwort im Speicher sein.
+\\[\tabsp]
+
+{\code FISUBR \emph{src}} \index{Maschinenbefehl!FISUBR} & {\code
+ST0 = (float)\,\emph{src}\,-\,ST0}. Zieht {\code ST0} von einem
+Integer ab. \emph{src} muss ein Wort oder Doppelwort im Speicher
+sein.
+\end{tabular}
+
+\index{Coprozessor!Addition und Subtraktion|)}
+
+\subsubsection{Multiplikation und Division \index{Coprozessor!Multiplikation und
+Division|(}}
+
+\enlargethispage{3\baselineskip}
+
+Die Multiplikationsbefehle sind vollst\"{a}ndig analog den
+Additionsbefehlen.\\[0.3em]
+\begin{tabular}{p{\colA} p{\colB}}
+{\code FMUL \emph{src}} \index{Maschinenbefehl!FMUL} & {\code ST0 *=
+\emph{src}}. \emph{src} kann jedes Coprozessorregister oder ein
+einfach oder doppelt genauer Wert im Speicher sein. \\[\tabsp]
+
+{\code FMUL \emph{dest}, ST0} & {\code \emph{dest} *= ST0}.
+\emph{dest} kann jedes Coprozessorregister sein. \\[\tabsp]
+
+{\code FMULP \emph{dest}} oder \newline {\code FMULP \emph{dest},
+STO} \index{Maschinenbefehl!FMULP} & {\code \emph{dest} *= ST0},
+dann wird der Wert vom TOS entfernt. \emph{dest} kann jedes
+Coprozessorregister sein. \\[\tabsp]
+
+{\code FIMUL \emph{src}} \index{Maschinenbefehl!FIMUL} & {\code ST0
+*= (float)\,\emph{src}}. Multipliziert {\code ST0} mit einem Integer.
+\emph{src} muss ein Wort oder Doppelwort im Speicher sein.
+\end{tabular}
+
+Nicht \"{u}berraschend sind die Divisionsbefehle analog den
+Subtraktionsbefehlen. Division durch 0 f\"{u}hrt zu Unendlich als
+Ergebnis. \\[0.3em]
+\begin{tabular}{p{\colA} p{\colB}}
+{\code FDIV \emph{src}} \index{Maschinenbefehl!FDIV} & {\code ST0 /=
+\emph{src}}. \emph{src} kann jedes Coprozessorregister oder eine
+einfach oder doppelt genaue Zahl im Speicher sein. \\[\tabsp]
+
+{\code FDIVR \emph{src}} \index{Maschinenbefehl!FDIVR} & {\code ST0
+= \emph{src}\,/\,ST0}. \emph{dest} kann jedes Coprozessorregister
+oder eine einfach oder doppelt genaue Zahl im Speicher sein. \\[\tabsp]
+
+{\code FDIV \emph{dest}, ST0} & {\code \emph{dest} /= ST0}.
+\emph{dest} kann jedes Coprozessorregister sein. \\[\tabsp]
+
+{\code FDIVR \emph{dest}, ST0} & {\code \emph{dest} =
+ST0\,/\,\emph{dest}}. \emph{dest} kann jedes Coprozessorregister
+sein. \\[\tabsp]
+
+{\code FDIVP \emph{dest}} oder \newline {\code FDIVP \emph{dest},
+STO} \index{Maschinenbefehl!FDIVP} & {\code \emph{dest} /= ST0},
+dann wird der Wert vom TOS entfernt. \emph{dest} kann jedes
+Coprozessorregister sein. \\[\tabsp]
+
+{\code FDIVRP \emph{dest}} \index{Maschinenbefehl!FDIVRP} oder
+\newline {\code FDIVRP \emph{dest}, STO} & {\code \emph{dest} =
+ST0\,/\,\emph{dest}}, dann wird der Wert vom TOS entfernt.
+\emph{dest} kann jedes Coprozessorregister sein. \\[\tabsp]
+
+{\code FIDIV \emph{src}} \index{Maschinenbefehl!FIDIV} & {\code ST0
+/= (float)\,\emph{src}}. Dividiert {\code ST0} durch einen Integer.
+\emph{src} muss ein Wort oder Doppelwort im Speicher sein. \\[\tabsp]
+
+{\code FIDIVR \emph{src}} \index{Maschinenbefehl!FIDIVR} & {\code
+ST0 = (float)\,\emph{src}\,/\,ST0}. Dividiert einen Integer durch
+{\code ST0}. \emph{src} muss ein Wort oder Doppelwort im Speicher
+sein.
+\end{tabular}
+\index{Coprozessor!Multiplikation und Division|)}
+
+\subsubsection{Vergleiche \index{Coprozessor!Vergleiche|(}}
+
+Der Coprozessor f\"{u}hrt auch Vergleiche zwischen Flie{\ss}punktzahlen
+durch. Die {\code FCOM} Familie von Befehlen macht diese
+Operationen. \\[0.3em]
+\begin{tabular}{p{\colA} p{\colB}}
+{\code FCOM \emph{src}} \index{Maschinenbefehl!FCOM} & vergleicht
+{\code ST0} und {\code \emph{src}}. \emph{src} kann ein
+Coprozessorregister oder ein Float oder Double im Speicher sein. \\[\tabsp]
+
+{\code FCOMP \emph{src}} \index{Maschinenbefehl!FCOMP} & vergleicht
+{\code ST0} und {\code \emph{src}}, dann wird der Wert vom TOS
+entfernt. \emph{src} kann ein Coprozessorregister oder ein Float
+oder Double im Speicher sein. \\[\tabsp]
+
+{\code FCOMPP} \index{Maschinenbefehl!FCOMPP} & vergleicht {\code
+ST0} und {\code ST1}, dann werden zwei Werte vom TOS entfernt. \\[\tabsp]
+
+{\code FICOM \emph{src}} \index{Maschinenbefehl!FICOM} & vergleicht
+{\code ST0} und {\code (float)\,\emph{src}}. \emph{src} kann ein
+Wort- oder Doppelwort-Integer im Speicher sein. \\[\tabsp]
+
+{\code FICOMP \emph{src}} \index{Maschinenbefehl!FICOMP} &
+vergleicht {\code ST0} und {\code (float)\,\emph{src}}, dann wird
+der Wert vom TOS entfernt. \emph{src} kann ein Wort- oder
+Doppelwort-Integer im Speicher sein. \\[\tabsp]
+
+{\code FTST } \index{Maschinenbefehl!FTST} & vergleicht {\code ST0}
+mit 0.
+\end{tabular}
+
+Diese Befehle \"{a}ndern die C$_0$, C$_1$, C$_2$ und C$_3$ Bits im
+Statusregister des Coprozessors. Ungl\"{u}cklicherweise ist es f\"{u}r die
+CPU nicht m\"{o}glich, auf diese Bits direkt zuzugreifen. Die bedingten
+Vergleichsbefehle verwenden das FLAGS Register, nicht das
+Statusregister des Coprozessors. Jedoch ist es unter Benutzung
+einiger neuer Befehle relativ einfach, die Bits des Statuswortes in
+die entsprechenden Bits des FLAGS Registers zu \"{u}bertragen: \\[0.3em]
+\begin{tabular}{p{\colA} p{\colB}}
+{\code FSTSW \emph{dest}} \index{Maschinenbefehl!FSTSW} & Speichert
+das Statuswort des Coprozessors entweder in einem Wort im Speicher
+oder dem AX Register. \\[\tabsp]
+
+{\code SAHF} \index{Maschinenbefehl!SAHF} & Speichert das AH
+Register in das FLAGS Register. \\[\tabsp]
+
+{\code LAHF} \index{Maschinenbefehl!LAHF} & L\"{a}dt das AH Register mit
+den Bits des FLAGS Registers.
+\end{tabular}
+
+\begin{figure}[ht]
+\begin{AsmCodeListing}[frame=single, numbers=left, commandchars=\\\{\}]
+ ;    if ( x > y )
+ ;
+      fld    qword [x]        ; ST0 = x
+      fcomp  qword [y]        ; vergleiche STO und y
+      fstsw  ax               ; kopiere C Bits nach FLAGS           \label{line:compEx1}
+      sahf                                                          \label{line:compEx2}
+      jna    else_part        ; wenn x not above y, goto else_part  \label{line:compEx3}
+ then_part:
+      ; Code f\"{u}r then Teil
+      jmp    end_if
+ else_part:
+      ; Code f\"{u}r else Teil
+ end_if:
+\end{AsmCodeListing}
+\caption{Beispiel f\"{u}r Vergleiche \label{fig:compEx}}
+\end{figure}
+
+Abbildung~\ref{fig:compEx} zeigt ein kurzes Beispielcodefragment.
+Zeilen~\ref{line:compEx1} und \ref{line:compEx2} \"{u}ber\-tra\-gen die
+Bits C$_0$, C$_1$, C$_2$ und C$_3$ vom Statuswort des Coprozessors
+in das FLAGS Register. Die Bits werden so \"{u}bertragen, dass sie
+analog dem Ergebnis eines Vergleichs zweier \emph{vorzeichenloser}
+Integer sind. Das ist der Grund, warum Zeile~\ref{line:compEx3}
+einen {\code JNA} Befehl verwendet.
+
+Der Pentium Pro (und sp\"{a}tere Prozessoren (Pentium II und III))
+unterst\"{u}tzen zwei neue Vergleichsoperatoren, die direkt das FLAGS
+Register der CPU modifizieren. \\[0.3em]
+\begin{tabular}{p{\colA} p{\colB}}
+{\code FCOMI \emph{src}} \index{Maschinenbefehl!FCOMI} & vergleicht
+{\code ST0} und {\code \emph{src}}. \emph{src} muss ein
+Coprozessorregister sein. \\[\tabsp]
+
+{\code FCOMIP \emph{src}} \index{Maschinenbefehl!FCOMIP} &
+vergleicht {\code ST0} und {\code \emph{src}}, dann wird der Wert
+vom TOS entfernt. \emph{src} muss ein Coprozessorregister sein.\\[0.3em]
+\end{tabular}
+Abbildung~\ref{fig:fcomipEx} zeigt eine Beispielroutine, die das
+Maximum zweier Doubles unter Verwendung des {\code FCOMIP} Befehls
+findet. Verwechseln Sie diese Befehle nicht mit den
+Integervergleichsfunktionen ({\code FICOM} und {\code FICOMP}).
+\index{Coprozessor!Vergleiche|)}
+
+\begin{figure}[ht]
+\begin{AsmCodeListing}[frame=single, numbers=left, commandchars=\\\{\}]
+ global _dmax
+
+ segment .text
+ ; Funktion _dmax
+ ; gibt das gr\"{o}{\ss}ere seiner beiden Double-Argumente zur\"{u}ck
+ ; C Prototyp:
+ ; double dmax( double d1, double d2 )
+ ; Parameter:
+ ;   d1   - erster Double
+ ;   d2   - zweiter Double
+ ; R\"{u}ckgabewert:
+ ;   das gr\"{o}{\ss}ere von d1 und d2 (in ST0)
+ %define d1   ebp+8
+ %define d2   ebp+16
+ _dmax:
+      enter   0, 0
+
+      fld     qword [d2]
+      fld     qword [d1]      ; ST0 = d1, ST1 = d2
+      fcomip  st1             ; ST0 = d2
+      jna     short d2_bigger
+      fcomp   st0             ; hole d2 vom Stack
+      fld     qword [d1]      ; ST0 = d1
+      jmp     short exit
+ d2_bigger:                   ; d2 ist max, nichts zu tun
+ exit:
+      leave
+      ret
+\end{AsmCodeListing}
+\caption{{\code FCOMIP} Beispiel \label{fig:fcomipEx}}
+\index{Maschinenbefehl!FCOMIP}
+\end{figure}
+
+\pagebreak[4]
+\subsubsection{Verschiedenartige Befehle}
+%FINIT?
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single, numbers=left]
+ segment .data
+ x    dq     2.75             ; ins Double Format konvertiert
+ five dw     5
+
+ segment .text
+      fild   dword [five]     ; ST0 = 5
+      fld    qword [x]        ; ST0 = 2.75, ST1 = 5
+      fscale                  ; ST0 = 2.75 * 32, ST1 = 5
+\end{AsmCodeListing}
+\caption{{\code FSCALE} Beispiel \label{fig:fscaleEx}}
+\index{Maschinenbefehl!FSCALE}
+\end{figure}
+
+Dieser Abschnitt behandelt einige weitere verschiedenartige Befehle,
+die der Coprozessor bereitstellt.\\[0.3em]
+\begin{tabular}{p{\colA} p{\colB}}
+{\code FCHS} \index{Maschinenbefehl!FCHS} & {\code ST0 = - ST0}.
+\"{A}ndert das Vorzeichen von {\code ST0} \\[\tabsp]
+
+{\code FABS} \index{Maschinenbefehl!FABS} & $\mathtt{ST0} =
+|\mathtt{ST0}|$. Nimmt den absoluten Wert von {\code ST0} \\[\tabsp]
+
+{\code FSQRT} \index{Maschinenbefehl!FSQRT} & $\mathtt{ST0} =
+\sqrt{\mathtt{STO}}$. Zieht die Quadratwurzel aus {\code ST0} \\[\tabsp]
+
+{\code FSCALE} \index{Maschinenbefehl!FSCALE} & $\mathtt{ST0} =
+\mathtt{ST0} \times 2^{\lfloor \mathtt{ST1} \rfloor}$. Multipliziert
+{\code ST0} schnell mit einer Potenz von zwei. {\code ST1} wird
+nicht vom Stack des Coprozessors entfernt.
+Abbildung~\ref{fig:fscaleEx} zeigt ein Beispiel, wie dieser Befehl
+eingesetzt wird.
+\end{tabular}
+
+\section{Beispiele} % promoted from \subsection{} <<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+\subsection{Quadratische Formel\index{quad.asm|(}}
+
+Das erste Beispiel zeigt, wie die quadratische Formel in Assembler
+kodiert werden kann. Erinnern wir uns, dass die quadratische Formel
+die L\"{o}sungen der quadratischen Gleichung berechnet:
+\[ a x^2 + b x + c = 0 \]
+Die Formel selbst liefert zwei L\"{o}sungen f\"{u}r $x$: $x_1$ und $x_2$.
+\[ x_1, x_2 = \frac{-b \pm \sqrt{b^2 - 4 a c}}{2 a} \]
+Der Ausdruck unter der Quadratwurzel ($b^2 - 4 a c$) wird
+\emph{Diskriminante} genannt. Ihr Wert ist n\"{u}tzlich bei der
+Bestimmung, welche der folgenden drei M\"{o}glichkeiten auf die L\"{o}sungen
+zutreffen.
+\begin{enumerate}
+\parskip=-0.25em %reduce the spacing <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+\item
+Es gibt nur eine reelle degenerierte L\"{o}sung. $b^2 - 4 a c = 0$
+
+\item
+Es gibt zwei reelle L\"{o}sungen. $b^2 - 4 a c > 0$
+
+\item
+Es gibt zwei komplexe L\"{o}sungen. $b^2 - 4 a c < 0$
+\end{enumerate}
+
+Hier ist ein kleines C Programm, das die Assemblerroutine verwendet:
+\pagebreak \LabelLine{quadt.c} \vspace{-0.250em}
+\begin{lstlisting}[numbers=left]{}
+ #include <stdio.h>
+
+ int quadratic( double, double, double, double *, double *);
+
+ int main()
+ {
+   double a, b, c, root1, root2;
+
+   printf("Enter a, b, c: ");
+   scanf("%lf %lf %lf", &a, &b, &c);
+   if (quadratic( a, b, c, &root1, &root2) )
+     printf("roots: %.10g %.10g\n", root1, root2);
+   else
+     printf("No real roots\n");
+   return 0;
+ }
+\end{lstlisting}
+\vspace{-0.50em} \LabelLine{quadt.c}
+
+Hier ist die Assemblerroutine:
+\begin{AsmCodeListing}[label=quad.asm, numbers=left, commentchar=$, commandchars=\\\{\}]
+ ; Funktion quadratic
+ ; findet die L\"{o}sungen der quadratischen Gleichung:
+ ;       a*x^2 + b*x + c = 0
+ ; C Prototyp:
+ ;   int quadratic( double a, double b, double c,
+ ;                  double *root1, double *root2 )
+ ; Parameter:
+ ;   a, b, c - Koeffizienten der Terme der quadratischen Gleichung (siehe oben)
+ ;   root1   - Zeiger auf Double um die erste Wurzel zu speichern
+ ;   root2   - Zeiger auf Double um die zweite Wurzel zu speichern
+ ; R\"{u}ckgabewert:
+ ;   gibt 1 zur\"{u}ck wenn reelle Wurzeln gefunden, sonst 0
+
+ %define a               qword [ebp+8]
+ %define b               qword [ebp+16]
+ %define c               qword [ebp+24]
+ %define root1           dword [ebp+32]
+ %define root2           dword [ebp+36]
+ %define disc            qword [ebp-8]
+ %define one_over_2a     qword [ebp-16]
+
+ segment .data
+ MinusFour       dw      -4
+
+ segment .text
+         global  _quadratic
+ _quadratic:
+         push    ebp
+         mov     ebp, esp
+         sub     esp, 16         ; reserviere 2 Doubles (disc & one_over_2a)
+         push    ebx             ; muss originales ebx sichern
+
+         fild    word [MinusFour]; stack: -4
+         fld     a               ; stack: a, -4
+         fld     c               ; stack: c, a, -4
+         fmulp   st1             ; stack: a*c, -4
+         fmulp   st1             ; stack: -4*a*c
+         fld     b
+         fld     b               ; stack: b, b, -4*a*c
+         fmulp   st1             ; stack: b*b, -4*a*c
+         faddp   st1             ; stack: b*b - 4*a*c
+         ftst                    ; teste gegen 0
+         fstsw   ax
+         sahf
+         jb      no_real_solutions ; wenn disc < 0, keine reelle L\"{o}sung
+         fsqrt                   ; stack: sqrt(b*b - 4*a*c)
+         fstp    disc            ; speichere und pop Stack
+         fld1                    ; stack: 1.0
+         fld     a               ; stack: a, 1.0
+         fscale                  ; stack: a * 2^(1.0) = 2*a, 1
+         fdivp   st1             ; stack: 1/(2*a)
+         fst     one_over_2a     ; stack: 1/(2*a)
+         fld     b               ; stack: b, 1/(2*a)
+         fld     disc            ; stack: disc, b, 1/(2*a)
+         fsubrp  st1             ; stack: disc - b, 1/(2*a)
+         fmulp   st1             ; stack: (-b + disc)/(2*a)
+         mov     ebx, root1
+         fstp    qword [ebx]     ; speichere in *root1
+         fld     b               ; stack: b
+         fld     disc            ; stack: disc, b
+         fchs                    ; stack: -disc, b
+         fsubrp  st1             ; stack: -disc - b
+         fmul    one_over_2a     ; stack: (-b - disc)/(2*a)
+         mov     ebx, root2
+         fstp    qword [ebx]     ; speichere in *root2
+         mov     eax, 1          ; R\"{u}ckgabewert ist 1
+         jmp     short quit
+
+ no_real_solutions:
+         mov     eax, 0          ; R\"{u}ckgabewert ist 0
+
+ quit:
+         pop     ebx
+         mov     esp, ebp
+         pop     ebp
+         ret
+\end{AsmCodeListing}
+\index{quad.asm|)}
+
+\subsection{Einen Array aus einer Datei lesen \index{read.asm|(}}
+
+In diesem Beispiel liest eine Assemblerroutine Doubles aus einer
+Datei. Hier ist ein kurzes C Testprogramm:
+\LabelLine{readt.c}
+\begin{lstlisting}[numbers=left]{}
+ /*
+  * Dieses Programm tested die 32-bit read_doubles() Assemblerprozedur.
+  * Es liest die Doubles von stdin. (Verwende Umleitung, um von Datei zu lesen.)
+  */
+ #include <stdio.h>
+ extern int read_doubles( FILE *, double *, int );
+ #define MAX 100
+
+ int main()
+ {
+   int i, n;
+   double a[MAX];
+
+   n = read_doubles(stdin, a, MAX);
+
+   for( i=0; i < n; i++ )
+     printf("%3d %g\n", i, a[i]);
+   return 0;
+ }
+\end{lstlisting}
+\LabelLine{readt.c}
+
+Hier ist die Assemblerroutine:
+\begin{AsmCodeListing}[label=read.asm, numbers=left, commandchars=\\\{\}]
+ segment .data
+ format  db      "%lf", 0            ; Format f\"{u}r fscanf()
+
+ segment .text
+         global  _read_doubles
+         extern  _fscanf
+
+ %define SIZEOF_DOUBLE   8
+ %define FP              dword [ebp+8]
+ %define ARRAYP          dword [ebp+12]
+ %define ARRAY_SIZE      dword [ebp+16]
+ %define TEMP_DOUBLE     [ebp-8]
+
+ ;
+ ; Funktion _read_doubles
+ ; C Prototyp:
+ ;   int read_doubles( FILE *fp, double *arrayp, int array_size );
+ ; Diese Funktion liest Doubles aus einer Textdatei in einen Array,
+ ; bis EOF oder der Array voll ist.
+ ; Parameter:
+ ;   fp         - Datei-Zeiger (Quelle; muss f\"{u}r Input ge\"{o}ffnet sein)
+ ;   arrayp     - Zeiger zum Double-Array (Ziel)
+ ;   array_size - Anzahl der Elemente im Array
+ ; R\"{u}ckgabewert:
+ ;   Anzahl der im Array gespeicherten Doubles (in EAX)
+
+ _read_doubles:
+         push    ebp
+         mov     ebp, esp
+         sub     esp, SIZEOF_DOUBLE  ; definiere einen Double auf dem Stack
+
+         push    esi                 ; sichere esi
+         mov     esi, ARRAYP         ; esi = ARRAYP
+         xor     edx, edx            ; edx = Array Index (anf\"{a}nglich 0)
+
+ while_loop:
+         cmp     edx, ARRAY_SIZE     ; ist edx < ARRAY_SIZE ?
+         jnl     short quit          ; wenn nicht, beende Schleife
+ ;
+ ; rufe fscanf() auf um ein Double nach TEMP_DOUBLE zu lesen
+ ; fscanf() k\"{o}nnte edx \"{a}ndern, so sichere es
+ ;
+         push    edx                 ; sichere edx
+         lea     eax, TEMP_DOUBLE
+         push    eax                 ; push &TEMP_DOUBLE
+         push    dword format        ; push &format
+         push    FP                  ; push Datei-Zeiger
+         call    _fscanf
+         add     esp, 12
+         pop     edx                 ; stelle edx wieder her
+         cmp     eax, 1              ; gab fscanf 1 zur\"{u}ck?
+         jne     short quit          ; wenn nicht, beende Schleife
+
+ ;
+ ; kopiere TEMP_DOUBLE nach ARRAYP[edx]
+ ; (Die 8 Bytes des Double werden durch zwei 4 Byte Kopien kopiert)
+ ;
+         mov     eax, [ebp-8]
+         mov     [esi + 8*edx], eax  ; zuerst kopiere die niedersten 4 Bytes
+         mov     eax, [ebp-4]
+         mov     [esi + 8*edx + 4], eax ; dann kopiere die h\"{o}chsten 4 Bytes
+
+         inc     edx
+         jmp     while_loop
+
+ quit:
+         pop     esi                 ; stelle esi wieder her
+
+         mov     eax, edx            ; speichere R\"{u}ckgabewert in eax
+
+         mov     esp, ebp
+         pop     ebp
+         ret
+\end{AsmCodeListing}
+\index{read.asm|)}
+
+\subsection{Primzahlen finden\index{prime2.asm|(}}
+
+Dieses letzte Beispiel sieht sich das Auf\/finden von Primzahlen
+nochmals an. Diese Implementierung ist effizienter als die
+vorherige. Sie speichert die Primzahlen, die es gefunden hat in
+einem Array und dividiert nur durch die vorher gefundenen
+Primzahlen, anstatt durch jede ungerade Zahl, um neue Primzahlen zu
+finden.
+
+Ein weiterer Unterschied ist, dass es die Quadratwurzel des
+Kandidaten f\"{u}r die n\"{a}chste Primzahl berechnet, um zu bestimmen, an
+welchem Punkt es aufh\"{o}ren kann, nach Faktoren zu suchen. Es
+ver\"{a}ndert das Kontrollwort des Coprozessors, sodass es, wenn es die
+Quadratwurzel als Integer speichert, abschneidet anstatt zu runden.
+Das wird durch Bits 10 und 11 des Kontrollworts kontrolliert. Diese
+Bits werden die RC (Rounding Control) \index{Rounding Control,
+\emph{RC}} Bits genannt. Wenn sie beide 0 sind (die Voreinstellung),
+rundet der Coprozessor, wenn er zu Integern konvertiert. Sind sie
+beide 1, schneidet der Coprozessor bei Integerwandlungen ab.
+Beachte, dass die Routine bedacht ist, das originale Kontrollwort zu
+speichern und wieder herzustellen, bevor sie zur\"{u}ckkehrt.
+
+Hier ist das C Treiberprogramm:
+\LabelLine{fprime.c}
+\begin{lstlisting}[numbers=left, escapeinside={@}{@}]{}
+ #include <stdio.h>
+ #include <stdlib.h>
+ /*
+  * Funktion find_primes
+  * findet die angegebene Anzahl von Primzahlen
+  * Parameter:
+  *   a - Array @\itshape{f\"{u}r}@ Primzahlen
+  *   n - Anzahl zu findender Primzahlen
+  */
+ extern void find_primes( int *a, unsigned n );
+
+ int main()
+ {
+   int status;
+   unsigned i;
+   unsigned max;
+   int *a;
+
+   printf( "How many primes do you wish to find? " );
+   scanf( "%u", &max );
+
+   a = calloc( sizeof(int), max );
+
+   if ( a ) {
+
+     find_primes( a, max );
+
+     /* gebe die letzten 20 gefundenen Primzahlen aus */
+     for(i= ( max > 20 ) ? max - 20 : 0; i < max; i++ )
+       printf( "%3d %d\n", i+1, a[i] );
+
+     free( a );
+     status = 0;
+   }
+   else {
+     fprintf( stderr, "Can not create array of %u ints\n", max );
+     status = 1;
+   }
+
+   return status;
+ }
+\end{lstlisting}
+\LabelLine{fprime.c}
+
+Hier ist die Assemblerroutine:
+
+\begin{AsmCodeListing}[label=prime2.asm, numbers=left, commandchars=\\\{\}]
+ segment .text
+ global  _find_primes
+ ;
+ ; Funktion find_primes
+ ; finde die angegebene Anzahl von Primzahlen
+ ; Parameter:
+ ;   array  - Array f\"{u}r die Primzahlen
+ ;   n_find - Anzahl zu findender Primzahlen
+ ; C Prototyp:
+ ;extern void find_primes( int *array, unsigned n_find )
+ ;
+ %define array         ebp+8
+ %define n_find        ebp+12
+ %define n             ebp-4         ; Anzahl bisher gefundener Primzahlen
+ %define isqrt         ebp-8         ; floor(sqrt(guess))
+ %define orig_cntl_wd  ebp-10        ; originales Kontrollwort
+ %define new_cntl_wd   ebp-12        ; neues Kontrollwort
+
+ _find_primes:
+         enter   12, 0               ; mache Platz f\"{u}r lokale Variable
+
+         push    ebx                 ; sichere m\"{o}gliche Register-Variable
+         push    esi
+
+         fstcw   word [orig_cntl_wd] ; hole Kontrollwort
+         mov     ax, [orig_cntl_wd]
+         or      ax, 0C00h           ; setze Rundungsbits auf %11 (abschneiden)
+         mov     [new_cntl_wd], ax
+         fldcw   word [new_cntl_wd]
+
+         mov     esi, [array]        ; esi zeigt auf array
+         mov     dword [esi], 2      ; array[0] = 2
+         mov     dword [esi+4], 3    ; array[1] = 3
+         mov     ebx, 5              ; ebx = guess = 5
+         mov     dword [n], 2        ; n = 2
+ ;
+ ; Diese \"{a}u{\ss}ere Schleife findet bei jeder Iteration eine neue Primzahl,
+ ; welche sie dem Ende des Arrays hinzuf\"{u}gt. Anders als das fr\"{u}here
+ ; Primzahl-Programm, bestimmt diese Funktion die Primalit\"{a}t nicht, indem
+ ; sie durch alle ungeraden Zahlen dividiert. Sie dividiert nur durch die
+ ; Primzahlen, die es bereits gefunden hat. (Das ist der Grund weshalb
+ ; sie in dem Array gespeichert werden.)
+ ;
+ while_limit:
+         mov     eax, [n]
+         cmp     eax, [n_find]       ; while ( n < n_find )
+         jnb     short quit_limit
+
+         mov     ecx, 1              ; ecx wird als Arrayindex benutzt
+         push    ebx                 ; speichere guess auf dem Stack
+         fild    dword [esp]         ; lade guess auf Coprozessor Stack
+         pop     ebx                 ; hole guess vom Stack
+         fsqrt                       ; finde sqrt(guess)
+         fistp   dword [isqrt]       ; isqrt = floor(sqrt(guess))
+ ;
+ ; Diese innere Schleife teilt guess (ebx) durch fr\"{u}her berechnete
+ ; Primzahlen bis es einen Primfaktor von guess findet (was bedeutet,
+ ; dass guess nicht prim ist) oder bis die zu dividierende Primzahl
+ ; gr\"{o}{\ss}er als floor(sqrt(guess)) ist
+ ;
+ while_factor:
+         mov     eax, dword [esi + 4*ecx] ; eax = array[ecx]
+         cmp     eax, [isqrt]        ; while ( isqrt < array[ecx] ..
+         jnbe    short quit_factor_prime
+         mov     eax, ebx
+         xor     edx, edx
+         div     dword [esi + 4*ecx]
+         or      edx, edx            ; .. && guess % array[ecx] != 0 )
+         jz      short quit_factor_not_prime
+         inc     ecx                 ; versuche n\"{a}chste Primzahl
+         jmp     short while_factor
+
+ ;
+ ; neue Primzahl gefunden !
+ ;
+ quit_factor_prime:
+         mov     eax, [n]
+         mov     dword [esi + 4*eax], ebx ; speichere guess am Arrayende
+         inc     eax
+         mov     [n], eax            ; inc n
+
+ quit_factor_not_prime:
+         add     ebx, 2              ; versuche n\"{a}chste ungerade Zahl
+         jmp     short while_limit
+
+ quit_limit:
+
+         fldcw   word [orig_cntl_wd] ; stelle Kontrollwort wieder her
+         pop     esi                 ; stelle Register-Variable wieder her
+         pop     ebx
+
+         leave
+         ret
+\end{AsmCodeListing}
+\index{prime2.asm|)} \index{Coprozessor|)} \index{Flie{\ss}punkt|)}

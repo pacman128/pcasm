@@ -1,0 +1,146 @@
+% To create PDF version, type
+%   pdflatex pcasm.tex
+% This will produce errors the first time, type R at the error prompt
+% Then rerun again (twice to get all the references.
+
+\documentclass[10pt, a4paper]{book} % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+\typeout{-----------------------------------------}
+\typeout{Enter files to be included. (*=all)}
+\typeout{(pcasm1,pcasm2,...)}
+\typeout{-----------------------------------------}
+\typein[\infiles]{ }
+\if*\infiles\else\includeonly{\infiles}\fi
+
+
+\newif\ifmypdf
+\ifx\pdfoutput\undefined
+    \pdffalse          % we are not running PDFLaTeX
+\else
+%    \pdfoutput=1       % we are running PDFLaTeX
+%    \pdftrue
+\fi
+%----------------------------------------------------------------------
+% The following is the construct that interests us in the end:
+%\ifpdf
+%   % Put PDF-specific stuff here
+%\else
+%   % Put LaTeX-specific stuff here
+%\fi
+
+
+\usepackage{ngerman} % this seems to work nicely, more or less <<<<<<<<<<<<<<<<
+%\usepackage{indentfirst}  % indent first paragraph of sections <<<bad style<<<
+%\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{epsfig} % what for?
+\usepackage{longtable}
+\usepackage{color} % needed by vtable.latex
+\usepackage{makeidx}
+\ifmypdf
+\usepackage[pdftex,
+            bookmarks=true,
+            bookmarksnumbered=true,
+            pdftitle={Die PC Assemblersprache},
+            pdfauthor={Paul A. Carter},
+            pdfsubject={Programmieren in 80x86 Assemblersprache},
+            pdfkeywords={80x86 Assembler Programmierung}]{hyperref}
+\fi
+\author{Paul~A.~Carter}
+\title{Die PC Assemblersprache}
+\usepackage{lecnote}
+\makeindex
+
+\hyphenation{UNIX Dis-place-ment Bib-li-o-thek As-semb-ler
+             Mak-ro Zyk-len da-rum Byte Bytes Code IEEE
+             Va-ri-ab-len} % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+\begin{document}
+\maketitle
+\newlength{\AsmMargin}
+\setlength{\AsmMargin}{-1cm}
+\DefineVerbatimEnvironment{AsmCodeListing}{Verbatim}
+ {numbers=left, frame=lines, framesep=0.75em, xleftmargin=\AsmMargin, labelposition=all, commentchar=^ }
+
+\newcommand{\MarginNote}[1]{\marginpar{\sloppy \em \small #1}}
+\thispagestyle{empty}
+\vspace*{\fill}
+\noindent Copyright \copyright\  2001, 2002, 2003, 2004, 2006 by Paul Carter\\
+
+\noindent Dieses Dokument kann in seiner Gesamtheit reproduziert und
+verteilt werden (zusammen mit dieser Autorenschaft-, Copyright- und
+Erlaubnis-Notiz), vorausgesetzt, dass f\"{u}r das Dokument selbst, ohne
+Einwilligung des Autors, keine Kosten erhoben werden. Dies schlie{\ss}t
+"`fair use"' Ausz\"{u}ge wie Reviews und Werbung sowie abgeleitete
+Erzeugnisse wie \"{U}bersetzungen mit ein.
+\\
+
+\noindent Beachte, dass diese Einschr\"{a}nkung nicht darauf hinzielt,
+zu verhindern, dass Forderungen f\"{u}r die Leistung, das Dokument zu
+drucken oder zu kopieren, erhoben werden.\\
+
+\noindent Dozenten werden angeregt, dieses Dokument als
+Kurs-Hilfsmittel zu verwenden; jedoch w\"{u}rde es der Autor begr\"{u}{\ss}en,
+in diesem Fall verst\"{a}ndigt zu werden.
+\\
+\\
+\\
+\\
+
+\noindent This may be reproduced and distributed in its entirety
+(including this authorship, copyright and permission notice), provided
+that no charge is made for the document itself, without the author's
+consent. This includes ``fair use'' excerpts like reviews and advertising,
+and derivative works like translations.\\
+
+\noindent Note that this restriction is not intended to prohibit charging for
+the service of printing or copying the document.\\
+
+\noindent Instructors are encouraged to use this document as a class
+resource; however, the author would appreciate being notified in this
+case.
+
+\index{Subroutine|see{Unterprogramm}}
+\index{C++!Mitgliedsfunktionen|see{Methoden}}
+\index{text Segment|see{Codesegment}} % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+\index{AND|see{Bitoperationen}} % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+\index{NOT|see{Bitoperationen}} % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+\index{OR|see{Bitoperationen}} % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+\index{XOR|see{Bitoperationen}} % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+\index{Pointer|see{Zeiger}} % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+\index{Ganzzahl|see{Integer}} % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+\index{Signatur|see{Unterprogramm}} % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+\index{Vtable|see{C++}} % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+\index{Asm|see{Assembler}} % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+\index{Masm|see{Assembler}} % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+\index{Tasm|see{Assembler}} % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+\index{Ganzzahl|see{Integer}} % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+\index{Epilog|see{Unterprogramm}} % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+\index{Prolog|see{Unterprogramm}} % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+
+\vfill
+\frontmatter
+%\include{toc} % <<< where is it ???? <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+\tableofcontents % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+\listoffigures % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+\listoftables % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+\newpage % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+\include{pcasmf}
+\mainmatter
+\include{pcasm1}
+\include{pcasm2}
+\include{pcasm3}
+\include{pcasm4}
+\include{pcasm5}
+\include{pcasm6}
+\include{pcasm7}
+%\include{pcasm8}
+\begin{appendix}
+\include{pcasma}
+\end{appendix}
+\clearpage
+\ifmypdf
+\phantomsection % fixes link anchor
+\fi
+\addcontentsline{toc}{chapter}{Index}
+\printindex
+\end{document}

@@ -1,0 +1,19 @@
+\ProvidesPackage{lecnote}
+\usepackage{fancyvrb}
+\usepackage{listings}
+
+\newcommand{\code}{\tt}
+\newcommand{\codetxt}[1]{{\tt #1}}
+
+\newenvironment{CodeQuote}{\begin{quote} \code}{\end{quote}}
+
+%\DefineVerbatimEnvironment{CCodeListing}{Verbatim}{numbers=left, frame=lines, labelposition=all}
+\newcommand{\LabelLine}[1]{\begin{center} \hrulefill \hspace{1em} \textbf{#1}%
+            \hspace{0.5em} \hrulefill \end{center}}
+
+\lstset{language=C, numberstyle=\tiny, basicstyle=\sffamily,%
+        commentstyle=\slshape, keywordstyle=\bfseries, showstringspaces=false,%
+        flexiblecolumns=true,%
+        morekeywords={__attribute__, cdecl, stdcall, __cdecl, __stdcall}}
+
+%\setlength{\textheight}{8.in} % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<

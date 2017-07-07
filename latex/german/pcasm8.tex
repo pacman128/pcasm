@@ -1,0 +1,140 @@
+%-*- latex -*-
+\chapter{Dynamic Link Libraries}
+
+\section[Benutzung der Windows API und DLLs]{Benutzung der Windows
+API und Dynamic Link Libraries}
+
+UNIX Systeme stellen ein einfaches, C-basiertes Application
+Programming Interface (API) \index{API} bereit. Im Gegensatz dazu
+packt Microsoft Windows\texttrademark \hspace{0.2em} sein API in
+Dynamic Link Libraries, das sich vor seiner Benutzung in den
+Adressraum jeden Prozesses l\"{a}dt. Aus der Perspektive eines C/C++
+Programmierers erscheint es als ein normaler C Funktionsaufruf;
+jedoch unterscheidet es sich auf der Ebene des Assemblers.
+
+\subsection{Die Standard Call Aufruf\/konvention}
+Die Windows API benutzt die \emph{Standard Call}
+\index{Aufrufkonvention!standard call} Aufruf\/konvention. Wie
+fr\"{u}her ausgef\"{u}hrt, legt diese Konvention die Argumente in
+umgekehrter Reihenfolge auf den Stack, genauso wie die Standard C
+Konvention. Jedoch gibt es zwei wichtige Unterschiede. Erstens ist
+die Subroutine f\"{u}r die Entfernung der Parameter vom Stack
+verantwortlich. Zweitens wird das Label der Funktion anders
+generiert. Wie zuvor wird dem Namen ein Unterstrich vorangestellt,
+aber zus\"{a}tzlich wird das \emph{@} Zeichen am Ende des
+Funktionsnamens angeh\"{a}ngt, zusammen mit einer Zahl (in dezimal), die
+gleich der Anzahl Bytes ist, die die Parameter der Funktion auf dem
+Stack belegen.
+
+\index{CloseHandle|(} Betrachten wir zum Beispiel die Windows API
+Funktion {\code CloseHandle}. Ihr Prototyp sieht so aus:
+\begin{lstlisting}[stepnumber=0]{}
+ BOOL WINAPI CloseHandle( HANDLE hObject );
+\end{lstlisting}
+Da ein {\code HANDLE} in 32-bit Windows ein Doppelwort ist, w\"{u}rde
+das Label f\"{u}r diese Funktion {\code \_CloseHandle@4} sein. Das
+{\code WINAPI} \index{WINAPI} im Prototyp ist ein C Makro, das als
+{\code \_\_stdcall} definiert ist. Unten ist ein Beispielaufruf der
+Funktion unter der Annahme, dass der Wert von {\code hObject} in
+{\code EBX} ist.
+\begin{AsmCodeListing}[frame=single, numbers=left, commandchars=\\\{\}]
+     push  ebx                ; bringe hObject auf den Stack
+     call  _CloseHandle@4
+     mov   esi, eax           ; sichere R\"{u}ckgabewert in ESI
+\end{AsmCodeListing}
+Der Stack muss nach dem Funktionsaufruf nicht bereinigt werden, der
+Stack wird von {\code CloseHandle} automatisch in Ordnung gebracht.
+\index{CloseHandle|)}
+
+\subsection{Statische und shared Bibliotheken}
+
+\index{statische Bibliothek|(} Eine \emph{statische Bibliothek} ist
+eine Sammlung von Objektdateien, die zu einer ausf\"{u}hrbaren Datei
+hinzugef\"{u}gt werden kann, wenn diese erstellt wird. Der Objektcode
+wird direkt in die ausf\"{u}hrbare Datei eingef\"{u}gt, genau wie eine
+gew\"{o}hnliche Objektdatei. Die Bibliotheksdatei dient nur der
+Bequemlichkeit. Es erm\"{o}glicht einer einzigen Datei, im Linkschritt
+des Erstellungsprozesses eingebunden zu werden. Wahrscheinlich wird
+nicht der gesamte Objektcode in der endg\"{u}ltigen ausf\"{u}hrbaren Datei
+gespeichert. Der Linker sieht nach, welche Objektmodule ben\"{o}tigt
+werden und f\"{u}gt nur die erforderlichen ein. Statische Bib"-liotheken
+werden mit Hilfe des Programms {\code LIB} unter Windows oder {\code
+ar} unter UNIX erstellt. Windows Bibliotheken enden mit einer {\code
+.lib} Erweiterung und UNIX Bibliotheken enden mit einer {\code .a}
+Erweiterung. \index{statische Bibliothek|)}
+
+\index{shared Bibliothek|(} Eine shared Bibliothek (oder DLL in
+Windows) teilt, wie ihr Name impliziert, ihren Code mit Programmen.
+Wenn das Programm gestartet wird, findet das OS all die shared
+Bibliotheken, die es ben\"{o}tigt und l\"{a}dt diese in den
+Prozess-Speicher, damit der Prozess den Code da\-rin verwenden kann.
+Durch die Verwendung der Abbildungsm\"{o}glichkeiten des virtuellen
+Speichers auf einem protected mode Betriebssystem, wird der Code von
+shared Bibliotheken, die von zwei oder mehr gleichzeitig laufenden
+Prozessen benutzt wird, nur einmal in den physikalischen Speicher
+geladen.
+
+Shared Bibliotheken haben Vor- und Nachteile. Der erste Vorteil ist,
+dass die Gr\"{o}{\ss}en von Programmdateien stark reduziert werden k\"{o}nnen.
+Wenn eine gro{\ss}e Bibliothek durch viele Programme benutzt wird, ist
+nur eine Kopie des Codes (in der shared Bibliothek) auf dem System
+(und im physikalischen Speicher). Wenn die Bibliothek statisch
+eingeschlossen wurde, w\"{u}rde jedes Programm eine Kopie des Codes
+beinhalten.
+
+Ein weiterer Vorteil ist, dass wenn ein Fehler in der shared
+Bibliothek gefunden wird, dann kann die Bibliothek durch eine
+ersetzt werden, in der der Fehler behoben ist. Die Programme werden
+automatisch den neuen, bereinigten Code verwenden, ohne die
+Programme neu zu kompilieren. Jedoch funktioniert dies nur, wenn die
+Schnittstelle der Funktionen in der shared Bibliothek unver\"{a}ndert
+bleibt.
+
+Shared Bibliotheken gestatten es auch, dass Code, der in
+verschiedenen Sprachen geschrieben ist, miteinander arbeitet. Zum
+Beispiel kann C++ unter Windows durch die Benutzung von shared
+Bibliotheken zusammen mit Visual Basic, \index{Visual Basic} DotNet
+\index{DotNet} und Java \index{Java} benutzt werden.
+
+Der Nachteil der shared Bibliotheken ist, dass sie komplizierter zu
+warten sind. Eines der h\"{a}ufigsten Probleme ist, dass eine neue
+Version der Bibliothek \"{a}lteren Code unbrauchbar macht, weil sie sich
+etwas unterschiedlich verh\"{a}lt. Dann brauchen einige Programme eine
+Version und andere ben\"{o}tigen eine davon verschiedene. In Windows ist
+dieser Zustand als \emph{DLL H\"{o}lle} bekannt. \index{DLL!H\"{o}lle}
+\index{shared Bibliothek|)}
+
+\index{DLL|(}
+\subsection{Windows DLLs}
+
+Eine Windows DLL wird ganz so wie ein ausf\"{u}hrbares Programm
+zusammengebaut. Objektdateien werden zusammen gebunden, um eine DLL
+Datei zu bilden. Anders als ein ausf\"{u}hrbares Programm kann eine DLL
+viele Eingangspunkte haben. Ein Eingangspunkt ist gerade eine
+Funktion, die von au{\ss}erhalb der DLL aus aufgerufen werden kann. Nur
+Funktionen, die \emph{exportiert} \index{export} wurden, k\"{o}nnen
+extern aufgerufen werden.
+
+Eine Funktion (oder globale Variable) kann exportiert werden, indem
+entweder ihr Name in die Definitionsdatei
+\index{DLL!Definitionsdatei} der DLL aufgenommen wird oder durch die
+Verwendung von Microsoft-spezifischer Schl\"{u}sselw\"{o}rter.
+
+\begin{figure}[ht]
+\begin{Verbatim}[frame=single, numbers=left, commandchars=\\\{\}]
+ LIBRARY \textit{Basisname der Bibliothek}
+ DESCRIPTION '\textit{kurzer Beschreibungstext}'
+ EXPORTS
+ \textit{Liste der exportierten Funktionen (eine pro Zeile)}
+\end{Verbatim}
+\caption{Windows DLL Definitionsdatei\label{fig:DefFile}}
+\end{figure}
+
+\subsubsection{Definitionsdatei}
+Das ist eine Textdatei mit einer {\code .def} Erweiterung, die all
+die Funktionen auf\/listet, die die DLL exportiert. Diese Datei wird
+w\"{a}hrend des Linkschrittes bei der Erstellung der DLL verwendet.
+Abbildung~\ref{fig:DefFile} zeigt das allgemeine Format einer
+Definitionsdatei.
+
+\index{DLL|)}
