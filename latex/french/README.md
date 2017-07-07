@@ -1,6 +1,6 @@
-# French translation
+# Italian translation
 
-This translation was done by Sébastien Le Ray.
+This translation was done by Giacomo Bruschi.
 
 It requires French support for the _babel_ LaTeX package. I installed
 it on Ubuntu with the command:
