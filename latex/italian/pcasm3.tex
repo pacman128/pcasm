@@ -1,0 +1,952 @@
+% -*-latex-*-
+\chapter{Operazioni sui Bit}
+\section{Operazioni di Shift}\index{operazioni sui bit!shifts|(}
+
+Il linguaggio assembly permette al programmatore di manipolare i singoli
+bit di un dato. Una operazione comune sui bit e' chiamata \emph{shift}.
+Una operazione di shift sposta la posizione dei bit di alcuni dati. Gli
+shift possono essere verso sinistra (\emph{i.e.} verso i bit piu' 
+significativi) o verso destra (verso i bit meno significativi).
+
+\subsection{Shift Logici}\index{operazioni sui bit!shift!shift logici|(}
+
+Uno shift logico e' il piu' semplice tipo di shift: sposta i bit
+in maniera diretta. La Figura~\ref{fig:logshifts} mostra un'esempio
+di shift su un singolo byte.
+
+\begin{figure}[h]
+\centering
+\begin{tabular}{l|c|c|c|c|c|c|c|c|}
+\cline{2-9}
+Originale      & 1 & 1 & 1 & 0 & 1 & 0 & 1 & 0 \\
+\cline{2-9}
+shift a sinistra  & 1 & 1 & 0 & 1 & 0 & 1 & 0 & 0 \\
+\cline{2-9}
+shift a destra & 0 & 1 & 1 & 1 & 0 & 1 & 0 & 1 \\
+\cline{2-9}
+\end{tabular}
+\caption{Shift Logici\label{fig:logshifts}}
+\end{figure}
+
+Nota che i nuovi bit aggiunti sono sempre zero. Le istruzioni
+{\code SHL}\index{SHL} e {\code SHR} \index{SHR} sono usate
+per eseguire shift logici a sinistra e a destra rispettivamente.
+Queste istruzioni permettono di spostare di qualunque numero di
+posizioni. Il numero di posizioni da spostare puo' essere sia
+una costante che un numero memorizzato nel registro {\code CL}.
+L'ultimo bit spostato fuori da un dato e' memorizzato nel carry flag.
+Ecco alcuni esempi di codice: 
+\begin{AsmCodeListing}[frame=none]
+      mov    ax, 0C123H
+      shl    ax, 1           ; sposta 1 bit a sinistra,   ax = 8246H, CF = 1
+      shr    ax, 1           ; sposta 1 bit a destra,  ax = 4123H, CF = 0
+      shr    ax, 1           ; sposta 1 bit a destra,  ax = 2091H, CF = 1
+      mov    ax, 0C123H
+      shl    ax, 2           ; sposta 2 bits a sinistra,  ax = 048CH, CF = 1
+      mov    cl, 3
+      shr    ax, cl          ; sposta 3 bits a destra, ax = 0091H, CF = 1
+\end{AsmCodeListing}
+
+\subsection{Uso degli Shift}\footnote{In questo capitolo e nei successivi
+il termine \emph{spostamento} puo' essere usato al posto di \emph{shift} e
+rappresenta un suo sinonimo(ndt).}
+
+L'uso piu' comune delle operazioni di shift sono le moltiplicazioni e
+divisioni veloci. Ricorda che nel sistema decimale, la moltiplicazione
+e la divisione per una potenza del 10 sono semplici, si tratta solo
+di spostare le cifre. Lo stesso e' vero per le potenze del 2 in binario.
+Per esempio, per raddoppiare il numero binario $1011_2$ ( o 11 in decimale)
+, basta spostare di una posizione a sinistra per ottenere $10110_2$
+( o 22 in decimale). Il quoziente della divisione per una potenza del
+2 e' il risultato di uno shift a destra. Per dividere per 2, si usa 
+un singolo shift a destra; per dividere per 4 ($2^2$), si usa uno 
+shift a destra di 2 posizioni; per dividere per 8 ($2^3$), uno shift
+a destra di 3 posizioni, \emph{ecc.} Le istruzioni di shift sono
+molto semplici e sono \emph{molto} piu' veloci delle corrispondenti
+istruizioni {\code MUL} \index{MUL} e {\code DIV} \index{DIV}!
+
+In realta', gli shift logici possono essere usati per moltiplicare
+e dividere valori senza segno. Questi non funzionano generalmente con
+i valori con segno. Consideriamo il valore a 2 byte FFFF ($-1$ con 
+segno). Se questo viene spostato di una posizione a destra, il risultato
+e' 7FFF, cioe' $+32,767$! Per i valori con segno si usa un'altro tipo
+di shift.
+\index{operazioni sui bit!shift!shift logici|)}
+
+\subsection{Shift aritmetici\index{operazioni sui bit!shift!shift aritmetici|(}}
+
+Questi shift sono progettati per permettere la moltiplicazione e la 
+divisione per potenze del 2 in maniera piu' veloce dei numeri con 
+segno. Questi si assicurano che il bit di segno sia trattato
+correttamente.
+\begin{description}
+\item[SAL] \index{SAL} Shift Aritmetico a sinistra - Questa istruzione e'
+					 un sinonimo per {\code SHL}. E' assemblato nello stesso codice
+					 macchina di {\code SHL}. Da momento che il bit di segno non e'
+					 cambiato, il risultato e' corretto. 
+\item[SAR] \index{SAR} Shift Aritmetico a destra - Questa e' una nuova 
+					 istruzione che non sposta il bit di segno (\emph{i.e.} il msb\footnote{Most                     Significant Bit - il bit piu' significativo}) del suo operando. 
+					 Gli altri bit sono spostati come al solito ad eccezione del fatto
+					 che i nuovi bit che entrano a sinistra sono copie del bit di segno
+					 (Cosi' se il bit di segno e' 1, i nuovi bit saranno 1). In questo
+					 modo, se un byte e' soggetto a shift con questa istruzione, solo i
+					 7 bit piu' bassi sono spostati. Come per gli altri shift, l'ultimo bit
+					 spostato fuori e' memorizzato nel carry flag. 
+\end{description}
+
+\begin{AsmCodeListing}[frame=none]
+      mov    ax, 0C123H
+      sal    ax, 1           ; ax = 8246H, CF = 1
+      sal    ax, 1           ; ax = 048CH, CF = 1
+      sar    ax, 2           ; ax = 0123H, CF = 0
+\end{AsmCodeListing}
+\index{operazioni sui bit!shift!shift aritmetici|)}
+
+\subsection{Shift di rotazione\index{operazione sui bit!shift!rotazione|(}}
+
+Le istruzioni di shift di rotazione funzionano come quelli logici ad eccezione
+del fatto che i bit che escono da una parte del numero sono spostati
+nell'altra parte. I dati, cioe', sono trattati come se avessero una
+struttura circolare. Le due istruzioni di shift di rotazione piu' semplici
+sono {\code ROL} \index{ROL} e {\code ROR} \index{ROR} che effettuano
+rotazioni a sinistra e a destra, rispettivamente. Come per gli altri
+shift, questi shift lasciano una copia dell'ultimo bit ruotato nel
+carry flag.  
+\begin{AsmCodeListing}[frame=none]
+      mov    ax, 0C123H
+      rol    ax, 1           ; ax = 8247H, CF = 1
+      rol    ax, 1           ; ax = 048FH, CF = 1
+      rol    ax, 1           ; ax = 091EH, CF = 0
+      ror    ax, 2           ; ax = 8247H, CF = 1
+      ror    ax, 1           ; ax = C123H, CF = 1
+\end{AsmCodeListing}
+
+Ci sono due ulteriori istruzioni di shift di rotazione che spostano i bit
+nel dato e nel carry flag, chiamate {\code RCL} \index{RCL} e {\code
+RCR}. \index{RCR} Per esempio, se il registro {\code AX} e' ruotato 
+con queste istruzioni, i 17 bit composti dal registro AX e dal carry flag
+sono ruotati.
+\begin{AsmCodeListing}[frame=none]
+      mov    ax, 0C123H
+      clc                    ; clear the carry flag (CF = 0)
+      rcl    ax, 1           ; ax = 8246H, CF = 1
+      rcl    ax, 1           ; ax = 048DH, CF = 1
+      rcl    ax, 1           ; ax = 091BH, CF = 0
+      rcr    ax, 2           ; ax = 8246H, CF = 1
+      rcr    ax, 1           ; ax = C123H, CF = 0
+\end{AsmCodeListing}
+\index{operazioni sui bit!shift!rotazione|)}
+
+\subsection{Semplice applicazione\label{sect:AddBitsExample}}
+
+Ecco un piccolo pezzo di codice che conta i numeri di bit che sono ''on''
+(\emph{cioe'}~1) nel registro EAX.
+%TODO: show how the ADC instruction could be used to remove the jnc
+\begin{AsmCodeListing}
+      mov    bl, 0           ; bl conterra' il numero dei bit ON
+      mov    ecx, 32         ; ecx e' il contatore di ciclo
+count_loop:
+      shl    eax, 1          ; sposta i bit nel carry flag
+      jnc    skip_inc        ; se CF == 0, vai a skip_inc
+      inc    bl
+skip_inc:
+      loop   count_loop
+\end{AsmCodeListing}
+Il codice qua sopra distrugge il valore originale di {\code EAX}({\code EAX} e' zero
+alla fine del ciclo). Se si volesse mantenere il valore di {\code EAX}, 
+la riga~4 dovrebbe essere cambiato con {\code rol  eax, 1}. 
+\index{operazione sui bit!shift|)}
+
+\section{Operazioni booleane a livello di bit}
+
+Ci sono 4 operatori booleani: \emph{AND}, \emph{OR}, \emph{XOR} e
+\emph{NOT}. Una \emph{tavola delle verita'} mostra il risultato di ogni operazione
+per ogni possibile valore del suo operando.
+
+\subsection{L'operazione \emph{AND}\index{operazioni sui bit!AND}}
+
+\begin{table}[t]
+\centering
+\begin{tabular}{|c|c|c|}
+\hline
+\emph{X} & \emph{Y} & \emph{X} AND \emph{Y} \\
+\hline \hline
+0 & 0 & 0 \\
+0 & 1 & 0 \\
+1 & 0 & 0 \\
+1 & 1 & 1 \\
+\hline
+\end{tabular}
+\caption{L'operazione AND \label{tab:and} \index{AND}}
+\end{table}
+
+Il risultato di un \emph{AND} di due bit e' sempre 1 se entrambi i bit sono 1
+altrimenti sara' sempre 0 come mostra la tavola delle verita' in Tabella~\ref{tab:and}.
+
+\begin{figure}[t]
+\centering
+\begin{tabular}{rcccccccc}
+    & 1 & 0 & 1 & 0 & 1 & 0 & 1 & 0 \\
+AND & 1 & 1 & 0 & 0 & 1 & 0 & 0 & 1 \\
+\hline
+    & 1 & 0 & 0 & 0 & 1 & 0 & 0 & 0
+\end{tabular}
+\caption{AND di un byte \label{fig:and}}
+\end{figure}
+
+I processori gestiscono queste operazioni come istruzioni che lavorano
+indipendentemente su tutti i bit dei dati in parallelo. Per esempio, se
+il contenuto di {\code AL} e di {\code BL} vengono sottoposti ad \emph{AND} 
+l'un l'altro, l'operazione base \emph{AND} e' applicata ad ognuna delle
+8 coppie dei corrispondenti bit nei due registri come mostra la 
+Figura~\ref{fig:and}. Sotto il codice di esempio:
+\begin{AsmCodeListing}[frame=none]
+      mov    ax, 0C123H
+      and    ax, 82F6H          ; ax = 8022H
+\end{AsmCodeListing}
+
+\subsection{L'operazione \emph{OR}\index{operazioni sui bit!OR}}
+
+\begin{table}[t]
+\centering
+\begin{tabular}{|c|c|c|}
+\hline
+\emph{X} & \emph{Y} & \emph{X} OR \emph{Y} \\
+\hline \hline
+0 & 0 & 0 \\
+0 & 1 & 1 \\
+1 & 0 & 1 \\
+1 & 1 & 1 \\
+\hline
+\end{tabular}
+\caption{L'operazione OR\label{tab:or} \index{OR}}
+\end{table}
+
+L'\emph{OR} inclusivo di 2 bit e' 0 se entrambi i bit sono 0, altrimenti
+e' 1 come mostra la tavola delle verita' in Tabella~\ref{tab:or}. Ecco il
+codice esempio: 
+\begin{AsmCodeListing}[frame=none]
+      mov    ax, 0C123H
+      or     ax, 0E831H          ; ax = E933H
+\end{AsmCodeListing}
+
+\subsection{L'operazione \emph{XOR}\index{operazioni sui bit!XOR}}
+
+\begin{table}
+\centering
+\begin{tabular}{|c|c|c|}
+\hline
+\emph{X} & \emph{Y} & \emph{X} XOR \emph{Y} \\
+\hline \hline
+0 & 0 & 0 \\
+0 & 1 & 1 \\
+1 & 0 & 1 \\
+1 & 1 & 0 \\
+\hline
+\end{tabular}
+\caption{L'operazione XOR \label{tab:xor}\index{XOR}}
+\end{table}
+
+L'\emph{OR} esclusivo di 2 bit e' 0 se e solo se entrambi i 
+bit sono uguali, altrimenti il risultato e' 1, come e' mostrato
+nella tavola delle verita' in Figura~\ref{tab:xor}. Ecco il
+codice esempio: 
+
+\begin{AsmCodeListing}[frame=none]
+      mov    ax, 0C123H
+      xor    ax, 0E831H          ; ax = 2912H
+\end{AsmCodeListing}
+
+\subsection{L'operazione \emph{NOT}\index{operazioni sui bit!NOT}}
+
+\begin{table}[t]
+\centering
+\begin{tabular}{|c|c|}
+\hline
+\emph{X} & NOT \emph{X} \\
+\hline \hline
+0 & 1 \\
+1 & 0 \\
+\hline
+\end{tabular}
+\caption{L'operazione NOT \label{tab:not}\index{NOT}}
+\end{table}
+
+L'operazione \emph{NOT} e' una operazione \emph{unaria} (\emph{i.e.} 
+questa agisce su di un solo operando, non due come le operazioni
+\emph{binarie} come \emph{AND}). Il \emph{NOT} di un bit e' il suo 
+valore opposto come mostra la tavola delle verita' in Figura~\ref{tab:not}.
+Ecco il codice esempio:
+
+\begin{AsmCodeListing}[frame=none]
+      mov    ax, 0C123H
+      not    ax                 ; ax = 3EDCH
+\end{AsmCodeListing}
+
+Nota che \emph{NOT} trova il complemento a 1. Diversamente dalle altre
+operazioni a livello di bit, l'istruzione \emph{NOT} non modifica nessuno
+dei bit del registro {\code FLAGS}.
+
+\subsection{L'istruzione {\code TEST}\index{TEST}}
+
+L'istruzione {\code TEST} esegue una operazione \emph{AND}, ma non 
+memorizza il risultato. Si limita a settare il registro {\code FLAGS}
+sulla base di quello che sarebbe il risultato (come fa l'istruzione
+{\code CMP} che esegue una sottrazione ma setta solamente {\code FLAGS}.
+Per esempio, se il risultato fosse zero, {\code ZF} sarebbe settato.
+\begin{table}
+\begin{tabular}{lp{3in}}
+metti a on il bit \emph{i} & esegue \emph{OR} del numero con $2^i$ (che e' il
+                              il numero binario con cui metto a on il bit \emph{i}) \\
+metti a off il bit \emph{i} & esegue \emph{AND} del numero con il numero binario 
+                              con il solo bit \emph{i} off. Questo operando e' spesso
+                              chiamato una \emph{maschera} \\
+metti a complemento il bit \emph{i} & esegui \emph{XOR} del numero con $2^i$
+\end{tabular}
+\caption{Uso delle operazioni booleane \label{tab:bool}}
+\end{table}
+
+\subsection{Uso delle operazioni sui bit\index{operazioni sui bit!assembly|(}}
+
+Le operazioni sui bit sono molto utili per la manipolazione individuale
+dei bit di una dato senza modificare gli altri bit. La tabella~\ref{tab:bool}
+mostra tre usi comuni di queste operazione. Sotto il codice esempio che 
+sviluppa questa idea.  
+\begin{AsmCodeListing}[frame=none]
+      mov    ax, 0C123H
+      or     ax, 8          ; a on il bit 3,     ax = C12BH
+      and    ax, 0FFDFH     ; a off il bit 5,    ax = C10BH
+      xor    ax, 8000H      ; inverte il bit 31, ax = 410BH
+      or     ax, 0F00H      ; a on il nibble,    ax = 4F0BH
+      and    ax, 0FFF0H     ; a off il nibble,   ax = 4F00H
+      xor    ax, 0F00FH     ; inverte il nibbles,ax = BF0FH
+      xor    ax, 0FFFFH     ; complemento a 1,    ax = 40F0H
+\end{AsmCodeListing}
+
+L'operazione \emph{AND} puo' essere usata anche per trovare il resto di
+una divisione per una potenza del 2. Per trovare il resto di una divisione
+per $2^i$, occorre eseguire una \emph{AND} del numero con una maschera
+uguale a $2^i - 1$. Questa maschera conterra' 1 dal bit 0 al bit $i-1$. E
+sono appunto questi bit che contengono il resto. Il risultato dell'\emph{AND}
+manterra' questi bit e mettera' a zero tutti gli altri. Di seguito un piccolo
+pezzo di codice che trova il quoziente ed il resto della divisione di 100
+per 16.
+\begin{AsmCodeListing}[frame=none]
+      mov    eax, 100        ; 100 = 64H
+      mov    ebx, 0000000FH  ; mask = 16 - 1 = 15 or F
+      and    ebx, eax        ; ebx = remainder = 4
+      shr    eax, 4          ; eax = quotient of eax/2^4 = 6
+\end{AsmCodeListing}
+Utilizzando il registro \emph{CL} e' possibile modificare arbitrariamente i bit
+dei dati. Di seguito un esempio che imposta (mette a on) un bit arbitrario nel
+registro {\code EAX}. Il numero del bit da impostare e' memorizzato in {\code BH}.
+\begin{AsmCodeListing}[frame=none]
+      mov    cl, bh          ; costruisce il numero per l'OR
+      mov    ebx, 1
+      shl    ebx, cl         ; sposta a sinistra cl volte
+      or     eax, ebx        ; mette a on il bit
+\end{AsmCodeListing}
+Mettere a off un bit e' un po' piu' difficile.
+\begin{AsmCodeListing}[frame=none]
+      mov    cl, bh          ; costruisce il numero per l'AND 
+      mov    ebx, 1
+      shl    ebx, cl         ; sposta a sinistra cl volte
+      not    ebx             ; inverte i bit
+      and    eax, ebx        ; mette a off il bit
+\end{AsmCodeListing}
+Il codice per il complemento di un bit arbitrario e' lasciato al lettore
+come esercizio.
+
+Non e' molto raro vedere la seguente istruzione ''strana'' in un programma
+per 80x86: 
+\begin{AsmCodeListing}[frame=none,numbers=none]
+      xor    eax, eax         ; eax = 0
+\end{AsmCodeListing}
+Uno \emph{XOR} di un numero con se stesso produce sempre un risultato di zero. 
+Questa istruzione e' usata perche' il corrispondente codice macchina e'
+piu' piccolo della corrispondente istruzione {\code MOV}.  
+\index{operazioni sui bit!assembly|)}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}
+      mov    bl, 0           ; bl conterra' il numero di bit ON
+      mov    ecx, 32         ; ecx e' il contatore del ciclo
+count_loop:
+      shl    eax, 1          ; sposta i bit nel carry flag
+      adc    bl, 0           ; somma il carry flag a bl
+      loop   count_loop
+\end{AsmCodeListing}
+\caption{Conteggio dei bit con {\code ADC}\label{fig:countBitsAdc}}
+\end{figure}
+
+\section{Evitare i salti condizionati}
+\index{previsione di percorso|(} 
+
+I moderni processori usano tecniche molto sofisticate per eseguire 
+codice il piu' veloce possibile. Una tecnica comune e' conosciuta come
+\emph{esecuzione speculativa}\index{esecuzione speculativa}. Questa
+tecnica usa le capacita' della CPU di processare in parallelo l'esecuzione
+di molte istruzioni alla volta. I percorsi condizionati
+presentano da questo punto di vista dei problemi. Il processore, in
+generale, non sa se il percorso condizionato sara' preso o no. E questo 
+comporterra' l'esecuzione di due diversi gruppi di istruzioni, a seconda 
+della scelta. I processori provano a predire se il percorso verra' preso.
+Se la predizione e' sbagliata, il processore ha perso il suo tempo
+eseguendo codice sbagliato. 
+
+\index{previsione di percorso|)}
+
+Un modo per evitare questo problema e' evitare di utilizzare i percorsi
+condizionali quando possibile. Il codice in \ref{sect:AddBitsExample}
+fornisce un semplice esempio di come si possa fare. Nell'esempio precedente,
+sono contati i bit ''on'' del registro EAX. Usa un salto per saltare 
+l'istruzione {\code INC}. La figura~\ref{fig:countBitsAdc} mostra come 
+i percorsi possono essere rimossi utilizzando l'istruzione {\code ADC}\index{ADC}
+per sommare il carry flag direttamente. 
+
+Le istruzioni {\code SET\emph{xx}}\index{SET\emph{xx}} forniscono un
+modo per rimuovere i percorsi in alcuni casi. Queste istruzioni impostano
+il valore di un registro byte o di una locazione di memoria a zero o uno 
+sulla base dello stato del registro FLAGS. I caratteri dopo {\code SET}
+sono gli stessi caratteri usati per i salti condizionati. Se la 
+condizione corrispondente di {\code SET\emph{xx}} e' vera, il risultato
+memorizzato e' uno, se falso e' memorizzato zero. Per esempio,
+\begin{AsmCodeListing}[frame=none,numbers=none]
+      setz   al        ; AL = 1 se il flag Z e' 1, else 0
+\end{AsmCodeListing}
+L'utilizzo di queste istruzioni permette di sviluppare alcune tecniche
+brillanti per calcolare i valori senza istruzioni di salto.
+
+Per esempio, consideriamo il problema di trovare il massimo tra due
+valori. L'approccio standard per la risoluzione di questo problema e'
+quello di usare una istruzione {\code CMP} e una istruzione di salto 
+per trovare il valore piu' alto. Il programma di esempio mostra come puo'
+essere trovato il valore massimo senza nessuna istruzione di salto.
+
+\begin{AsmCodeListing}
+; file: max.asm
+%include "asm_io.inc"
+segment .data
+
+message1 db "Enter a number: ",0
+message2 db "Enter another number: ", 0
+message3 db "The larger number is: ", 0
+
+segment .bss
+
+input1  resd    1        ; primo numero inserito
+
+segment .text
+        global  _asm_main
+_asm_main:
+        enter   0,0               ; setup routine
+        pusha
+
+        mov     eax, message1     ; stampa il primo messaggio
+        call    print_string
+        call    read_int          ; inserisci i primo numero
+        mov     [input1], eax
+
+        mov     eax, message2     ; stampa il secondo messaggio
+        call    print_string
+        call    read_int          ; inserisce il secondo numero (in eax)
+
+        xor     ebx, ebx          ; ebx = 0
+        cmp     eax, [input1]     ; compara il primo e il secondo numero
+        setg    bl                ; ebx = (input2 > input1) ?          1 : 0
+        neg     ebx               ; ebx = (input2 > input1) ? 0xFFFFFFFF : 0
+        mov     ecx, ebx          ; ecx = (input2 > input1) ? 0xFFFFFFFF : 0
+        and     ecx, eax          ; ecx = (input2 > input1) ?     input2 : 0
+        not     ebx               ; ebx = (input2 > input1) ?          0 : 0xFFFFFFFF
+        and     ebx, [input1]     ; ebx = (input2 > input1) ?          0 : input1
+        or      ecx, ebx          ; ecx = (input2 > input1) ?     input2 : input1
+
+        mov     eax, message3     ; stampa il risultato
+        call    print_string
+        mov     eax, ecx
+        call    print_int
+        call    print_nl
+
+        popa
+        mov     eax, 0            ; ritorna al C
+        leave                     
+        ret
+\end{AsmCodeListing}
+
+Il trucco e' creare una maschera di bit che puo' essere usata per
+selezionare il corretto valore per il massimo. L'istruzione {\code SETG}\index{SETG}
+alla riga~30 imposta BL a 1 se il secondo input e' il massimo, altrimenti
+a 0. Questa non e' comunque la maschera di cui abbiamo bisogno. Per creare
+la maschera desiderata, la riga~31 utilizza l'istruzione {\code NEG}\index{NEG}
+sull'intero registro EBX. (Nota che EBX era stato azzerato poco prima.)
+Se EBX e' 0, questo non fa nulla; Invece, se EBX e' 1, il risultato
+e' la rappresentazione in complemento a 2 di -1 o 0xFFFFFFFF. Questa
+e' appunto la maschera di bit desiderata. Il codice rimanente utilizza
+questa maschera per selezionare il corretto input come massimo.  
+
+Un trucco alternativo consiste nell'utilizzare il comando {\code DEC}. Nel
+codice sopra, se {\code NEG} e' sostituito con {\code DEC}, di nuovo il 
+risultato sara' 0 o 0xFFFFFFFF. I valori sono quindi invertiti quando si
+utilizza l'istruzione {\code NEG}. 
+
+
+\section{Manipolazione di bit in C\index{operazioni sui bit!C|(}}
+
+\subsection{Gli operatori a livello di bit del C}
+
+Diversamente da altri linguaggi di alto livello, il C fornisce operatori
+per le operazioni a livello di bit. L'operazione \emph{AND} e' 
+rappresentata dell'operatore {\code \&}\footnote{Questo operatore e' 
+diverso dall'operatore binario {\code \&\&} ed unario {\code \&}!}.
+L'operazione di \emph{OR} e' rappresentata dall'operatore binario {\code |}.
+L'operazione di \emph{XOR} e' rappresentata dall'operatore
+binario {\code \verb|^|}. Infine, l'operazione \emph{NOT} e' 
+rappresentata dall'operatore unario {\code \verb|~| }.
+
+Le operazioni di shift sono eseguite in C con gli operatori binari
+{\code <<} e {\code >>}. L'operatore {\code <<} effettua lo spostamento 
+a sinistra, mentre l'operatore {\code >>} esegue quello a destra. 
+Questi operatori accettano due operandi. Il primo operando e' il valore su
+cui effettuare l'operazione, mentre il secondo e' il numero di bit da 
+spostare. Se il valore da shiftare e' di tipo unsigned allora viene
+eseguito uno shift logico. Se il valore e' di tipo signed (come {\code int}),
+viene utilizzato uno shift aritmetico. Sotto sono riportati alcuni esempi
+in C che utilizzano questi operatori:
+\begin{lstlisting}{}
+short int s;          /* si assume che short int e' 16 bit */
+short unsigned u;
+s = -1;               /* s = 0xFFFF (complemento a 2) */
+u = 100;              /* u = 0x0064 */
+u = u | 0x0100;       /* u = 0x0164 */
+s = s & 0xFFF0;       /* s = 0xFFF0 */
+s = s ^ u;            /* s = 0xFE94 */
+u = u << 3;           /* u = 0x0B20 (shift logico) */
+s = s >> 2;           /* s = 0xFFA5 (shift aritmetico) */
+\end{lstlisting}
+
+\subsection{Utilizzo degli operatori a livello di bit in C}
+
+Gli operatori a livello di bit sono usati in C con lo stesso scopo
+con cui vengono utilizzati in linguaggio assembly. Permettono di manipolare
+i dati a livello di singolo bit e sono utilizati per eseguire velocemente
+divisioni e moltiplicazioni. Infatti, un compilatore C brillante utilizzera'
+automaticamente uno shift per una moltiplicazione come {\code x *= 2}.
+\begin{table}
+\centering
+\begin{tabular}{|c|l|}
+\hline
+Macro & \multicolumn{1}{c|}{Significato} \\
+\hline \hline
+{\code S\_IRUSR} & utente puo' leggere \\
+{\code S\_IWUSR} & utente puo' scrivere \\
+{\code S\_IXUSR} & utente puo' eseguire \\
+\hline
+{\code S\_IRGRP} & gruppo puo' leggere \\
+{\code S\_IWGRP} & gruppo puo' scrivere \\
+{\code S\_IXGRP} & gruppo puo' eseguire \\
+\hline
+{\code S\_IROTH} & altri possono leggere \\
+{\code S\_IWOTH} & altri possono scrivere \\
+{\code S\_IXOTH} & altri possono eseguire \\
+\hline
+\end{tabular}
+\caption{Macro di permission sui File POSIX \label{tab:posix}}
+\end{table}
+
+Le API\footnote{Application Programming Interface} di molti
+sistemi operativi ( come \emph{POSIX}\footnote{E'l'acronimo di
+Portable Operating System Interface for Computer Environments. Si
+tratta di uno standard basato su UNIX sviluppato da IEEE} e Win32)
+contengono funzioni che lavorano su operandi codificati come bit.
+Per esempio, i sistemi POSIX mantengono i permessi sui file per
+tre diversi tipi di utenti: \emph{utente}(un nome migliore sarebbe
+\emph{proprietario}),\emph{gruppo} e \emph{altri}. Ad ogni tipo
+di utente puo' essere concesso il permesso di leggere, scrivere e/o
+eseguire un file. Un programmatore C che vuole cambiare questi 
+permessi su di un file deve manipolare i singoli bit. POSIX definisce
+diverse macro per venire in aiuto (vedi la Tabella~\ref{tab:posix}).
+La funzione {\code chmod} puo' essere usata per questo scopo. Accetta
+due parametri, una stringa con il nome del file su cui agire e un
+intero\footnote{In realta' un parametro di tipo {\code mode\_t} che e'
+un typedef di un tipo integrale.} con i bit appropriati impostati
+per il permesso desiderato. Per esempio, il codice sotto imposta
+i permessi in modo che il proprietario del file possa leggerlo e 
+scrivere su di esso, gli utenti del gruppo possano leggere il file,
+mentre gli altri non possano avere nessun accesso al file.    
+\begin{lstlisting}[stepnumber=0]{}
+chmod("foo", S_IRUSR | S_IWUSR | S_IRGRP );
+\end{lstlisting}
+
+La funzione POSIX {\code stat} puo' essere usata per trovare i bit
+di permesso correnti di un file. Usata con la funzione {\code chmod},
+permette di modificare alcuni permessi senza toccare gli altri.
+Sotto e' riportato un'esempio che rimuove i permessi di scrittura
+agli altri e aggiunge il permesso di lettura al proprietario del file.
+Gli altri permessi non sono alterati.
+\begin{lstlisting}{}
+struct stat file_stats;    /* struct usata da stat() */
+stat("foo", &file_stats);  /* legge le info del file. 
+                              file_stats.st_mode contiene i bit dei permessi */
+chmod("foo", (file_stats.st_mode & ~S_IWOTH) | S_IRUSR);
+\end{lstlisting}
+\index{operazioni sui bit!C|)}
+
+\section{Rappresentazioni Big e Little Endian\index{endianess|(}}
+
+Il capitolo~1 ha introdotto il concetto di rappresentazioni big e 
+little endian per dati multibyte. L'autore si e' comunque accorto
+che questo concetto confonde molte persone. Questa sezione 
+approfondisce ulteriormente l'argomento.
+
+Il lettore si ricordera' che l'\emph{endianess} si riferisce all'ordine
+con cui i singoli byte (\emph{non} bit) di un dato multibyte sono
+memorizzati. Il metodo Big endian e' quello piu' diretto. Esso memorizza
+il byte piu' significativo come primo, quello successivo piu' significativo
+come secondo e cosi via. In altre parole, i bit \emph{grandi} sono
+memorizzati per primi. Il metodo Little endian fa l'opposto (quelli
+meno significativi per primi). La famiglia dei processori x86 usa
+la rappresentazione little endian. 
+
+Come esempio, consideriamo il valore $12345678_{16}$ come double word.
+Nella rappresentazione big endian, i byte sarebbero memorizzati come
+12~34~56~78. Nella  rappresentazione in little endian, i byte sarebbero
+memorizzati come 78~56~34~12.
+
+Il lettore molto probabilmente si chiedera' ora perche' un designer di chip
+sano di mente dovrebbe usare la rappresentazione little endian? Gli
+ingegneri della Intel erano cosi' sadici da infliggere questa 
+rappresentazione cosi' confondente alle moltitudini di programmatori? 
+In questo modo sembrerebbe che la CPU debba fare del lavoro in piu' per 
+memorizzare i byte alla rovescia ( e di nuovo rovesciare i byte
+quando questi sono letti dalla memoria). La risposta e' che la CPU
+non fa nessun lavoro in piu' per leggere e scrivere la memoria
+utilizzando la rappresentazione little endian. Occorre capire che
+la CPU e' composta di diversi circuiti elettronici che semplicemente
+lavorano sui valori dei bit. I bit (e i byte) non sono necessariamente
+in nessun ordine nella CPU.
+
+Consideriamo il registro a 2 byte {\code AX}. Esso puo' essere scomposto
+in registri ad un byte:{\code AH} e {\code AL}. Ci sono circuiti nella
+CPU che mantegono il valore di {\code AH} e {\code AL}. Non c'e' nessun
+ordine tra questi circuiti nella CPU. Cioe', i circuiti per {\code AH} non
+sono ne' prima ne' dopo i circuiti per {\code AL}. Una istruzione {\code mov}
+che copia il valore di {\code AX} in memoria, copia il valore di {\code AL}
+e poi il valore di {\code AH}. Questa operazione per la CPU non e' piu'
+lavoriosa che copiare prima {\code AH}.
+
+\begin{figure}[t]
+\begin{lstlisting}[stepnumber=0,frame=tblr]{}
+  unsigned short word = 0x1234;   /* si assume sizeof(short) == 2 */
+  unsigned char * p = (unsigned char *) &word;
+
+  if ( p[0] == 0x12 )
+    printf("Macchina Big Endian\n");
+  else
+    printf("Macchina Little Endian\n");
+\end{lstlisting}
+\caption{Come determinare l'\emph{Endianness} \label{fig:determineEndian}}
+\end{figure}
+
+Lo stesso discorso si applica ai singoli bit di un byte. Questi non sono
+assolutamente in nessun ordine nei circuiti della CPU (o della memoria).
+Dal momento che i singoli bit non possono essere allocati nella CPU o
+in memoria, non c'e' nessun modo per sapere (o preoccuparsi) in quale
+ordine questi sono tenuti internamente dalla CPU.
+
+Il codice C in Figura~\ref{fig:determineEndian} mostra come la
+\emph{endianness} di una CPU puo' essere determinata. Il puntatore
+\lstinline|p| tratta la variabile \lstinline|word| come un array
+di due caratteri. Cosi', \lstinline|p[0]| valuta il primo byte
+della \lstinline|word| in memoria che dipende dalla \emph{endianness}
+della CPU.
+
+\subsection{Quando preoccuparsi di Little e Big Endian}
+
+Per la programmazione tipica, la \emph{endianness} della CPU
+non e' significativa. Il momento piu' tipico in cui invece diventa
+importante e' quando dati binari vengono trasferiti fra diversi
+sistemi di computer. Questo accade di solito utilizzando alcuni tipi
+di supporti fisici di massa (come un disco) oppure una rete. \MarginNote{con l'avvento
+di set di caratteri in multibyte, come UNICODE\index{UNICODE}, 
+l'\emph{endianness} e' diventata importante anche per i dati di testo.
+UNICODE supporta entrambe le modalita' ed ha un meccanismo per
+specificare che tipo di endianness e' utilizzata per rappresentare
+i dati.} Dal momento che i dati in ASCII usano un solo byte,
+l'\emph{endianness} per questi non e' un problema.
+
+Tutti gli header interni TCP/IP memorizzano gli interi nel formato
+big endian (chiamato \emph{ordine dei byte della rete}). Le librerie
+TCP/IP\index{TCP/IP} forniscono delle funzioni in C per trattare il
+problema della \emph{endianness} in modo portabile. Per esempio, la
+funzione \lstinline|htonl()| converte una double word (o long integer)
+dal formato dell'\emph{host} a quello della \emph{rete}. La funzione
+\lstinline|ntohl()| esegue la trasformazione opposta.\footnote{In realta',
+l'inversione della \emph{endianness} di un intero semplicemente inverte
+i byte; In questo modo, la conversione da big a little o da little a big
+sono la stessa cosa. In definitiva, entrambe le funzioni fanno la stessa
+cosa.} Per i sistemi big endian, le due funzioni semplicemente ritorno 
+il loro parametro non modificato. Questo permette di scrivere programmi
+per la rete che possano essere compilati ed eseguiti su qualunque
+sistema a dispetto del suo formato di rappresentazione. Per maggiori
+informazioni, sulla \emph{endianness} e sulla programmazione delle
+rete si veda l'eccellente libro di W. Richard Steven, 
+\emph{UNIX Network Programming}.
+
+\begin{figure}[t]
+\begin{lstlisting}[frame=tlrb]{}
+unsigned invert_endian( unsigned x )
+{
+  unsigned invert;
+  const unsigned char * xp = (const unsigned char *) &x;
+  unsigned char * ip = (unsigned char *) & invert;
+
+  ip[0] = xp[3];   /* inverte i singoli byte */
+  ip[1] = xp[2];
+  ip[2] = xp[1];
+  ip[3] = xp[0];
+
+  return invert;   /* ritorna i byte invertiti */
+}
+\end{lstlisting}
+\caption{Funzione invert\_endian \label{fig:invertEndian}\index{endianess!invert\_endian}}
+\end{figure}
+
+La Figura~\ref{fig:invertEndian} mostra una funzione C che inverte
+l'\emph{endianness} di una double word. Il processore 486 ha introdotto
+una nuova istruzione macchina chiamata {\code BSWAP} \index{BSWAP} che
+inverte i byte si qualunque registro a 32 bit. Per esempio,
+\begin{AsmCodeListing}[frame=none,numbers=none]
+      bswap   edx          ; inverte i byte di edx
+\end{AsmCodeListing}
+L'istruzione non puo' essere usata sui registri a 16 bit. Al suo posto,
+puo' essere usata l'instruzione {\code XCHG} \index{XCHG} per invertire
+i byte dei registri a 16 bit che possono essere scomposti in registri
+a 8 bit. Per esempio:
+\begin{AsmCodeListing}[frame=none,numbers=none]
+      xchg    ah,al        ; inverte i byte di ax
+\end{AsmCodeListing}
+\index{endianess|)}
+
+\section{Conteggio di Bit\index{conteggio di bit|(}}
+
+Precedentemente era stata fornita una tecnica diretta per il conteggio 
+del numero di bit che sono ``on'' in una double word. Questa sezione
+si occupa di altri metodi meno diretti per fare cio' come un'esercizio
+utilizzando le operazioni sui bit discusse in questo capitolo.
+
+
+\begin{figure}[t]
+\begin{lstlisting}[frame=tblr]{}
+int count_bits( unsigned int data )
+{
+  int cnt = 0;
+
+  while( data != 0 ) {
+    data = data & (data - 1);
+    cnt++;
+  }
+  return cnt;
+}
+\end{lstlisting}
+\caption{Conteggio di Bit: Metodo Uno \label{fig:meth1}}
+\end{figure}
+
+\subsection{Metodo Uno\index{conteggio di bit!metodo uno|(}}
+
+Il primo metodo e' molto semplice, ma non ovvio. La Figura~\ref{fig:meth1} mostra il codice.
+
+Come funziona? In ogni iterazione del ciclo, un bit in {\code data} e' messo
+a off. Quando tutti i bit sono off (\emph{i.e.} quando {\code data} e' zero),
+il ciclo termina. Il numero di iterazioni che occorrono per rendere
+{\code data} zero e' uguale al numero di bit nel valore originale di {\code data}
+
+La riga~6 e' dove i bit di {\code data} sono messi a off. Come funziona?
+Consideriamo la forma generale della rappresentazione binaria di {\code data}
+e l'1 piu' a destra in questa rappresentazione. Per definizione ogni bit
+dopo questo 1 deve essere 0. Ora, quale sara' la rappresentazione binaria
+di {\code data -1}? I bit a sinistra del bit piu' a destra saranno gli
+stessi come per {\code data}, ma dall'1 in poi i bit a destra saranno
+il complemento dei bit originali  di {\code data}. Per esempio:\\
+\begin{tabular}{lcl}
+{\code data}     & = & xxxxx10000 \\
+{\code data - 1} & = & xxxxx01111
+\end{tabular}\\
+dove le x sono le stesse per entrambi i numeri. Quando {\code data} e'
+messo in \emph{AND} con {\code data -1}, il risultato azzerera' l'1 piu' 
+a destra in {\code data} e lasciera' inalterati gli altri bit. 
+
+\begin{figure}[t]
+\begin{lstlisting}[frame=tlrb]{}
+static unsigned char byte_bit_count[256];  /* tabella di controllo */
+
+void initialize_count_bits()
+{
+  int cnt, i, data;
+
+  for( i = 0; i < 256; i++ ) {
+    cnt = 0;
+    data = i;
+    while( data != 0 ) {	/* metodo uno */
+      data = data & (data - 1);
+      cnt++;
+    }
+    byte_bit_count[i] = cnt;
+  }
+}
+
+int count_bits( unsigned int data )
+{
+  const unsigned char * byte = ( unsigned char *) & data;
+
+  return byte_bit_count[byte[0]] + byte_bit_count[byte[1]] +
+         byte_bit_count[byte[2]] + byte_bit_count[byte[3]];
+}
+\end{lstlisting}
+\caption{Metodo Due \label{fig:meth2}}
+\end{figure}
+\index{conteggio di bit!metodo uno|)}
+
+\subsection{Metodo Due\index{conteggio di bit!metodo due|(}}
+
+Una tabella di controllo puo' anche essere usata per contare i bit di
+una double word arbitraria. L'approccio diretto sarebbe di precalcolare
+il numero di bit di ciascuna double word e memorizzare questo dato 
+in un array. Con questo approccio, pero', ci sono due problemi. Ci
+sono circa \emph{4 miliardi} di valori di double word! Questo 
+significa che l'array sarebbe veramente grande e che la sua inizializzazione
+richiederebbe davvero molto tempo. (Infatti, a meno che non si vada ad
+usare realmente l'array per piu' di 4 miliardi di volte, occorrerebbe
+piu' tempo per l'inizializzazione dell'array che per il calcolo del
+conto dei bit utilizzando il metodo 1!)
+
+Un metodo piu' realistico  precalcolera' i conteggi dei bit per tutte i
+possibili valori di un byte e li memorizzera in un array. Poi la
+double word verra' divisa in 4 valori da un byte. I conteggi dei bit
+di questi quattro valori sara' cercato nell'array e sommati per 
+trovare il conteggio dei bit del valore originale della double word.
+La Figura~\ref{fig:meth2} mostra l'implementazione del codice per
+questo approcio.
+
+La funzione {\code initialize\_count\_bits} deve essere chiamata
+prima della prima chiamata della funzione {\code count\_bits}. Questa
+funzione inizializza l'array globale {\code byte\_bit\_count}. La 
+funzione {\code count\_bits} controlla la variabile {\code data} non
+come una double word ma come ad un array di 4 byte. Il puntatore
+{\code dword} agisce come un puntatore a questo array di 4 bytes.
+Cosi', {\code dword[0]} rappresenta uno dei byte in {\code data}
+(il byte meno significativo o quello piu' significativo dipendono
+dal fatto che l'hardware usi rispettivamente little endian o big endian.)
+Naturalmente si potrebbe usare un costrutto del tipo:
+\begin{lstlisting}[stepnumber=0]{}
+(data >> 24) & 0x000000FF
+\end{lstlisting}
+\noindent per trovare il valore del byte piu' significativo, ed uno
+simile per gli altri byte; in ogni modo questo approccio e' piu'
+lento rispetto al riferimento ad un array.
+
+Un ultimo punto, un ciclo {\code for} potrebbe essere usato facilmente
+per calcolare la somma alle righe~22 e 23. Questo pero', includerebbe
+un sovraccarico per l'inizializzazione dell'indice del ciclo, la 
+comparazione dell'indice dopo ogni iterazione e l'incremento dell'indice.
+Calcolare la somma come una somma esplicita di 4 valori e' sicuramente
+piu' veloce. Infatti, un compilatore brillante convertira' la versione
+con il ciclo {\code for} in una somma esplicita. Questo processo
+di riduzione od eliminazione delle iterazioni di un ciclo e' una 
+tecnica di ottimizzazione dei compilatori conosciuta come
+\emph{loop unrolling}\footnote{letteralmente, \emph{svolgimento del ciclo} (ndt)}.
+\index{conteggio dei bit!metodo due|)}
+
+\subsection{Metodo Tre\index{conteggio dei bit!metodo tre|(}}
+
+\begin{figure}[t]
+\begin{lstlisting}[frame=tlrb]{}
+int count_bits(unsigned int x )
+{
+  static unsigned int mask[] = { 0x55555555,
+                                 0x33333333,
+                                 0x0F0F0F0F,
+                                 0x00FF00FF,
+                                 0x0000FFFF };
+  int i;
+  int shift;   /* numero di posizioni da shiftare a destra */
+
+  for( i=0, shift=1; i < 5; i++, shift *= 2 )
+    x = (x & mask[i]) + ( (x >> shift) & mask[i] );
+  return x;
+}
+\end{lstlisting}
+\caption{Metodo 3 \label{fig:method3}}
+\end{figure}
+
+Questo e' un'altro metodo intelligente di contare i bit che sono a on nel
+dato. Questo metodo letteralemente somma gli uno e gli zero del dato 
+insieme. Questa somma deve essere uguale al numero di 1 nel dato. Per
+esempio, consideriamo il conteggio degli uno nel byte memorizzato in una 
+variabile di nome {\code data}. Il primo passo e' quello di eseguire
+questa operazione:
+\begin{lstlisting}[stepnumber=0]{}
+data = (data & 0x55) + ((data >> 1) & 0x55);
+\end{lstlisting}
+Come funziona? La costante hex {\code 0x55} e' $01010101$ in binario.Nel
+primo operando della addizione, {\code data} e' posto in AND con questo
+valore e sono estratti i bit nelle posizioni dispari. Il secondo
+operando {\code ((data >> 1) \& 0x55)} muove prima i bit nelle posizioni
+pari in posizioni dispari ed usa la stessa maschera per estrarre
+questi stessi bit. Ora, il primo operando contiene i bit dispari di 
+{\code data} mentre il secondo quelli pari. Quando questi due operandi
+sono sommati, i bit pari e quelli dispari sono sommati insieme. Per 
+esempio, se {\code data} fosse $10110011_2$, allora:  
+\begin{tabular}{rcr|l|l|l|l|}
+\cline{4-7}
+{\code data \&} $01010101_2$          &    &   & 00 & 01 & 00 & 01 \\
++ {\code (data >> 1) \&} $01010101_2$ & or & + & 01 & 01 & 00 & 01 \\
+\cline{1-1} \cline{3-7}
+                                      &    &   & 01 & 10 & 00 & 10 \\
+\cline{4-7}
+\end{tabular}
+
+La somma sulla destra mostra i bit correntemente sommati insieme. I bit del
+byte sono divisi in 4 campi da 2 bit per mostrare che ci sono 4 diverse ed 
+indipendenti addizioni da eseguire. Da momento che il valore massimo di 
+queste somme puo' essere 2, non ci sono possibilita' che la somma crei un
+overflow e vada a corrompere una delle altre somme di campi.
+
+Naturalmente, il numero totale di bit non e' ancora stato calcolato. Comunque,
+la tecnica che e' stata usata puo' essere estesa al calcolo totale in una
+serie di passi simili. Il passo successivo sara':
+\begin{lstlisting}[stepnumber=0]{}
+data = (data & 0x33) + ((data >> 2) & 0x33);
+\end{lstlisting}
+Continuando con l'esempio sopra (ricorda che {\code data} ora e'
+$01100010_2$):\\
+\begin{tabular}{rcr|l|l|}
+\cline{4-5}
+{\code data \&} $00110011_2$          &    &   & 0010 & 0010 \\
++ {\code (data >> 2) \&} $00110011_2$ & or & + & 0001 & 0000 \\
+\cline{1-1} \cline{3-5}
+                                      &    &   & 0011 & 0010 \\
+\cline{4-5}
+\end{tabular}\\
+Ora ci sono due campi di 4 bit che sono sommati fra loro
+
+Il passo successivo e' quello di sommare queste due somme di bit per
+formare il risultato finale:
+\begin{lstlisting}[stepnumber=0]{}
+data = (data & 0x0F) + ((data >> 4) & 0x0F);
+\end{lstlisting} 
+
+Utilizzando sempre l'esempio di prima (con {\code data} uguale a $00110010_2$):\\
+\begin{tabular}{rcrl}
+{\code data \&} $00001111_2$          &    &   & 00000010 \\
++ {\code (data >> 4) \&} $00001111_2$ & or & + & 00000011 \\
+\cline{1-1} \cline{3-4}
+                                      &    &   & 00000101 \\
+\end{tabular}\\
+Ora {\code data} e' 5, cioe' il risultato corretto. La Figura~\ref{fig:method3}
+mostra una implementazione di questo metodo che conta i bit in una
+double word. Esso usa un ciclo {\code for} per calcolare la somma.
+Sarebbe piu' veloce svolgendo il ciclo; comunque, il ciclo rende
+piu' chiaro come il metodo generalizza le diverse dimensioni del
+dato.
+\index{conteggio dei bit!metodo tre|)}
+\index{conteggio dei bit|)}

@@ -1,0 +1,128 @@
+% -*-LaTex-*-
+%front matter of pcasm book
+
+\chapter{Prefazione}
+
+\section*{Scopo}
+
+Lo scopo di questo libro e' di dare al lettore una migliore comprensione
+di come i computer in realta' lavorano ad un piu' basso livello rispetto
+ai linguaggi di programmazione come il Pascal. Con l'approfondimento
+di come funzionano i computer, il lettore puo' essere molto piu'
+produttivo nello sviluppare software nei linguaggi di alto livello
+come il C e C++. Imparare a programmare in linguaggio assembly e' un
+eccellente modo per raggiungere questo scopo. Gli altri libri sul
+linguaggio assembly per PC ancora insegnano come programmare il processore
+8086 che i primi PC usavano nel 1981! Il processore 8086 supporta
+solo la modalita' \emph{remota}. In questa modalita', ogni programma
+puo' indirizzare ogni memoria o periferica di un computer. Questa
+modalita' non e' adatta per un sistema operativo multitasking sicuro.
+Questo libro invece discute su come programmare il processore 80386
+e i successivi in modalita' \emph{protetta} (la modalita' che usano 
+Windows e Linux). Questa modalita' supporta le caratteristiche che 
+i moderni sistemi operativi si aspettano come la memoria virtuale e
+la protezione della memoria.
+Ci sono diverse ragione per utilizzare la modalita' protetta: 
+\begin{enumerate}
+\item E' piu' facile programmare in modalita' protetta piuttosto che 
+			in modalita' reale dell'8086, che gli altri libri usano.
+\item Tutti i moderni PC lavorano in modalita' protetta.
+\item Esiste software libero disponibile che gira in questa modalita'.
+\end{enumerate}
+La mancanza di libri di testo per la programmazioni in linguaggio 
+assembly in modalita' protetta e' la ragione principale che ha spinto
+l'autore a scrivere questo libro.
+
+Come accennato prima, questo ttesto fa uso di software Free/Open Source:
+nella fattispecie, l'assembler NASM e il compilatore DJGPP per C/C++.
+Entrambi sono disponibili per il download su Internet. Il testo inoltre
+discute su come usare il codice assembly NASM nei sistemi operativi Linux
+e, attraverso i compilatori per C/C++ di Borland e di Microsoft, sotto 
+Windows. Gli esempi per tutte queste piattaforme possono essere trovati
+sul mio sito:
+{\code http://www.drpaulcarter.com/pcasm}.
+Tu \emph{devi} scaricare il codice di sempio se vuoi assemblare ed
+eseguire i molti esempi di questo libro.
+
+E' importante sottolineare che questo testo non tenta di coprire ogni 
+aspetto della programmazione in assembly. L'autore ha provato a coprire
+gli aspetti piu' importante sui cui \emph{tutti} i programmatori dovrebbero
+avere  familiarita'.
+
+\section*{Ringraziamenti}
+
+L'autore vuole ringraziare tutti i programmatori in giro per il mondo
+che hanno contribuito al movimento Free/Open Source. Tutti i programmi
+ed anche questo stesso libro sono stati prodotti utlizzando software
+libero. L'autore vuole ringraziare in modo speciale John~S.~Fine,
+Simon~Tatham, Julian~Hall e gli altri per lo sviluppo dell'assmbler
+NASM su cui sono basati tutti gli esempi di questo libro; DJ Delorie
+per lo sviluppo del compiliatore usato DJGPP per C/C++; le numerore
+persone che hanno contribuito al compilatore GNU gcc su cui e' 
+basato DJGPP.Donald Knuth e gli altri per lo sviluppo dei linguaggi
+di composizione \TeX\ e \LaTeXe\ che sono stati utilizzati per 
+produrre questo libro; Richard Stallman (fondatore della Free Software
+Foundation), Linus Torvalds (creatore del Kernel Linux) e gli altri 
+che hanno prodotto il sofware di base che l'autore ha usato per 
+produrre questo lavoro.
+
+Grazie alle seguenti persone per le correzioni:
+\begin{itemize}
+\item John S. Fine
+\item Marcelo Henrique Pinto de Almeida
+\item Sam Hopkins
+\item Nick D'Imperio
+\item Jeremiah Lawrence
+\item Ed Beroset
+\item Jerry Gembarowski
+\item Ziqiang Peng
+\item Eno Compton
+\item Josh I Cates
+\item Mik Mifflin
+\item Luke Wallis
+\item Gaku Ueda
+\item Brian Heward
+\item Chad Gorshing
+\item F. Gotti
+\item Bob Wilkinson
+\item Markus Koegel
+\item Louis Taber
+\item Dave Kiddell
+\item Eduardo Horowitz
+\item S\'{e}bastien Le Ray
+\item Nehal Mistry
+\item Jianyue Wang
+\item Jeremias Kleer
+\item Marc Janicki
+\end{itemize}
+
+
+\section*{Risorse su Internet}
+\begin{center}
+\begin{tabular}{|ll|}
+\hline
+Pagina dell'Autore & {\code http://www.drpaulcarter.com/} \\
+%NASM   & {\code http://nasm.2y.net/} \\
+Pagine NASM SourceForge & {\code http://sourceforge.net/projects/nasm/} \\
+DJGPP  & {\code http://www.delorie.com/djgpp} \\
+Linux Assembly & {\code http://www.linuxassembly.org/} \\
+The Art of Assembly & {\code http://webster.cs.ucr.edu/} \\
+USENET & {\code comp.lang.asm.x86 } \\
+Documentazione Intel & {\code http://developer.intel.com/design/Pentium4/documentation.htm} \\
+\hline
+\end{tabular}
+\end{center}
+
+
+\section*{Feedback}
+
+L'autore accetta volentieri ogni ritorno su questo lavoro.
+\begin{center}
+\begin{tabular}{ll}
+\textbf{E-mail:} & {\code pacman128@gmail.com} \\
+\textbf{WWW:}    & {\code http://www.drpaulcarter.com/pcasm} \\
+\end{tabular}
+\end{center}
+
+
+

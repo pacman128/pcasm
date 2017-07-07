@@ -1,0 +1,1460 @@
+%-*- latex -*-
+\chapter{Sottoprogrammi}
+
+Questo capitolo si occupa dell'utilizzo di sottoprogrammi per creare
+programmi modulari e per interfacciarsi con linguaggi di alto livello
+(come il C). Le funzioni e le procedure nei linguaggi di alto livello 
+sono esempi di sottoprogrammi.
+
+Il codice che chiama il sotto programma e lo stesso sottoprogramma 
+devono avere accordo su come verranno trasferiti i dati tra di loro.
+Queste regole sono chiamate \emph{convenzioni di chiamata}.\index{convenzione
+di chiamata} Una buona parte di questo capitolo trattera' le convenzioni
+di chiamata standard del C che potranno essere usate per interfacciare
+sottoprogrammi in assembly con i programmi scritti in C. Questa 
+(ed altre convenzioni) spesso passano degli indirizzi (\emph{i.e.} puntatori)
+che permettono ai sottoprogrammi di avere accesso ai dati in memoria.
+
+\section{Indirizzamento Indiretto\index{indirizzamento indiretto|(}}
+
+L'indirizzamento indiretto permette ai registri di comportarsi come
+variabili puntatore. Per indicare che un registro viene usato indirettamente
+come un puntatore, viene racchiuso tra parentesi quadre ({\code []}).
+Per esempio:
+\begin{AsmCodeListing}[frame=none]
+      mov    ax, [Data]     ; indirizzamento diretto normale alla memoria 
+      											; di una word
+      mov    ebx, Data      ; ebx = & Data
+      mov    ax, [ebx]      ; ax = *ebx
+\end{AsmCodeListing}
+Poiche' la dimensione di AX e' una word, la riga~3 legge una word a partire
+dall'indirizzo memorizzato in EBX. Se AX e' sostituito con AL, verrebbe letto
+solo un singolo byte. E' importante capire che i registri non hanno tipi
+come succede per le variabili in C. Cosa punti EBX e' determinato esclusivamente
+da quale istruzione lo usa. Inoltre, anche il fatto che EBX sia un puntatore
+e' determinato dalla istruzione. Se EBX non fosse usato correttamente,
+spesso non verrebbe segnalato nessun errore dall'assembler. Pero', il programmma
+non funzionerebbe correttamente. Questa e' una delle molte ragioni per
+cui la programmazione in assembly e' piu' portata all'errore rispetto alla
+programmazione nei linguaggi di alto livello.
+
+Tutti i registri generali a 32 bit (EAX, EBX, ECX, EDX) e i registri indice
+(ESI, EDI) possono essere usati per l'indirizzamento indiretto. In generale
+i registri a 16 e 8 bit invece non possono essere usati.
+\index{indirizzamento indiretto|)}
+
+\section{Semplice esempio di sottoprogramma\index{sottoprogramma|(}}
+
+Un sottoprogramma e' una unita' indipendente di codice che puo' essere usata
+da parti diverse del programma. In altre parole, un sottoprogramma equivale
+ad una funzione in C. Il sottoprogramma puo' essere invocato con una 
+istuzione di salto, ma il suo ritorno puo' presentare un problema. Se il 
+sotto programma viene usato da diverse parti del programma, deve necessariamente
+tornare alla sezione del codice che lo ha invocato. Cosi' il salto indietro
+dal sottoprogramma non puo' essere collegato ad una etichetta. Il codice sotto
+mostra come cio' viene fatto utilizzando una forma indiretta della istruzione
+{\code JMP}. Questa forma usa il valore di un registro per determinare dove
+deve saltare (in questo modo il registro si comporta come un \emph{puntatore
+a funzione} in C.) 
+Ecco il primo programma del capitolo~1 riscritto per usare un sottoprogramma. 
+\begin{AsmCodeListing}[label=sub1.asm]
+; file: sub1.asm
+; Programma di esempio
+%include "asm_io.inc"
+
+segment .data
+prompt1 db    "Enter a number: ", 0       ; non dimenticate il terminatore null
+prompt2 db    "Enter another number: ", 0
+outmsg1 db    "You entered ", 0
+outmsg2 db    " and ", 0
+outmsg3 db    ", the sum of these is ", 0
+
+segment .bss
+input1  resd 1
+input2  resd 1
+
+segment .text
+        global  _asm_main
+_asm_main:
+        enter   0,0               ; setup routine
+        pusha
+
+        mov     eax, prompt1      ; stampa il prompt
+        call    print_string
+
+        mov     ebx, input1       ; memorizza l'indirizzo di input1 in ebx
+        mov     ecx, ret1         ; memorizza l'indirizzo di ritorno in ecx
+        jmp     short get_int     ; legge l'intero
+ret1:
+        mov     eax, prompt2      ; stampa il prompt
+        call    print_string
+
+        mov     ebx, input2
+        mov     ecx, \$+ 7        ; ecx = questo indirizzo + 7
+        jmp     short get_int
+
+        mov     eax, [input1]     ; eax = dword in input1
+        add     eax, [input2]     ; eax += dword in input2
+        mov     ebx, eax          ; ebx = eax
+
+        mov     eax, outmsg1
+        call    print_string      ; stampa il primo messaggio
+        mov     eax, [input1]     
+        call    print_int         ; stampa input1
+        mov     eax, outmsg2
+        call    print_string      ; stampa il secondo messaggio
+        mov     eax, [input2]
+        call    print_int         ; stampa input2
+        mov     eax, outmsg3
+        call    print_string      ; stampa terzo messaggio
+        mov     eax, ebx
+        call    print_int         ; stampa la somma (ebx)
+        call    print_nl          ; stampa una nuova linea (a capo)
+
+        popa
+        mov     eax, 0            ; ritorna al C
+        leave                     
+        ret
+; sottoprogramma get_int
+; Parametri:
+;   ebx - indirizzo di una dword in cui salvo l'intero
+;   ecx - indirizzo dell'istruzione a cui ritornare
+; Notes:
+;   valore di eax e' cancellato
+get_int:
+        call    read_int
+        mov     [ebx], eax         ; memorizza input in memoria
+        jmp     ecx                ; torna al chiamante
+\end{AsmCodeListing}
+
+Il sottoprogramma {\code get\_int} usa una semplice convenzione basata
+sui registri. Questa si aspetta che il registro EBX contenga l'indirizzo
+della DWORD in cui memorizzare il numero inserito e il registro ECX
+l'indirizzo del istruzione a cui ritornare. Dalla riga~25 alla 28, l'etichetta
+{\code ret1} e' utilizzata per calcolare questo indirizzo di ritorno. 
+Dalla riga~32 alla 34, l'operatore {\code \$} e' utilizzato per calcolare 
+l'indirizzo di ritorno. L'operatore {\code \$} ritorna l'indirizzo corrente 
+della riga in cui appare. L'espressione {\code \$ + 7} calcola l'indirizzo 
+della istruzione {\code MOV} alla riga~36.  
+
+Entrambe queste operazioni di calcolo dell'indirizzo di ritorno sono scomode.
+Il primo metodo richiede che venga definita una etichetta per ogni chiamata
+ad un sottoprogramma. Il secondo metodo non richiede una etichetta, ma richiede
+una particolare attenzione. Se fosse stato utilizzato un salto di tipo near
+invece di uno di tipo short, il numero da aggiungere a {\code \$} non
+sarebbe stato 7! Fortunatamente, c'e' un modo molto piu' semplice di chiamare
+i sottoprogrammi. Questo metodo usa lo \emph{stack}\footnote{letteralmente \emph{pila}(ndt)}.
+
+\section{Lo Stack\index{stack|(}}
+
+Molte CPU hanno un supporto integrato per lo stack. Uno stack e' una pila 
+di tipo \emph{LIFO}(Last-In First-Out, l'ultimo che e' entra e' il primo che esce).
+Lo stack e' un'area di memoria organizzata in questo modo. L'istruzione
+{\code PUSH} aggiunge i dati allo stack e l'istruzione {\code POP} li 
+rimuove. I dati rimossi sono sempre gli ultimi dati aggiunti (da qui deriva 
+il tipo LIFO dello stack).
+
+Il registro di segmento SS specifica il segmento che contiene lo stack (
+generalmente e' lo stesso segmento in cui sono memorizzati i dati). Il
+registro ESP contiene l'indirizzo del dato che sara' rimosso dallo stack.
+Questo dato viene considerato in \emph{cima} allo stack. I dati possono
+essere aggiunti solo in unita' di double word. Non e' possibile, quindi, 
+aggiungere allo stack un singolo byte.
+
+L'istruzione {\code PUSH} inserisce una double word\footnote{In realta' anche
+le word possono essere inserite, ma in modalita' protetta a 32 bit
+e' meglio utilizzare double word per lo stack} nello stack, prima 
+sottraendo 4 da ESP e poi memorizzando la double word in {\code [ESP]}.
+L'istruzione {\code POP} legge una double word in {\code [ESP]} e poi
+somma a ESP, 4. Il codice sotto mostra come queste istruzioni funzionano
+e assume che ESP sia inizialmente {\code 1000H}.
+\begin{AsmCodeListing}[frame=none]
+      push   dword 1    ; 1 memorizzato in 0FFCh, ESP = 0FFCh
+      push   dword 2    ; 2 memorizzato in 0FF8h, ESP = 0FF8h
+      push   dword 3    ; 3 memorizzato in 0FF4h, ESP = 0FF4h
+      pop    eax        ; EAX = 3, ESP = 0FF8h
+      pop    ebx        ; EBX = 2, ESP = 0FFCh
+      pop    ecx        ; ECX = 1, ESP = 1000h
+\end{AsmCodeListing}
+
+Lo stack puo' essere utilizzato come luogo conveniente dove memorizzare
+temporaneamente i dati. Viene anche utilizzato per gestire le chiamate
+a sottoprogrammi, passandovi parametri e variabili locali.
+
+L'80x86 inoltre fornisce l'istruzione {\code PUSHA} che mette i valori
+dei registri EAX, EBX, ECX, EDX, ESI, EDI e EBP (non in questo ordine)
+nello stack. L'istruzione {\code POPA} viene invece utilizzata per 
+recuperare questi registri dallo stack.
+\index{stack|)}
+
+\section{Le istruzioni CALL e RET\index{sottoprogramma!chiamata|(}}
+\index{CALL|(}
+\index{RET|(}
+L'80x86 fornisce due istruzioni che usano lo stack per rendere le
+chiamate a sottoprogrammi facili e veloci. L'istruzione CALL effettua
+un salto incondizionato ad un sottoprogramma e \emph{mette} l'indirizzo 
+della istruzione successiva nello stack. L'istruzione RET \emph{estrae}
+un'indirizzo e salta  quello. Quando si usano queste istruzioni, e' 
+necesario che lo stack sia usato correttamente, in modo che venga
+estratto il numero corretto dall'istruzione RET!
+
+Il programma precedente puo' essere riscritto per utilizzare queste nuove
+istruzioni sostituendo le righe dalla~25 alla 34 cosi':
+\begin{AsmCodeListing}[numbers=none]
+      mov    ebx, input1
+      call   get_int
+
+      mov    ebx, input2
+      call   get_int
+\end{AsmCodeListing}
+e cambiando il sottoprogramma {\code get\_int} in:
+\begin{AsmCodeListing}[numbers=none]
+get_int:
+      call   read_int
+      mov    [ebx], eax
+      ret
+\end{AsmCodeListing}
+
+Ci sono molti vantaggi nell'uso di CALL e RET:
+\begin{itemize}
+\item E' piu' semplice!
+\item Permette di eseguire chiamate annidate ai sottoprogrammi piu' facilmente.
+Nota che {\code get\_int} chiama {\code read\_int}. Questa chiamata mette
+un'altro indirizzo nello stack. Al termine del codice di {\code read\_int} e'
+una RET che estrae l'indirizzo di ritorno e salta al codice di {\code get\_int}.
+Quando la RET di {\code get\_int} e' eseguita, questa estrae l'indirizzo di 
+ritorno che porta nuovamente a {\code asm\_main}. Tutto cio' funziona correttamente
+grazie alla proprieta' LIFO dello stack.
+\end{itemize}
+
+Ricorda che e' \emph{molto} importante estrarre tutti i dati che sono stati
+inseriti nello stack. Per esempio, considera il codice seguente: 
+\begin{AsmCodeListing}[frame=none]
+get_int:
+      call   read_int
+      mov    [ebx], eax
+      push   eax
+      ret                  ; estrae il valore EAX, non l'indirizzo di ritorno!!
+\end{AsmCodeListing}
+Questo codice non ritorna correttamente al chiamante!
+\index{RET|)}
+\index{CALL|)}
+
+\section{Convenzioni di chiamata\index{convenzione di chiamata|(}}
+
+Quando viene invocato un sottoprogramma, il codice chiamante ed il
+sottoprogramma \emph{il chiamato} devono avere accordo su come 
+vengono passati i dati fra loro. I linguaggi di alto livello hanno
+dei modi standard per passare i dati conosciuti come \emph{convenzioni
+di chiamata}. Per interfacciare il codice di alto livello con il
+linguaggio assembly, il codice assembly deve usare la stessa
+convenzione del linguaggio di alto livello. Le convenzioni di 
+chiamata possono differire da compilatore a compilatore o possono
+variare dipendentemente dal modo in cui il codice viene compilato
+(\emph{i.e.} se le ottimizzazioni sono attivate o meno). Una 
+convenzione universale e' che il codice sara' invocato con una
+istruzione {\code CALL} e ritonera' indietro con una {\code RET}.
+
+Tutti i compilatori C per PC supportano una convenzione di chiamata
+che sara' descritta a fasi successive nel resto di questo capitolo.
+Queste convenzioni permettono di creare sottoprogrammi che sono
+\emph{rientranti}\footnote{Un sottoprogramma e' \emph{rientrante} quando 
+puo' essere chiamato diverse volte in parallelo, senza interferenze fra
+le chiamate(ndt).}. Uno sottoprogramma rientrante puo' essere chiamato
+tranquillamente in qualunque punto di un programma (anche dentro
+lo stesso sottoprogramma).
+
+\subsection{Passaggio di parametri sullo stack\index{stack|(}\index{stack!parametri|(}}
+
+I parametri possono essere passati ad un sottoprogramma attraverso lo stack.
+Sono messi sullo stack prima della istruzione {\code CALL}. Come in C, se
+un parametro viene modificato dal sottoprogramma, deve essere passato 
+\emph{l'indirizzo} del dato, non il suo \emph{valore}. Se la dimensione del
+parametro e' minore di una double word, deve essere convertito in un double
+word prima di essere messo nello stack.
+
+I parametri nello stack non sono estratti dal sottoprogramma, ma sono invece
+acceduti dallo stesso stack. Perche'?
+\begin{itemize}
+\item Dal momento che sono messi nello stack prima dell'istruzione {\code CALL}
+l'indirizzo di ritorno dovrebbe essere estratto per primo (e di nuovo 
+messo dentro)
+\item Spesso i parametri saranno usati in diversi posti nel sottoprogramma.
+\MarginNote{Quando si usa l'indirizzamento indiretto, il 
+processore 80x86 accede a diversi segmenti in virtu' di quali registri
+sono utilizati nell'espressine di indirizzamento indiretto. ESP (e EBP)
+usano il segmento dello stack, mentre EAX, EBX, ECX ed EDX usano il 
+segmento dei dati. Comunque, generalemente cio' non e' importante per
+la maggior parte dei programmi in modalita' protetta, in quanto per loro
+i due segmenti sono lo stesso.} 
+Generalmente, non sono tenuti in un registro per l'intero sottoprogramma
+e dovrebbero essere salvati in memoria. Lasciarli nello stack permette di
+avere uno loro copia in memoria che puo' essere acceduta in qualunque
+punto del sottoprogramma.
+\end{itemize}
+
+\begin{figure}
+\centering
+\begin{tabular}{l|c|}
+\cline{2-2}
+&  \\ \cline{2-2}
+ESP + 4 & Parametro \\ \cline{2-2}
+ESP     & indirizzo di ritorno \\ \cline{2-2}
+ & \\ \cline{2-2}
+\end{tabular}
+\caption{}
+\label{fig:stack1}
+\end{figure}
+Considera 
+un sottoprogramma a cui e' passato un solo parametro sullo stack. Quando
+il sottoprogramma viene invocato, lo stack appare come quello in 
+Figura~\ref{fig:stack1}. Il parametro puo' essere acceduto utilizzando
+l'indirizzamento indiretto ({\code [ESP+4]}\footnote{E' lecito aggiungere
+una costante ad un registro quando si usa l'indirizzamento indiretto. Sono
+possibili anche espressioni piu' complicate. Questo aspetto sara' 
+discusso nel prossimo capitolo}).
+\begin{figure}
+\centering
+\begin{tabular}{l|c|}
+\cline{2-2}
+&  \\ \cline{2-2}
+ESP + 8 & Parametro \\ \cline{2-2}
+ESP + 4 & indirizzo di ritorno \\ \cline{2-2}
+ESP     & dato del sottoprogramma \\ \cline{2-2}
+\end{tabular}
+\caption{}
+\label{fig:stack2}
+\end{figure}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+subprogram_label:
+      push   ebp           ; salva il valore originale di EBP
+                           ; nello stack
+      mov    ebp, esp      ; nuovo EBP = ESP
+; subprogram code
+      pop    ebp           ; ripristina il valore originale di EBP
+      ret
+\end{AsmCodeListing}
+\caption{Forma generale di un sottoprogramma \label{fig:subskel1}}
+\end{figure}
+
+Se lo stack viene utilizzato all'interno del sottoprogramma per 
+memorizzare i dati, il numero da aggiungere a ESP cambiera'. Per
+esempio, la Figura~\ref{fig:stack2} mostra come appare lo 
+stack se una DWORD viene aggiunta allo stack. Ora il parametro si
+trova a {\code ESP + 8} non piu' a {\code ESP + 4}. Cosi', puo' essere
+molto facile sbagliare nell'utilizzo di ESP nella referenziazione
+dei parametri. Per risolvere il problema, l'80386 fornisce un'altro
+registro per l'uso: EBP. Il solo scopo di questo registro e' di 
+referenziare i dati nello stack. La convenzione di chiamata del C
+stabilisce che un sottoprogramma prima deve salvare il valore di EBP 
+nello stack e poi pone EBP uguale a ESP. Questo permette ad ESP di
+cambiare in funzione dei dato che viene messo o estratto dallo stack,
+senza modificare EBP. Alla fine del sottoprogramma , deve essere
+rispristinato il valore originale di EBP (percio' viene salvato all'
+inizio del sottoprogramma.) La Figura~\ref{fig:subskel1} mostra una
+forma generale di sottoprogramma che segue queste convenzioni. 
+
+\begin{figure}[t]
+\centering
+\begin{tabular}{ll|c|}
+\cline{3-3}
+&  & \\ \cline{3-3}
+ESP + 8 & EBP + 8 & Parametro \\ \cline{3-3}
+ESP + 4 & EBP + 4 & Indirizzo di ritorno \\ \cline{3-3}
+ESP     & EBP     & EBP salvato \\ \cline{3-3}
+\end{tabular}
+\caption{}
+\label{fig:stack3}
+\end{figure}
+
+Le righe 2 e 3 in Figura~\ref{fig:subskel1} cotruiscono il \emph{prologo} 
+generale del programma. Le righe 5 e 6 creano l'\emph{epilogo}.
+La Figura~\ref{fig:stack3} mostra come lo stack appare immediatamente
+dopo il prologo. Ora il parametro puo' essere acceduto con {\code [EBP + 8]}
+in ogni punto del sottoprogramma senza doversi preoccupare di cosa
+altro e' stato messo nello stack dal sottoprogramma.
+
+Dopo che il sottoprogramma e' terminato, i parametri che erano stati messi
+nello stack devono essere rimossi. La convenzione di chiamata del C
+\index{convezione di chiamata!C} specifica che il codice chiamante deve
+fare cio'. Altre convenzioni sono diverse. Per esempio, la convenzione di
+chiamata del Pascal\index{convezione di chiamata!Pascal} specifica che
+e' il sottoprogramma che deve rimuovere questi parametri. (Esiste un'
+altra forma dell'istruzione RET \index{RET} che rende facile questa 
+operazione.) Alcuni compilatori C supportano entrambe queste convenzioni.
+La parola chiave {\code pascal} e' utilizzata nel prototipo e nella
+definizione di una funzione per indicare al compilatore di usare questa
+convenzione. Infatti, la convezione {\code stdcall} \index{convenzione di
+chiamata!stdcall} che le funzioni in C delle API di MS Windows utilizzano,
+funziona in questo modo. Qual'e' il vantaggio? E' leggermente piu'
+efficente rispetto alla convenzione del C. Perche' allora tutte le funzioni
+C non usano questa convenzione? In generale, il C permette ad una funzione
+di avere un numero variabile di argomenti (\emph{Es.} le funzioni {\code printf}
+e {\code scanf}). Per questo tipo di funzioni, l'operazione di rimozione
+dei parametri dallo stack puo' variare da una chiamata all'altra. La 
+convenzione del C permette alle istruzioni che eseguono queste operazioni
+di essere modificate facilmente fra una chiamata e l'altra. Le convenzioni
+pascal e stdcall rendono queste operazioni molto difficile. Percio'
+la convenzione Pascal (come il linguaggio pascal) non permettono questo
+tipo di funzioni. MS Windows puo' usare questa convenzione dal momento
+che nessuna delle funzione delle sue API ha un numero variabile di
+argomenti.
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+      push   dword 1        ; passa 1 come parametro
+      call   fun
+      add    esp, 4         ; rimuove il parametro dallo stack
+\end{AsmCodeListing}
+\caption{Esempio di chiamata a sottoprogramma \label{fig:subcall}}
+\end{figure}
+
+La Figura~\ref{fig:subcall} mostra come un sottoprogramma puo' essere
+chiamato utilizzando la convenzione del C. La riga~3 rimuove il
+parametro dallo stack manipolando direttamente il puntatore allo stack.
+Potrebbe anche essere usata una istruzione {\code POP} per fare cio', ma
+richiederebbe di memorizzazione inutilmente in un registro. In realta',
+per questo particolare caso, molti compilatori utilizzerebbero una 
+istruzione {\code POP ECX} per rimuovere il parametro. Il compilatore
+userebbe una {\code POP} invece di una {\code ADD} poiche' {\code ADD}
+richiede piu' byte per l'istruzione. Comunque, anche {\code POP} cambia
+il valore di ECX! Di seguito un'altro programma di esempio con due 
+sottoprogrammi che usano le convenzioni di chiamata del C discusse
+prima. La riga~54 (ed altre righe) mostra come i segmenti multipli 
+di dati e di testo possano essere dichiaranti in un singolo file sorgente.
+Questi saranno combinati in segmenti singoli di dati e testo nel
+processo di collegamento. Dividere i dati ed il codice in segmenti
+separati permette che i dati utilizzati da un sottoprogramma sia definiti
+vicino al codice del sottoprogramma stesso.
+\index{stack!parametri|)}
+
+\begin{AsmCodeListing}[label=sub3.asm]
+%include "asm_io.inc"
+
+segment .data
+sum     dd   0
+
+segment .bss
+input   resd 1
+
+;
+; algoritmo in pseudo-codice
+; i = 1;
+; sum = 0;
+; while( get_int(i, &input), input != 0 ) {
+;   sum += input;
+;   i++;
+; }
+; print_sum(num);
+segment .text
+        global  _asm_main
+_asm_main:
+        enter   0,0               ; setup routine
+        pusha
+
+        mov     edx, 1            ; edx e' 'i' nello pseudo-codice
+while_loop:
+        push    edx               ; salva i nello stack
+        push    dword input       ; mette l'indirizzo di input nello stack
+        call    get_int
+        add     esp, 8            ; rimuove i e &input dallo stack
+
+        mov     eax, [input]
+        cmp     eax, 0
+        je      end_while
+
+        add     [sum], eax        ; sum += input
+
+        inc     edx
+        jmp     short while_loop
+
+end_while:
+        push    dword [sum]       ; mette il valore della somma nello stack
+        call    print_sum
+        pop     ecx               ; rimuove [sum] dallo stack
+
+        popa
+        leave                     
+        ret
+
+; sottoprogramma get_int
+; Parametri (nell'ordine di inserimento nello stack)
+;   numero di input (in [ebp + 12])
+;   l'indirizzo della word in cui memorizzare (at [ebp + 8])
+; Notes:
+;   i valori di eax ed ebx sono distrutti
+segment .data
+prompt  db      ") Enter an integer number (0 to quit): ", 0
+
+segment .text
+get_int:
+        push    ebp
+        mov     ebp, esp
+
+        mov     eax, [ebp + 12]
+        call    print_int
+
+        mov     eax, prompt
+        call    print_string
+        
+        call    read_int
+        mov     ebx, [ebp + 8]
+        mov     [ebx], eax         ; memorizza input in memoria
+
+        pop     ebp
+        ret                        ; ritorna al chiamate
+
+; sottoprogramma print_sum
+; stampa la somma
+; Parametro:
+;   somma da stampare (in [ebp+8])
+; Note: distrugge il valore di eax
+;
+segment .data
+result  db      "The sum is ", 0
+
+segment .text
+print_sum:
+        push    ebp
+        mov     ebp, esp
+
+        mov     eax, result
+        call    print_string
+
+        mov     eax, [ebp+8]
+        call    print_int
+        call    print_nl
+
+        pop     ebp
+        ret
+\end{AsmCodeListing}
+
+
+\subsection{Variabili locali nello stack\index{stack!variabili locali|(}}
+
+Lo stack puo' essere utilizzato anche come luogo conveniente per le variabili
+locali. E' esattamente il luogo dove il C memorizza le normali (o \emph{automatic} 
+in C) variabili. Utilizzare lo stack per le variabili e' importante se
+si vogliono creare sottoprogrammi rientranti. Un sottoprogramma rientrante
+puo' essere invocato da qualunque luogo, anche dal sottoprogramma stesso.
+In altre parole, i sottoprogrammi rientranti possono essere chiamati
+\emph{ricorsivamente}. Utilizzare lo stack per le variabili inoltre 
+risparmia memoria. I dati non memorizzati nello stack utilizzano memoria
+dall'inizio alla fine del programma ( il C chiama queste variabili
+\emph{globali} o \emph{statiche}). I dati memorizzati nello stack utilizzano
+memoria solo quando e' attivo il sottoprogramma in cui sono definite.
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+subprogram_label:
+      push   ebp            ; salva il valore originale di EBP
+        										; nello stack
+      mov    ebp, esp       ; nuovo EBP = ESP
+      sub    esp, LOCAL_BYTES   ; = # bytes necessari per le 
+      												  ; variabili locali
+; subprogram code
+      mov    esp, ebp       ; deallocata le variabili
+      pop    ebp            ; ripristina il valore originale di EBP 
+      ret
+\end{AsmCodeListing}
+\caption{Forma generale di sottoprogramma con le variabili locali\label{fig:subskel2}}
+\end{figure}
+
+\begin{figure}[t]
+\begin{lstlisting}[frame=tlrb]{}
+void calc_sum( int n, int * sump )
+{
+  int i, sum = 0;
+
+  for( i=1; i <= n; i++ )
+    sum += i;
+  *sump = sum;
+}
+\end{lstlisting}
+\caption{Versione in C della somma \label{fig:Csum}}
+\end{figure}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+cal_sum:
+      push   ebp
+      mov    ebp, esp
+      sub    esp, 4               ; crea spazio per la somma locale
+
+      mov    dword [ebp - 4], 0   ; sum = 0
+      mov    ebx, 1               ; ebx (i) = 1
+for_loop:
+      cmp    ebx, [ebp+8]         ; e' i <= n?
+      jnle   end_for
+
+      add    [ebp-4], ebx         ; sum += i
+      inc    ebx
+      jmp    short for_loop
+
+end_for:
+      mov    ebx, [ebp+12]        ; ebx = sump
+      mov    eax, [ebp-4]         ; eax = sum
+      mov    [ebx], eax           ; *sump = sum;
+
+      mov    esp, ebp
+      pop    ebp
+      ret
+\end{AsmCodeListing}
+\caption{Versione in assembly della somma\label{fig:Asmsum}}
+\end{figure}
+
+Le variabili locali sono memorizzate nello stack subito dopo il valore
+memorizzato di EBP. Sono allocate sottraendo il numero di byte richiesti
+da ESP nel prologo del sottoprogramma. La Figura~\ref{fig:subskel2} mostra
+la nuova struttura del sottoprogramma. Il registro EBP e' utilizzato per 
+accedere alle variabili locali. Considera la funzione C in Figura~\ref{fig:Csum}.
+La Figura~\ref{fig:Asmsum} mostra come puo' essere scritto l'equivalente
+sottoprogramma in assembly.
+ 
+\begin{figure}[t]
+\centering
+\begin{tabular}{ll|c|}
+\cline{3-3}
+ESP + 16 & EBP + 12 & {\code sump} \\ \cline{3-3}
+ESP + 12 & EBP + 8  & {\code n} \\ \cline{3-3}
+ESP + 8  & EBP + 4  & indirizzo di ritorno \\ \cline{3-3}
+ESP + 4  & EBP      & EBP salvato \\ \cline{3-3}
+ESP      & EBP - 4  & {\code sum} \\ \cline{3-3}
+\end{tabular}
+\caption{}
+\label{fig:SumStack}
+\end{figure}
+
+La Figura~\ref{fig:SumStack} mostra come appare lo stack dopo il
+prologo del programma in Figura~\ref{fig:Asmsum}. Questa sezione
+dello stack che contiene i parametri, le informazioni di ritorno
+e le variabili locali e' chiamata \emph{stack frame}. Ogni 
+invocazione di una funzione C crea un nuovo stack frame nello
+stack.
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+subprogram_label:
+      enter  LOCAL_BYTES, 0  ; = # byte necessari per variabili
+                             ; locali
+; subprogram code
+      leave
+      ret
+\end{AsmCodeListing}
+\caption{Forma generale di sottoprogramma con le variabili locali utilizzando 
+{\code ENTER} e {\code LEAVE}\label{fig:subskel3}}
+\end{figure}
+
+\MarginNote{Nonostante {\code ENTER} e {\code LEAVE} semplifichino 
+il prologo e l'epilogo, non sono usati molto spesso. Perche'? Poiche'
+sono piu' lenti delle equivalenti istruzioni piu' semplici! Questo e'
+un'esempio di quando non sia possibile assumere che una sequenza di
+istruzioni e' piu' veloce di  una istruzione multipla.}
+Il prologo e l'epilogo di un sottoprogramma possono essere semplificati
+utilizzando due istruzioni speciali che sono state create specificatamente
+per questo scopo. L'istruzione {\code ENTER} esegue il codice del prologo
+e l'istruzione {\code LEAVE} esegue l'epilogo. L'istruzione {\code ENTER} 
+accetta due operandi immediati. Per la compatibilita' con la convenzione
+del C, il secondo operando e' sempre 0. Il primo operando e' il numero
+di byte necessari dalle variabili locali. L'istruzione {\code LEAVE} invece
+non ha operandi. La Figura~\ref{fig:subskel3} mostra come vengono usate
+queste istruzioni. Nota che la struttura del programma (Figura~\ref{fig:skel})
+utilizza anche {\code ENTER} e {\code LEAVE}.
+\index{stack!variabili locali|)}
+\index{stack|)}
+\index{convenzione di chiamata|)}
+\index{sottoprogramma!chiamata|)}
+
+\section{Programmi Multi Modulo\index{programmi multi modulo|(}}
+
+Un \emph{programma multi modulo} e' composto da piu' di un file oggetto.
+Tutti i programmmi presentati fin qui sono programmi multi modulo.
+Consistono di un file oggetto guida in C e il file oggetto in assembly
+(piu' i file oggetto della libreria C). Ricorda che il linker combina
+i file oggetto in un singolo programma eseguibile. Il linker deve
+verificare il collegamento fra i riferimenti fatti a ciascuna etichetta 
+in un modulo (\emph{i.e.} file oggetto) e la loro definizione nell'altro
+modulo. Per far si' che il modulo A possa usare una etichetta definita
+nel modulo B, deve essere usata la direttiva {\code extern}. Dopo la
+direttiva {\code extern}\index{direttive!extern} vengono elencate una
+serie di etichette delimitate da virgole. La direttiva dice all'assembler
+di considerare queste etichette come \emph{esterne} al modulo. In altre
+parole sono etichette che possono essere usate in questo modulo ma sono
+definite nell'altro. Il file {\code asm\_io.inc} definisce le routine
+{\code read\_int}, \emph{etc.} come esterne.
+
+In assembly, le etichette di default non possono essere accedute 
+dall'esterno. Se una etichetta puo' essere acceduta da altri moduli
+oltre quello in cui e' definita, deve essere dichiarata {\code global}
+nel proprio modulo. La direttiva {\code global}\index{direttive!global}
+fa proprio questo. La riga~13 del programma scheletro riportato in 
+Figura~\ref{fig:skel} mostra come le etichette di {\code \_asm\_main}
+sono definite globali. Senza questa dichiarazione, ci sarebbe stato
+un'errore di collegamento. Perche'? Perche' il codice C non sarebbe stato
+capace di riferire alla etichetta \emph{interna} di {\code \_asm\_main}.
+
+Di seguito e' riportato il codice per l'esempio precedente, riscritto 
+utilizzando i moduli. I due sottoprogrammi ({\code get\_int} e {\code print\_sum})
+si trovano in un file sorgente diverso da quello di {\code \_asm\_main}
+
+\begin{AsmCodeListing}[label=main4.asm,commandchars=\\\{\}]
+%include "asm_io.inc"
+
+segment .data
+sum     dd   0
+
+segment .bss
+input   resd 1
+
+segment .text
+        global  _asm_main
+\textit{        extern  get_int, print_sum}
+_asm_main:
+        enter   0,0               ; setup routine
+        pusha
+
+        mov     edx, 1            ; edx e' 'i' in pseudo-code
+while_loop:
+        push    edx               ; salva i nello stack
+        push    dword input       ; mette l'indirizzo di input nello stack
+        call    get_int
+        add     esp, 8            ; remuone i e &input dallo stack
+
+        mov     eax, [input]
+        cmp     eax, 0
+        je      end_while
+
+        add     [sum], eax        ; sum += input
+
+        inc     edx
+        jmp     short while_loop
+
+end_while:
+        push    dword [sum]       ; mette il valore della somma nello stack
+        call    print_sum
+        pop     ecx               ; remuove [sum] dallo stack
+
+        popa
+        leave                     
+        ret
+\end{AsmCodeListing}
+
+\begin{AsmCodeListing}[label=sub4.asm,commandchars=\\\{\}]
+%include "asm_io.inc"
+
+segment .data
+prompt  db      ") Enter an integer number (0 to quit): ", 0
+
+segment .text
+\textit{        global  get_int, print_sum}
+get_int:
+        enter   0,0
+
+        mov     eax, [ebp + 12]
+        call    print_int
+
+        mov     eax, prompt
+        call    print_string
+        
+        call    read_int
+        mov     ebx, [ebp + 8]
+        mov     [ebx], eax         ; memorizza input in memoria
+
+        leave
+        ret                        ; ritorna al chiamante
+
+segment .data
+result  db      "The sum is ", 0
+
+segment .text
+print_sum:
+        enter   0,0
+
+        mov     eax, result
+        call    print_string
+
+        mov     eax, [ebp+8]
+        call    print_int
+        call    print_nl
+
+        leave
+        ret
+\end{AsmCodeListing}
+
+L'esempio precedente ha solo etichette di codice globlali\index{direttive!global};
+Comunque le etichette di dati globali funzionano esattamente
+nello stesso modo.
+\index{programmi multi modulo|)}
+
+\section{Interfacciare l'Assembly con il C\index{interfacciamento con il C|(}\index{convenzione di chiamata!C|(}}
+
+Oggi, pochissimi programmi sono scritti completamente in assembly. I compilatori
+hanno raggiunto una grande efficenza nel convertire il codice di alto livello
+in codice macchina efficente. Dal momento che e' molto piu' facile scrivere
+codice utilizzando un linguaggio di alto livello, questi sono diventati molto
+popolari. In aggiunta, il codice di alto livello e' \emph{molto} piu'portabile
+rispetto a quello in assembly!
+
+Quando viene utilizzato, si tratta di piccole parti di codice. Cio' puo' essere
+fatto in due modi: attraverso la chiamata a sottoroutine in assembly o con 
+assembly inline. L'assembly inline permette al programmatore posizionare
+comandi assembly direttamente nel codice C. Questo puo' essere molto
+conveniente; d'altra parte, ci sono degli svantaggi. Il codice assembly 
+deve essere scritto nel formato che usa il compilatore. Nessun compilatore
+al momento supporta il formato del NASM. Compilatori differenti richiedono
+formati diversi. Borland e Microsoft richiedono il formato MASM. DJGPP e
+il gcc di Linux richiedono il formato GAS\footnote{GAS e' l'assembler che viene usato
+da tutti i compilatori GNU. Utilizza la sintassi AT\&T che e' molto diversa
+da quelle relativamente simili di MASM,TASM e NASM.}. La tecnica di chiamata
+di una routine assembly e' molto piu' standardizzata sui PC.
+
+Le routine Assembly sono di solito usate con il C per i seguenti motivi:
+\begin{itemize}
+\item E' richiesto l'accesso diretto a caratteristiche hardware del 
+      computer a cui e' difficile se non impossibile accedere con il C.
+\item La routine deve essere il piu' veloce possibile ed il programmatore
+      puo' ottimizzare manualmente meglio di cio' che puo' il compilatore.
+\end{itemize}
+
+Il secondo motivo non e' piu' valido come lo era un tempo. La tecnologia
+dei compilatore e' migliorata nel corso degli anni e oggi i compilatori
+possono spesso generare codice molto efficente (specialmente se le
+ottimizzazioni del compilatore sono attivate). Gli svantaggi delle 
+routine in assembly sono: ridotta portabilita' e leggibilita'.
+
+Molte delle convenzioni di chiamata del C sono gia' state analizzate. Ci sono
+pero' alcune caratteristiche aggiuntive che devono essere descritte.
+
+\subsection{Il Salvataggio dei Registri\index{convenzione di chiamata!C!registri|(}}
+Prima di tutto,
+\MarginNote{La parola chiave {\code register} puo' essere usata nella
+dichiarazione di una variabile C per specificare al compilatore che per 
+questa variabile venga usato un registro invece di una locazione di
+memoria. Queste sono conosciute come variabili registro. I Compilatori
+moderni fanno tutto cio' automaticamente senza la necessita di alcuna
+specificazione.}
+il C assume che una sottoroutine mantenga i valori dei seguenti registri:
+EBX, ESI, EDI, EBP, CS, DS, SS ed ES. Questo non vuol dire che la
+sottoroutine non possa modificarli internamente. Significa invece che se
+modifica il loro valore, deve poi ripristinare quello originale prima
+di ritornare al codice chiamante. I valori di EBX, ESI ed EDI non devono 
+essere modificati perche' il C li utilizza per le \emph{variabili registro}.
+Generalmente lo stack e' utilizzato per salvare il valore originale di 
+questi registri. 
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+segment .data
+x            dd     0
+format       db     "x = %d\n", 0
+
+segment .text
+...
+      push   dword [x]     ; mette il valore di x
+      push   dword format  ; mette l'indirizzo della stringa format
+      call   _printf       ; nota l'underscore!
+      add    esp, 8        ; rimuove i parametri dallo stack
+\end{AsmCodeListing}
+\caption{Chiamata a {\code printf} \label{fig:Cprintf}}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\begin{tabular}{l|c|}
+\cline{2-2}
+EBP + 12 & valore di {\code x} \\ \cline{2-2}
+EBP + 8  & indirizzo della stringa format \\ \cline{2-2}
+EBP + 4  & indirizzo di ritorno \\ \cline{2-2}
+EBP      & EBP salvato \\ \cline{2-2}
+\end{tabular}
+\caption{Stack dentro {\code printf}\label{fig:CprintfStack}}
+\end{figure}
+\index{convenzione di chiamata!C!registri|)}
+
+\subsection{Etichette di Funzioni\index{convenzione di chiamata!C!etichette|(}}
+Molti compilatori C appongo un singolo carattere underscore({\code \_}) 
+all'inizio del nome delle funzioni e delle variabili globali/statiche.
+Per esempio, ad una funzione di nome {\code f} sara' assegnata l'etichetta
+{\code \_f}. Cosi', se si tratta di una sottoroutine in assembly, \emph{deve}
+essere etichettata {\code \_f}, non {\code f}. Il compilatore gcc Linux \emph{non}
+prepende nessun carattere. Negli eseguibili  ELF di Linux, si usa 
+semplicemente l'etichetta {\code f} per la funzione C {\code f}.
+Il gcc di DJGPP invece prepende un underscore. Nota che nello scheletro
+del programma(Figure~\ref{fig:skel}), l'etichetta della routine
+principale e' {\code \_asm\_main}. 
+\index{convenzione di chiamata!C!etichette|)}
+
+\subsection{Passaggio di Parametri\index{convenzione di chiamata!C!parametri|(}}
+In base alla convenzione di chiamata del C, gli argomenti di una funzione
+sono messi nello stack nell'ordine \emph{inverso} rispetto a quello con
+cui appaiono nella chiamata di funzione.
+
+Considera il seguente comando C: \verb|printf("x = %d\n",x);|
+La Figura~\ref{fig:Cprintf} mostra come verrebbe compilato (nell'
+equivalente formato NASM). La Figura~\ref{fig:CprintfStack} mostra
+come appare lo stack dopo il prologo dentro la funzione {\code printf}.
+La funzione {\code printf} e' una delle funzioni della libreria C
+che puo' accettare un numero variabile di argomenti. Le regole
+delle convenzioni di chiamata del C sono scritte specificatamente
+per permettere questo tipo di funzioni.\MarginNote{Non e' necessario
+usare l'assembly per processare un numero arbitrario di
+argomenti in C. Il file di header {\code stdarg.h} definisce delle
+macro che possono essere usate per processarli in modo portabile.
+Vedi un buon libro sul C per maggiori dettagli.} Dal momento che 
+l'indirizzo della stringa format e' inserito per ultimo, la sua
+locazione nello stack sara' \emph{sempre} a {\code EBP + 8} 
+indipendentemente da quanti parametri vengono passati alla funzione.
+Il codice di {\code printf} puo' quindi controllare la stringa
+format per determinare quanti parametri sono stati passati e cercarli
+nello stack.
+
+Naturalmente, se c'e' un errore, \verb|printf("x = %d\n")|, il codice
+di {\code printf} stampera' ancora la double word che si trova a
+{\code [EBP + 12]}. Che pero' non sara' il valore di {\code x}!.
+\index{convenzione di chiamata!C!parametri|)}
+
+\subsection{Calcolo degli indirizzi delle variabili locali\index{stack!variabili locali|(}}
+
+Trovare l'indirizzo di una etichetta definita nei segmenti {\code data}
+o {\code bss} e' semplice. Fondamentalmente lo fa il linker. Calcolare
+invece l'indirizzo di una variabile locale (o un parametro) nello
+stack non e' cosi diretto. E' comunque una necessita' molto comune
+nella chiamata a sottoroutine. Consideriamo il caso del passaggio dell'
+indirizzo di una variabile (chiamiamolo {\code x}) ad una funzione
+(chiamiamola {\code foo}). Se {\code x} fosse locato a EPB $-$ 8 sullo
+stack, non sarebbe possibile usare semplicemente:
+\begin{AsmCodeListing}[numbers=none,frame=none]
+      mov    eax, ebp - 8
+\end{AsmCodeListing}
+Perche'? Il valore che {\code MOV} memorizza in EAX deve essere calcolato
+dall'assembler (cioe', alla fine deve essere una costante). Invece. esiste
+una istruzione che effettua il calcolo desiderato. Si tratta di \index{LEA|(} {\code LEA} 
+({\code LEA} sta per \emph{Load Effective Address}}. Il codice seguente
+calcola l'indirzzo di {\code x} e lo mette in EAX: 
+\begin{AsmCodeListing}[numbers=none,frame=none]
+      lea    eax, [ebp - 8]
+\end{AsmCodeListing}
+Ora EAX contiene l'indirizzo di {\code x} e puo' essere messo nello stack
+alla chiamata della funzione {\code foo}. Non ti confondere, sembra
+che questa istruzione vada a leggere il dato in [EBP\nolinebreak$-$\nolinebreak8];
+questo, pero', \emph{non} e' vero. L'istruzione {\code LEA} non legge
+\emph{mai} la memoria! Sempplicemente calcola l'indirizzo che sarebbe
+letto da un'altra istruzione e memorizza questo indirizzo nel suo 
+primo operando di tipo registro. Dal momento che non legge nessuna
+memoria, nessuna definizione della dimensione di memoria (\emph{es.}
+{\code dword}) e' richiesta o permessa.
+
+\index{LEA|)}
+\index{stack!variabili locali|)}
+
+\subsection{Valori di ritorno\index{convenzione di chiamata!C!valori di ritorno|(}}
+
+Le funzioni C non-void restituiscono un valore. Le convenzioni di chiamata
+del C specificano come questo deve essere fatto. I valori di ritorno
+sono passati attraverso i registri. Tutti i tipi integrali ({\code char}, 
+{\code int}, {\code enum}, \emph{etc.}) sono ritornati nel registro EAX.
+Se sono piu' piccoli di 32 bit, vengono estesi a 2 bit nel momento in cui 
+vengono messi in EAX. (Come sono estesi dipende se sono con segno o
+senza segno.) I valori a 64 bit sono ritornati nella coppia di registri EDX:EAX\index{registro!EDX:EAX}. Anche i valori puntatore sono memorizzati
+in EAX. I Valori in virgola mobile sono memorizzati nel registro STO del
+coprocessore matematico. (Questo registro sara' discusso nel capitolo sulla
+virgola mobile.)
+
+\index{convenzione di chiamata!C!valori di ritorno|)}
+\index{convenzione di chiamata!C|)}
+
+\subsection{Altre convenzioni di chiamata\index{convenzione di chiamata|(}}
+
+Le regole sopra descrivono la convenzione di chiamata del C standard
+che viene supportata da tutti i compilatori C 80x86. Spesso i compilatori
+supportano anche altre convenzioni di chiamata. Quando ci si interfaccia
+con il linguaggio assembly e' \emph{molto} importante conoscere quale
+convenzione viene utilizzata dal compilatore quando chiama una 
+funzione. Generalmente, la norma e' utilizzare la convenzione di 
+chiamata standard. Purtroppo non e' sempre cosi'.\footnote{Il
+compilatore C Watcom\index{compilatore!Watcom} e' un'esempio di 
+compilatore che di default \emph{non} usa la convenzione standard. Per
+maggiori dettagli, vedi il codice sorgente per Watcom}. I compilatori
+che usano convenzioni multiple spesso hanno opzioni sulla riga di comando
+che possono essere usate per cambiare la convenzione standard. Forniscono
+inoltre estensione della sintassi C per assegnare esplicitamente 
+convenzioni di chiamata ad una singola funzione. Queste estensione, pero',
+non sono standardizzate e possono variare da un compilatore all'altro.
+
+Il compilatore GCC permette diverse convenzioni di chiamata. La convenzione
+di una funzione puo' essere esplicitamente dichiarata utilizzando
+l'estenzione {\code \_\_attribute\_\_}\index{compilatore!gcc!\_\_attribute\_\_}. 
+Per esempio, per dichiarare una funzione void chiamata {\code f} che usa 
+la convenzione di chiamata standard\index{convenzione di chiamata!C}
+ed accetta un solo parametro di tipo {\code int}, si usa la seguente
+sintassi nel suo prototipo:
+\begin{lstlisting}[stepnumber=0]{}
+void f( int ) __attribute__((cdecl));
+\end{lstlisting}
+GCC inoltre supporta la convenzione di chiamata \emph{standard call}\index{convenzione
+di chiamata!stdcall}. La funzione sopra, per utilizzare questa
+convenzione, dovrebbe essere dichiarata sostituendo la parola
+{\code cdecl} con {\code stdcall}. La differenza tra {\code stdcall} e
+{\code cdecl} e' che {\code stdcall} richieda che lo sottoroutine
+rimuova i paramtri dallo stack (come succede per la convenzione di 
+chiamata del Pascal). Cosi', la convenzione {\code stdcall} puo'
+essere usata solo per quelle funzioni che hanno un numero prefissato
+di argomenti (non come ,\emph{Es.} {\code printf} o {\code scanf}).
+
+GCC inoltre supporta attributi aggiuntivi chiamati {\code regparm}
+\index{convenzione di chiamata!registri} che dicono al compilatore
+di utilizzare i registri per passare fino a 3 paremetri interi ad
+una funzione anziche' utilizzare lo stack. Questo e' un'esempio comune
+di ottimizzazione che molti compilatori supportano. 
+
+Borland e Microsoft usano una sintassi comune per dichiarare
+le convenzioni di chiamata. Aggiungono le parole chiavi {\code \_\_cdecl}
+\index{convenzione di chiamata!\_\_cdecl} e {\code \_\_stdcall}\index{convenzione di chiamata!\_\_stdcall} al C. Queste parole chiavi agiscono come
+modificatori di funzione e appaiono nel prototipo immediatamente prima
+del nome della funzione. Per esempio, la funzione {\code f} vista prima
+potrebbe essere definita come segue per Borland e Microsoft: 
+\begin{lstlisting}[stepnumber=0]{}
+void __cdecl f( int );
+\end{lstlisting}
+
+Ci sono sia dei vantaggi che degli svantaggi in ognuna delle convenzioni
+di chiamata. I vantaggi principali della convenzione {\code cdecl}\index{convenzione
+di chiamata!C} e' che e' semplice e molto flessibile. Puo' essere usata
+per qualunque tipo di funzioni C e compilatori C. L'utilizzo delle altre
+convenzioni puo' limitare la portabilita' di una sottoroutine. Lo 
+svantaggio principale e' che puo' essere piu' lenta di alcune delle
+altre e usare piu'memoria (dal momento che ogni chiamata di funzione
+richiede codice per rimuovere i parametri dallo stack). 
+
+I vantaggi della convenzione {\code stdcall}\index{convenzione di chiamata!standard call}
+sono che questa utilizza meno memoria rispetto {\code cdecl}. Nessun
+codice di pulizia dello stack e' richiesto dopo l'istruzione {\code CALL}.
+Lo svantaggio principale e' che non puo' essere utilizzata con le
+funzioni che hanno un numero variabile di argomenti.
+
+Il vantaggio di utilizzare una convenzione che usa i registri per
+passare parametri interi e' la velocita'. Lo svantaggio principale e' che
+la convenzione e' piu' complessa. Alcuni parametri possono essere nei
+registri e altri nello stack.
+
+\index{convenzione di chiamata|)}
+
+\subsection{Esempi}
+
+Di seguito un esempio che mostra come una routine assembly puo' essere
+interfacciata ad un programma in C. (Nota che questo programma non usa
+lo scheletro del programma assembly (Figure~\ref{fig:skel}) o il modulo
+driver.c.)
+
+\LabelLine{main5.c}
+\begin{lstlisting}{}
+#include <stdio.h>
+/* prototipo della routine assembly */
+void calc_sum( int, int * ) __attribute__((cdecl));
+
+int main( void )
+{
+  int n, sum;
+
+  printf("Sum integers up to: ");
+  scanf("%d", &n);
+  calc_sum(n, &sum);
+  printf("Sum is %d\n", sum);
+  return 0;
+}
+\end{lstlisting}
+\LabelLine{main5.c}
+
+\begin{AsmCodeListing}[label=sub5.asm, commandchars=\\\%|]
+; subroutine _calc_sum
+; trova la somma degli interi da 1 a n
+; Parametri:
+;   n    - limite della somma (at [ebp + 8])
+;   sump - puntatore all'intero in cui memorizzare sum (a [ebp + 12])
+; pseudo codice C:
+; void calc_sum( int n, int * sump )
+; {
+;   int i, sum = 0;
+;   for( i=1; i <= n; i++ )
+;     sum += i;
+;   *sump = sum;
+; }
+
+segment .text
+        global  _calc_sum
+;
+; variabile locale:
+;   sum a [ebp-4]
+_calc_sum:
+        enter   4,0               ; riserva spazio per sum nello stack
+        push    ebx               ; IMPORTANTE! \label%line:pushebx|
+
+        mov     dword [ebp-4],0   ; sum = 0
+        dump_stack 1, 2, 4        ; stampa lo stack da ebp-8 a ebp+16 \label%line:dumpstack|
+        mov     ecx, 1            ; ecx e' i nello pseudo codice
+for_loop:
+        cmp     ecx, [ebp+8]      ; cmp i e n
+        jnle    end_for           ; se non i <= n, esce
+
+        add     [ebp-4], ecx      ; sum += i
+        inc     ecx
+        jmp     short for_loop
+
+end_for:
+        mov     ebx, [ebp+12]     ; ebx = sump
+        mov     eax, [ebp-4]      ; eax = sum
+        mov     [ebx], eax
+
+        pop     ebx               ; ripristina ebx
+        leave
+        ret
+\end{AsmCodeListing}
+
+\begin{figure}[t]
+\begin{Verbatim}[frame=single]
+Somma gli interi fino a: 10
+Stack Dump # 1
+EBP = BFFFFB70 ESP = BFFFFB68
+ +16  BFFFFB80  080499EC
+ +12  BFFFFB7C  BFFFFB80
+  +8  BFFFFB78  0000000A
+  +4  BFFFFB74  08048501
+  +0  BFFFFB70  BFFFFB88
+  -4  BFFFFB6C  00000000
+  -8  BFFFFB68  4010648C
+Sum e' 55
+\end{Verbatim}
+\caption{Esecuzione di esempio del programma sub5 \label{fig:dumpstack}}
+\end{figure}
+
+Perche' la riga~\ref{line:pushebx} di {\code sub5.asm} e' cosi'
+importante? Perche' la convenzione di chiamata del C richiede
+che il valore di EBX non venga modificato dalla chiamata di funzione.
+Se questo non e' fatto, e' molto probabile che il programma non
+funzioni correttamente.
+
+La riga~\ref{line:dumpstack} dimostra come funziona la macro {\code dump\_stack}.
+Ricorda che il primo parametro e' solo una etichetta numerica, e che il 
+secondo e terzo parametro determinano quante double word visualizzare
+rispettivamente sotto e sopra EBP. La Figura~\ref{fig:dumpstack} mostra
+una esecuzione di esempio del programma. Per questo dump, si puo' 
+vedere che l'indirizzo della dword in cui memorizzare sum e' BFFFFB80 
+(a EBP~+~12); il limite della somma e' 0000000A (a EBP~+~8); l'indirizzo
+di ritorno per la routine e' is 08048501 (a EBP~+~4); Il valore salvato
+di EBP e' BFFFFB88 (at EBP); il valore della variabile locale e' 0 (a EBP~-~4);
+infine, il valore salvato di EBX e' 4010648C (a EBP~-~8).
+
+La funzione {\code calc\_sum} dovrebbe essere riscritta per restituire
+la somma come suo valore di ritorno invece di usare un puntatore al 
+parametro. Dal momento che la somma e' un valore integrale, la somma
+potrebbe essere depositata nel registro EAX. La riga~11 del file {\code main5.c}
+dovrebbe essere cambiata in:
+\begin{lstlisting}[stepnumber=0]{}
+  sum = calc_sum(n);
+\end{lstlisting}
+Inoltra, il prototipo di {\code calc\_sum} dovrebbe essere modificato.
+Sotto, il codice assembly modificato:
+\begin{AsmCodeListing}[label=sub6.asm]
+; subroutine _calc_sum
+; trova la somma degli interi da 1 a n
+; Parametri:
+;   n    - limite della somma (a [ebp + 8])
+; valore di ritorno:
+;   valore della somma
+; pseudo codice C:
+; int calc_sum( int n )
+; {
+;   int i, sum = 0;
+;   for( i=1; i <= n; i++ )
+;     sum += i;
+;   return sum;
+; }
+segment .text
+        global  _calc_sum
+;
+; variabile locale:
+;   sum a [ebp-4]
+_calc_sum:
+        enter   4,0               ; riserva spazio per sum nello stack
+
+        mov     dword [ebp-4],0   ; sum = 0
+        mov     ecx, 1            ; ecx e' i nello pseudocodice
+for_loop:
+        cmp     ecx, [ebp+8]      ; cmp i e n
+        jnle    end_for           ; se non i <= n, esce
+
+        add     [ebp-4], ecx      ; sum += i
+        inc     ecx
+        jmp     short for_loop
+
+end_for:
+        mov     eax, [ebp-4]      ; eax = sum
+
+        leave
+        ret
+\end{AsmCodeListing}
+
+\subsection{Chiamata di funzioni C dall'assembly}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+segment .data
+format       db "%d", 0
+
+segment .text
+...
+      lea    eax, [ebp-16]
+      push   eax
+      push   dword format
+      call   _scanf
+      add    esp, 8
+...
+\end{AsmCodeListing}
+\caption{Chiamata di {\code scanf} dall'assembly\label{fig:scanf}}
+\end{figure}
+
+Un grande vantaggio dell'interfacciamento tra C e assembly e' che
+permette al codice assembly di accedere alle moltissime funzioni
+della libreria C e quelle scritte da altri. Per esempio, cosa deve
+fare uno che vuole chiamare la funzione {\code scanf} per leggere
+un'intero dalla tastiera? La Figura~\ref{fig:scanf} mostra il codice
+per fare cio'. Un punto molto importante da ricordare e' che {\code scanf}
+segue la convenzione C standard alla lettera. Questo significa che
+preserva i valori dei registri EBX, ECX ed EDX.I registri EAX, ECX, 
+ed EDX invece possono essere modificati! Infatti, il registro EAX
+sara' alla fine modificato, visto che conterra' il valore di ritorno
+della chiamata {\code scanf}. Per altri esempi sull'utilizzo dell'
+interfacciamento con il C, guarda al codice in {\code asm\_io.asm}
+che e' stato utilizzato per creare {\code asm\_io.obj}.  
+\index{interfacciamento con il C|)}
+
+\section{Sottoprogramma Rientranti e Ricorsivi\index{ricorsione|(}}
+
+\index{sottoprogramma!rientrante|(}
+Un sottoprogramma rientrante deve soddisfare le seguenti proprieta':
+\begin{itemize}
+\item Non deve modificare nessuna istruzione di codice. Nei linguaggi di 
+alto livello cio' sarebbe molto difficile, ma in assembly non e' cosi' difficile
+per un programma provare a modificare il proprio codice. Per esempio:
+\begin{AsmCodeListing}[frame=none, numbers=none]
+      mov    word [cs:$+7$], 5      ; copia 5 nella word 7 bytes avanti
+      add    ax, 2                 ; il comando precedente cambia 2 in 5!
+\end{AsmCodeListing}
+Questo codice funziona in modalita' reale, ma nei sistemi operativi in modalita'
+protetta, il segmento di codice e' contrassegnato per sola lettura. Quando la
+prima riga viene eseguita, il programma abortira' su questi sistemi. Questo
+tipo di programmazione e' pessima per molte ragioni. E' confondente, difficile da
+mantenere e non permette la condivisione del codice (vedi sotto).
+
+\item Non deve modificare i dati globali (come i dati nei segmenti {\code dati} 
+e {\code bss}). Tutte le variabili sono memorizzate nello stack.
+
+\end{itemize}
+
+Ci sono diversi vantaggi nello scrivere codice rientrante.
+\begin{itemize}
+\item Un sottoprogramma rientrante puo' essere chiamato ricorsivamente
+\item Un programma rientrante puo' essere condiviso da processi multipli.
+Su molti sistemi operativi multi-tasking, se ci sono istanze multiple di
+un programma in esecuzione, solo \emph{una} copia del codice e' in memoria.
+Anche le libreria condivise e le DLL(\emph{Dynamic Link Libraries}) utilizzano
+questo concetto.
+\item I sottoprogrammi rientranti funzionano meglio nei programmi \emph{multi-threaded}.
+\footnote{Un programma multi-threaded ha molteplici tread di esecuzione. Il 
+programma stesso, cioe', e' multi-tasking.} Windows 9x/NT e molti sistemi
+operativi tipo UNIX (Solaris, Linux, \emph{etc.}) supportano programmi
+multi-threaded.
+\end{itemize}
+\index{sottoprogramma!rientrante|)}
+
+\subsection{Sottoprogrammi Ricorsivi}
+
+Questi tipi di sottoprogrammi chiamano se stessi. La ricorsione puo' essere
+\emph{diretta} o \emph{indiretta}. La ricorsione diretta si ha quando un 
+sottoprogramma, diciamo {\code foo}, chiama se stesso dentro il corpo di
+{\code foo}. La ricorsione indiretta sia ha quando un sottoprogramma non 
+e' chiamato da se stesso direttamente, ma da un'altro sottoprogramma che questo
+chiama. Per esempio, il sottoprogramma {\code foo} potrebbe chiamare
+{\code bar} e {\code bar} a sua volta chiamare {\code foo}.  
+ 
+I sottoprogrammi ricorsivi devono avere una \emph{condizione di terminazione}.
+Quando questa condizione e' vera, le chiamate ricorsive cessano. Se una
+routine ricorsiva non ha una condizione di terminazione o la condizione
+non diventa mai vera, la ricorsione non terminera' mai (molto simile ad
+un ciclo infinito).
+
+\begin{figure}
+\begin{AsmCodeListing}[frame=single]
+; finds n!
+segment .text
+      global _fact
+_fact:
+      enter  0,0
+
+      mov    eax, [ebp+8]    ; eax = n
+      cmp    eax, 1
+      jbe    term_cond       ; se n <= 1, termina
+      dec    eax
+      push   eax
+      call   _fact           ; eax = fact(n-1)
+      pop    ecx             ; risposta in eax
+      mul    dword [ebp+8]   ; edx:eax = eax * [ebp+8]
+      jmp    short end_fact
+term_cond:
+      mov    eax, 1
+end_fact:
+      leave
+      ret
+\end{AsmCodeListing}
+\caption{Funzione fattoriale ricorsiva \label{fig:factorial}}
+\end{figure}
+
+\begin{figure}
+\centering
+%\includegraphics{factStack.eps}
+\input{factStack.latex}
+\caption{Gli Stack frame della funzione factoriale\label{fig:factStack}}
+\end{figure}
+
+La Figura~\ref{fig:factorial} mostra una funzione che calcola ricorsivamente
+i fattoriali. Potrebbe essere chiamata dal C con:
+\begin{lstlisting}[stepnumber=0]{}
+x = fact(3);         /* trova 3! */
+\end{lstlisting}
+La Figura~\ref{fig:factStack} mostra come appare lo stack nell'ultimo ciclo
+di ricorsione per la chiamata a funzione sopra.
+
+\begin{figure}[t]
+\begin{lstlisting}[frame=tlrb]{}
+void f( int x )
+{
+  int i;
+  for( i=0; i < x; i++ ) {
+    printf("%d\n", i);
+    f(i);
+  }
+}
+\end{lstlisting}
+\caption{Un'altro esempio (versione C)\label{fig:rec2C}}
+\end{figure}
+
+\begin{figure}
+\begin{AsmCodeListing}[frame=single]
+%define i ebp-4
+%define x ebp+8          ; useful macros
+segment .data
+format       db "%d", 10, 0     ; 10 = '\n'
+segment .text
+      global _f
+      extern _printf
+_f:
+      enter  4,0           ; riserva memoria nello stack per i
+
+      mov    dword [i], 0  ; i = 0
+lp:
+      mov    eax, [i]      ; e' i < x?
+      cmp    eax, [x]
+      jnl    quit
+
+      push   eax           ; chiama printf
+      push   format
+      call   _printf
+      add    esp, 8
+
+      push   dword [i]     ; chiama f
+      call   _f
+      pop    eax
+
+      inc    dword [i]     ; i++
+      jmp    short lp
+quit:
+      leave
+      ret
+\end{AsmCodeListing}
+\caption{Altro esempio (versione assembly)\label{fig:rec2Asm}}
+\end{figure}
+
+Le Figure~\ref{fig:rec2C} e \ref{fig:rec2Asm} mostrano un'altro
+esempio, piu' complicato, rispettivamente in C ed in assembly. Qual'
+e' l'output per {\code f(3)}? Nota che l'istruzione {\code ENTER} 
+crea una nuova {\code i} nello stack per ogni chiamata ricorsiva.
+Cosi', ogni istanza ricorsiva di {\code f} ha la propria variabile
+{\code i} indipendente. Definire {\code i} come una double word nel
+segmento {\code data} non avrebbe funzionato lo stesso.
+\index{ricorsione|)}
+
+\subsection{Elenco dei tipi di memorizzazione delle variabili in C}
+
+Il C fornisce diversi tipi di memorizzazione di variabili.
+
+\begin{description}
+\item[global] 
+\index{tipi di memorizzazione!global}
+Queste variabili sono definete esternamente da ogni funzione e sono
+memorizzate in una locazione fissa di memoria (nel segmento {\code data}
+o nel segmento {\code bss} ed esistono dall'inizio del programma fino
+alla fine. Di default, possono essere accedute da ogni funzione 
+all'interno del programma; Se vengono dichiarate come {\code static}, solo
+le funzioni dello stesso modulo le possono accedere (\emph{i.e.}In termini
+di assembly, l'etichetta e' interna, non esterna). 
+
+\item[static] 
+\index{tipi di memorizzazione!static}
+Ci sono variabili \emph{locali} di una funzione che sono dichiarate
+{\code static}. (Sfortunatamente, il C usa la parola chiave {\code
+static} per due diversi scopi!) Anche queste variabili sono 
+memorizzate in una locazione fissa di memoria (in {\code data} o {\code bss}),
+ma possono essere accedute direttamente nella funzione che le ha
+definite. 
+
+\item[automatic] 
+\index{tipi di memorizzazione!automatic}
+Questo e' il tipo di default del C di una variabile definita
+in una funzione. Queste variabili sono allocate nello stack quando
+la funzione che in cui sono definite viene invocata e sono deallocate
+al termine della funzione. Percio' non hanno una locazione fissa
+in memoria.
+
+\item[register] 
+\index{tipi di memorizzazione!register}
+Questa parola chiave chiede al compilatore di utilizzare un registro
+per i dati in questa variabile. Questa e' solo una \emph{richiesta}.
+Il compilatore \emph{non} e' tenuto a considerarla. Se l'indirizzo
+della variabile e' usato in qualche parte del programma, il compilatore
+non prendera' in considerazione la richiesta (dal momento che i registri
+non hanno indirizzi). Inoltre, solo i tipi integrali semplici possono
+essere valori dei registri. I tipi strutturati non lo possono essere;
+Non entrerebbero in un registro! I compilatori C spesso trasformeranno 
+automaticamente le normali variabili automatiche in variabili registri
+senza nessuna indicazione del programmatore. 
+
+\item[volatile] 
+\index{tipi di memorizzazione!volatile}
+Questa parola chiave dice al compilatore che il valore nella 
+variabile puo' cambiare in qualunque momento. Cio' significa che
+il compilatore non puo' fare nessuna assunzione circa il momento in
+cui la variabile viene modificata. Spesso un compilatore puo' memorizzare
+il valore della variabile in un registro temporaneamente ed usare il registro
+al posto della variabile in una sezione di codice. Questo tipo di 
+ottimizzazione non puo' essere fatta con le variabili {\code volatile}.
+Un esempio comune di una variabile volatile potrebbe essere una
+variabile che viene modificata da due tread in un programma multi-threaded.
+Considera il codice seguente:
+\begin{lstlisting}{}
+x = 10;
+y = 20;
+z = x;
+\end{lstlisting}
+Se {\code x} fosse modificata da un'altro tread, e' possibile che gli
+altri tread modifichino {\code x} fra le righe~1 e 3 cosicche' {\code z}
+non sarebbe 10. Invece, se {\code x} non fosse dichiarata volatile, il
+compilatore potrebbe assumere che {\code x} non e' stato modificato e
+impostare {\code z} a 10.
+
+Un'altro uso di {\code volatile} e' impedire al compilatore di usare
+un registro per una variabile
+
+\end{description}
+\index{sottoprogramma|)}

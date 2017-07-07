@@ -1,0 +1,1076 @@
+% -*-latex-*-
+\chapter{Array}
+\index{array|(}
+\section{Introduzione}
+
+Un \emph{array} e' una lista di blocchi continui di dati in memoria. Ogni elemento
+della lista deve essere dello stesso tipo e deve usare esattamente lo stesso
+numero di byte di memoria per la sua memorizzazione. In virtu' di queste 
+caratteristiche, gli array consentono un'accesso efficente ai dati attraverso
+la loro posizione (o indice) nell'array. L'indirizzo di ogni elemento puo'
+essere calcolato conoscendo tre fattori:
+\begin{itemize}
+\item L'indirizzo del primo elemento dell'array.
+\item Il numero di byte di ogni elemento
+\item L'indice dell'elemento
+\end{itemize}
+
+E' conveniente considerare 0 come l'indice del primo elemente di un'array
+(come in C). E' possibile utilzzare altri valori per il primo indice, ma
+questo complicherebbe i calcoli. 
+
+\subsection{Definire array\index{array!definizione|(}}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+segment .data
+; definisce array di 10 double words inizializzate a 1,2,..,10
+a1           dd   1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+; definisce array di 10 words initializzate a 0
+a2           dw   0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+; come sopra utilizzando TIMES
+a3           times 10 dw 0
+; definisce array di byte con 200 0 e poi 100 1
+a4           times 200 db 0
+             times 100 db 1
+
+segment .bss
+; definisce array di 10 double word non initializzate
+a5           resd  10
+; definisce array di 100 word non initializzate
+a6           resw  100
+\end{AsmCodeListing}
+\caption{Defining arrays\label{fig:DataArrays}}
+\end{figure}
+
+\subsubsection{Definizioni di array nei segmenti {\code data} e {\code bss} 
+               \index{array!definizione!statica}}
+
+Per definire un array inizializzato nel segmento {\code data}, si usano
+le normali direttive {\code db}, {\code dw}, \emph{etc.}\index{direttive!D\emph{X}}.
+Il NASM inoltre fornisce un direttiva molto utile chiamata {\code TIMES} \index{direttive!TIMES} che viene usata per ripetere un comando molte volte
+senza avere la necessita' di duplicare il comando a mano.
+La Figura~\ref{fig:DataArrays} mostra diversi esempi di utilizzo di
+queste istruzioni.   
+
+Per definire un array non inizializzato nel segmento {\code bss}, si usano
+le direttive {\code resb}, {\code resw}, \emph{etc.} \index{direttive!RES\emph{X}}.
+Ricorda che queste direttive hanno un'operando che specifica quante
+unita' di memoria riservare. La Figura~\ref{fig:DataArrays} mostra
+di nuovo gli esempi per questo tipo di definizioni.
+
+\begin{figure}[t]
+\centering
+\begin{tabular}{l|c|ll|c|}
+\cline{2-2} \cline{5-5}
+EBP - 1  & char    & \hspace{2em} &           & \\
+\cline{2-2}
+         & non utilizzato  &              &           & \\
+\cline{2-2}
+EBP - 8  & dword 1 &              &           & \\
+\cline{2-2}
+EBP - 12 & dword 2 &              &           & word \\
+\cline{2-2}
+         &         &              &           & array \\
+         &         &              &           & \\
+         & word    &              &           & \\
+         & array   &              & EBP - 100 & \\
+\cline{5-5}
+         &         &              & EBP - 104 & dword 1 \\
+\cline{5-5}
+         &         &              & EBP - 108 & dword 2 \\
+\cline{5-5}
+         &         &              & EBP - 109 & char \\
+\cline{5-5}
+EBP - 112 &        &              &           & non utilizzato \\
+\cline{2-2} \cline{5-5}
+\end{tabular}
+\caption{Disposizione nello stack\label{fig:StackLayouts}}
+\end{figure}
+
+\subsubsection{Definizione di array come variabili locali nello stack\index{array!definizione!variabili locali}}
+
+Non esiste un metodo diretto per definire una variabile array locale
+nello stack. Come prima, occorre calcolare il numero totale di
+byte richiesti da \emph{tutte} le variabili locali, inclusi gli
+array e sottrarre questo valore da ESP (direttamente o utilizzando
+l'istruzione {\code ENTER}). Per esempio, se una funzione ha bisogno
+di una variabile carattere, due interi double word e di un array di 50 
+elementi word, sono necessari $1 + 2 \times 4 + 50 \times 2 =
+109$ byte. Occorre pero' notare che il numero sottratto da ESP deve
+essere un multiplo di 4 (112 in questo caso) per mantenere ESP
+al limite di una double word. E' possibile arrangiare le variabili
+dentro questi 109 byte in diversi modi. La Figura~\ref{fig:StackLayouts}
+mostra due possibili modi. La parte non utilizzata del primo ordinamento
+serve per mantenere le double word entro i limiti di double word per
+velocizzare gli accessi alla memoria. 
+\index{array!definizione|)}
+
+\subsection{Accedere ad elementi dell'array\index{array!accesso|(}}
+
+Non esiste in linguaggio assembly l'operatore {\code [ ]} come in C.
+Per accedere ad un'elemento dell'array, deve essere calcolato il suo
+indirizzo. Consideriamo la seguente definizione di due array:
+\begin{AsmCodeListing}[frame=none, numbers=none]
+array1       db     5, 4, 3, 2, 1     ; array di byte
+array2       dw     5, 4, 3, 2, 1     ; array di word
+\end{AsmCodeListing}
+Ecco alcuni esempi di utilizzo di questi array:
+\begin{AsmCodeListing}[frame=none]
+      mov    al, [array1]             ; al = array1[0]
+      mov    al, [array1 + 1]         ; al = array1[1]
+      mov    [array1 + 3], al         ; array1[3] = al
+      mov    ax, [array2]             ; ax = array2[0]
+      mov    ax, [array2 + 2]         ; ax = array2[1] (NON array2[2]!)
+      mov    [array2 + 6], ax         ; array2[3] = ax
+      mov    ax, [array2 + 1]         ; ax = ??
+\end{AsmCodeListing}
+Alla riga~5 viene referenziato l'elemento 1 dell'array di word, non l'elemento
+2. Perche'? Le word sono unita' a 2 byte, cosi' per spostarsi all'elemento
+successione di un array di word, occorre muoversi in aventi di 2 byte, non di 1. 
+La riga~7 leggera' un byte dal primo elemento ed un byte dal secondo. In C
+il compilatore controlla il tipo del puntatore per verificare di quanti
+byte si deve spostare in una espressione che usa l'aritmetica dei puntatori
+cosicche' il programmatore non se ne deve occupare. In assembly invece,
+spetta al programmatore di tener conto della dimensione degli elementi di un
+array quando si sposta da un'elemento all'altro.
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single,commandchars=\\\{\}]
+      mov    ebx, array1           ; ebx = indirizzo di array1
+      mov    dx, 0                 ; dx manterra' la somma
+      mov    ah, 0                 ; ?
+      mov    ecx, 5
+lp:
+      mov    al, [ebx]             ; al = *ebx
+      add    dx, ax                ; dx += ax (non al!) \label{line:SumArray1}
+      inc    ebx                   ; bx++
+      loop   lp
+\end{AsmCodeListing}
+\caption{Somma degli elementi di un array (Versione 1)\label{fig:SumArray1}}
+\end{figure}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single,commandchars=\\\{\}]
+      mov    ebx, array1           ; ebx = indirizzo di array1
+      mov    dx, 0                 ; dx manterra' la somma
+      mov    ecx, 5
+lp:
+\textit{      add    dl, [ebx]             ; dl += *ebx}
+\textit{      jnc    next                  ; se no carry va a next}
+\textit{      inc    dh                    ; inc dh}
+\textit{next:}
+      inc    ebx                   ; bx++
+      loop   lp
+\end{AsmCodeListing}
+\caption{Somma degli elementi di un array (Versione 2)\label{fig:SumArray2}}
+\end{figure}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single,commandchars=\\\{\}]
+      mov    ebx, array1           ; ebx = indirizzo di array1
+      mov    dx, 0                 ; dx manterra' la somma
+      mov    ecx, 5
+lp:
+\textit{      add    dl, [ebx]             ; dl += *ebx}
+\textit{      adc    dh, 0                 ; dh += carry flag + 0}
+      inc    ebx                   ; bx++
+      loop   lp
+\end{AsmCodeListing}
+\caption{Somma degli elementi di un array (Versione 3)\label{fig:SumArray3}}
+\end{figure}
+
+La Figura~\ref{fig:SumArray1} mostra un pezzo di codice che somma
+tutti gli elementi di {\code array1} del precedente esempio di
+codice. Alla riga~\ref{line:SumArray1}, AX e' sommato a DX. Perche'
+non AL? Prima di tutto i due operandi della istruzione {\code ADD}
+devono avere la stessa dimensione. Secondariamente, sarebbe piu'
+facile nella somma di byte, raggiungere un valore troppo grande per 
+stare in un byte. Utilizzando DX, e' possibile arrivare fino a
+65.535. E' comunque da notare che anche AH viene sommato. E percio' 
+AH e' impostato a zero\footnote{Impostare AH a 0 significa considerare
+implicitamente AL come un numero unsigned. Se fosse signed, l'operazione
+corretta sarebbe quella di inserire una istruzione {\code CBW} fra le
+righe~6 e 7} alla riga~3.
+
+Le Figure~\ref{fig:SumArray2} e \ref{fig:SumArray3} mostrano due modi
+alternativi per calcolare la somma. Le righe in corsivo sostituiscono
+le righe~6 e 7 della Figura~\ref{fig:SumArray1}.
+
+\subsection{Indirizzamento Indiretto Avanzato\index{indirizzamento indiretto!array|(}}
+
+Non sorprende che l'indirizzamento indiretto venga spesso utilizzato con 
+gli array. La forma piu' comune di riferimento indiretto alla memoria e':
+\begin{center}
+{\code [ \emph{base reg} + \emph{factor}*\emph{index reg} + 
+      \emph{constant}]}
+\end{center}
+dove:
+\begin{description}
+\item[base reg] e' uno dei registri EAX, EBX, ECX, EDX, EBP, ESP, ESI
+                o EDI.
+\item[factor] puo' essere 1, 2, 4 o 8. (se 1, il fattore e' omesso.)
+\item[index reg] e' uno dei registri EAX, EBX, ECX, EDX, EBP, ESI, EDI.
+                 (Nota che ESP non e' nella lista)
+\item[constant] e' una costante a 32 bit. La costante puo' essere una etichetta(o
+                una espressione etichetta).
+\end{description}
+
+\subsection{Esempio}
+Ecco un'esempio che utilizza un array e lo passa ad una funzione. Viene utilizzato
+il programma {\code array1c.c} (riproposto sotto) come driver, invece di
+{\code driver.c}.\index{array1.asm|(}
+\begin{AsmCodeListing}[label=array1.asm]
+%define ARRAY_SIZE 100
+%define NEW_LINE 10
+
+segment .data
+FirstMsg        db   "First 10 elements of array", 0
+Prompt          db   "Enter index of element to display: ", 0
+SecondMsg       db   "Element %d is %d", NEW_LINE, 0
+ThirdMsg        db   "Elements 20 through 29 of array", 0
+InputFormat     db   "%d", 0
+
+segment .bss
+array           resd ARRAY_SIZE
+
+segment .text
+        extern  _puts, _printf, _scanf, _dump_line
+        global  _asm_main
+_asm_main:
+        enter   4,0		; variabile locale dword a EBP - 4
+        push    ebx
+        push    esi
+
+; inizializza l'array a 100, 99, 98, 97, ...
+
+        mov     ecx, ARRAY_SIZE
+        mov     ebx, array
+init_loop:
+        mov     [ebx], ecx
+        add     ebx, 4
+        loop    init_loop
+
+        push    dword FirstMsg         ; stampa FirstMsg
+        call    _puts
+        pop     ecx
+
+        push    dword 10
+        push    dword array
+        call    _print_array  ; stampa i primi 10 elementi dell'array
+        add     esp, 8
+
+; richiede all'utente l'indice degli elementi
+Prompt_loop:
+        push    dword Prompt
+        call    _printf
+        pop     ecx
+
+        lea     eax, [ebp-4]      ; eax = indirizzo della dword locale
+        push    eax
+        push    dword InputFormat
+        call    _scanf
+        add     esp, 8
+        cmp     eax, 1             ; eax = valore di ritorno di scanf
+        je      InputOK
+
+        call    _dump_line  ; dump del resto della riga e passa oltre
+        jmp     Prompt_loop          ; se l'input non e' valido
+
+InputOK:
+        mov     esi, [ebp-4]
+        push    dword [array + 4*esi]
+        push    esi
+        push    dword SecondMsg      ; stampa il valore dell'elemento
+        call    _printf
+        add     esp, 12
+
+        push    dword ThirdMsg       ; stampa gli elemeni 20-29
+        call    _puts
+        pop     ecx
+
+        push    dword 10
+        push    dword array + 20*4     ; indirizzo di array[20]
+        call    _print_array
+        add     esp, 8
+
+        pop     esi
+        pop     ebx
+        mov     eax, 0            ; ritorna al C
+        leave                     
+        ret
+
+;
+; routine _print_array
+; routine richiamabile da C che stampa gli elementi di un array double word come
+; interi con segno.
+; prototipo C:
+; void print_array( const int * a, int n);
+; Parametri:
+;   a - puntatore all'array da stampare (in ebp+8 sullo stack)
+;   n - numero di interi da stampare  (in ebp+12 sullo stack)
+
+segment .data
+OutputFormat    db   "%-5d %5d", NEW_LINE, 0
+
+segment .text
+        global  _print_array
+_print_array:
+        enter   0,0
+        push    esi
+        push    ebx
+
+        xor     esi, esi                  ; esi = 0
+        mov     ecx, [ebp+12]             ; ecx = n
+        mov     ebx, [ebp+8]              ; ebx = indirizzo dell'array
+print_loop:
+        push    ecx                       ; printf potrebbe modificare ecx!
+
+        push    dword [ebx + 4*esi]       ; mette array[esi]
+        push    esi
+        push    dword OutputFormat
+        call    _printf
+        add     esp, 12                   ; remuove i parametri (lascia ecx!)
+
+        inc     esi
+        pop     ecx
+        loop    print_loop
+
+        pop     ebx
+        pop     esi
+        leave
+        ret
+\end{AsmCodeListing}
+
+\LabelLine{array1c.c}
+\begin{lstlisting}{}
+#include <stdio.h>
+
+int asm_main( void );
+void dump_line( void );
+
+int main()
+{
+  int ret_status;
+  ret_status = asm_main();
+  return ret_status;
+}
+
+/*
+ * function dump_line
+ * dump di tutti i char lasciati nella riga corrente dal buffer di input
+ */
+void dump_line()
+{
+  int ch;
+
+  while( (ch = getchar()) != EOF && ch != '\n')
+    /* null body*/ ;
+}
+\end{lstlisting}
+\LabelLine{array1c.c}
+\index{array1.asm|)}
+\index{indirizzamento indiretto!array|)}
+\index{array!accesso|)}
+
+\subsubsection{L'istruzione {\code LEA} rivisitata\index{LEA|(}}
+
+L'istruzione {\code LEA} puo' essere usata anche per altri scopi oltre
+quello di calcolare indirizzi. Un uso abbastanza comune e' per i
+calcoli veloci. Consideriamo l'istruzione seguente:
+\begin{AsmCodeListing}[numbers=none,frame=none]
+      lea    ebx, [4*eax + eax]
+\end{AsmCodeListing}
+Questa memorizza effettivamente il valore di $5 \times \mathtt{EAX}$ in
+EBX. Utilizzare {\code LEA} per questo risulta piu' semplice e veloce
+rispetto all'utilizzo di {\code MUL}\index{MUL}. E' da notare pero' che
+l'espressione dentro le parentesi quadre \emph{deve} essere un'indirizzo
+indiretto valido. Questa istruzione quindi non puo' essere usata per
+moltiplicare per 6 velocemente.
+\index{LEA|)}
+
+
+\subsection{Array Multidimensionali\index{array!multidimensionali|(}}
+
+Gli array multidimensionali non sono in realta' molto diversi rispetto
+agli array ad una dimensione discussi prima. Infatti, vengono rappresentati
+in memoria nello stesso modo, come un'array piano ad una dimensione.
+
+\subsubsection{Array a Due Dimensioni\index{array!multidimensionali!due dimensioni|(}}
+Non sorprende che il piu' semplice array multidimensionale sia bidimensionale.
+Un array a due dimensioni e' spesso rappresentato con una griglia di elementi.
+Ogni elemento e' identificato da una coppia di indici. Per convenzione, il
+primo indice rappresenta la riga dell'elemento ed il secondo indice la
+colonna.
+
+Consideriamo un array con tre righe e 2 colonne definito come:
+\begin{lstlisting}[stepnumber=0]{}
+  int a[3][2];
+\end{lstlisting}
+Il compilatore C riservera spazio per un array di 6 ($= 2 \times 3$) interi
+e mappera' gli elementi i  questo modo:
+
+\parbox{\textwidth}{
+\vspace{0.5em}
+\centering
+\begin{tabular}{||l|c|c|c|c|c|c||}
+\hline
+Indice & 0 & 1 & 2 & 3 & 4 & 5 \\
+\hline
+Elemento & a[0][0] & a[0][1] & a[1][0] & a[1][1] & a[2][0] & a[2][1]  \\
+\hline
+\end{tabular}
+\vspace{0.5em}
+}
+\noindent La Tabella vuole dimostrare che l'elemento referenziato con
+{\code a[0][0]} e' memorizzato all'inizio dell'array a una dimensione
+a 6 elementi. L'elemento {\code a[0][1]} e' memorizzato nella posizione
+successiva (indice~1) e cosi' via. Ogni righa dell'array a due 
+dimensioni e' memorizzata sequenzialmente. L'ultimo elemento di una
+riga e' seguito dal primo elemento della riga successiva. Questa 
+rappresentazione e' conosciuta come rappresentazione a livello di riga ed
+e' il modo in cui i compilatori C/C++ rappresentano l'array. 
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[]
+   mov    eax, [ebp - 44]         ; ebp - 44 e' l'\emph{i}esima locazione
+   sal    eax, 1                  ; multiplica i per 2
+   add    eax, [ebp - 48]         ; somma j
+   mov    eax, [ebp + 4*eax - 40] ; ebp - 40 e' l'indirizzo di a[0][0]
+   mov    [ebp - 52], eax         ; memorizza il risultato in x (in ebp - 52)
+\end{AsmCodeListing}
+\caption{ Codice assembly per \lstinline|x = a[i][j]| \label{fig:aij}}
+\end{figure}
+
+In che modo il compilatore determina dove si trova l'elemento {\code a[i][j]} nella
+rappresentazione a livello di riga? Una formula calcolera' l'indice partendo da
+{\code i} e {\code j}. La formula in questo caso e' $2i + j$. Non e' difficile
+capire da dove deriva questa formula. Ogni riga ha due elementi; Il primo
+elemento della riga $i$ si trova in posizione $2i$. La posizione della
+colonna $j$ e' quindi data dalla somma di $j$ a $2i$. Questa analisi ci mostra
+inoltre come e' possibile generalizzare questa formula ad un array con 
+{\code N} colonne: $N \times i + j$. Nota che la formula \emph{non} dipende
+dal numero di righe.
+
+Come esempio, vediamo come \emph{gcc} compila il codice seguente (utilizzando 
+l'array {\code a} definito prima):
+\begin{lstlisting}[stepnumber=0]{}
+  x = a[i][j];
+\end{lstlisting}
+La Figura~\ref{fig:aij} mostra l'assembly generato dalla traduzione.
+In pratica, il compilatore converte il codice in:
+\begin{lstlisting}[stepnumber=0]{}
+  x = *(&a[0][0] + 2*i + j);
+\end{lstlisting}
+ed infatti il programmatore potrebbe scrivere in questo modo con lo
+stesso risultato.
+
+Non c'e' nulla di particolare nella scelta della rappresentazione a livello
+di riga. Una rappresentazione a livello di colonna avrebbe dato gli stessi
+risultati:
+
+\parbox{\textwidth}{
+\vspace{0.5em}
+\centering
+\begin{tabular}{||l|c|c|c|c|c|c||}
+\hline
+Indice & 0 & 1 & 2 & 3 & 4 & 5 \\
+\hline
+Elemento & a[0][0] & a[1][0] & a[2][0] & a[0][1] & a[1][1] & a[2][1]  \\
+\hline
+\end{tabular}
+\vspace{0.5em}
+}
+\noindent Nella rappresentazione a livello di colonna, ogni colonna e'
+memorizzata contiguamente. L'elemento {\code [i][j]} e' memorizzato nella
+posizione $i + 3j$. Altri linguaggi (per esempio, il FORTRAN) utilizzano 
+la rappresentazione a livello di colonna. Questo e' importante quando si
+interfaccia codice con linguaggi diversi.  
+\index{array!multidimensionali!due dimensioni|)}
+
+\subsubsection{Dimensioni Oltre Due}
+La stessa idea viene applicata agli array con oltre due dimensioni. Consideriamo
+un array a tre dimensioni:
+\begin{lstlisting}[stepnumber=0]{}
+  int b[4][3][2];
+\end{lstlisting}
+Questo array sarebbe memorizzato come se fossero 4 array consecutivi a due 
+dimensioni ciascuno di dimensione {\code [3][2]}. La Tabella sotto mostra
+come inizia:
+
+\parbox{\textwidth}{
+\vspace{0.5em}
+\centering
+\begin{tabular}{||l|c|c|c|c|c|c||}
+\hline
+Indice & 0 & 1 & 2 & 3 & 4 & 5  \\
+\hline
+Elemento & b[0][0][0] & b[0][0][1]  & b[0][1][0] & b[0][1][1] & b[0][2][0]
+&  b[0][2][1]  \\
+\hline
+\hline
+Indice & 6 & 7 & 8 & 9 & 10 & 11 \\
+\hline
+Elemento & b[1][0][0] & b[1][0][1] & b[1][1][0] & b[1][1][1]  & b[1][2][0] 
+& b[1][2][1] \\
+\hline
+\end{tabular}
+\vspace{0.5em}
+}
+\noindent la formula per calcolare la posizione di {\code b[i][j][k]}
+e' $6i + 2j + k$. Il 6 e' determinato dalla dimensione degli array
+{\code [3][2]}. In generale, per ogni array dimensionato come
+{\code a[L][M][N]}, la posizione dell'elemento {\code a[i][j][k]} sara'
+$M\times N\times i + N \times j + k$. E' importante notare di nuovo
+che la prima dimensione ({\code L}) non appare nella formula.
+
+Per dimensioni maggiori, viene generalizato lo stesso processo. Per un array
+a $n$ dimensioni, di dimensione da $D_1$ a $D_n$, la posizione dell'elemento
+indicato dagli indici $i_1$ a $i_n$ e' dato dalla formula:
+\begin{displaymath}
+D_2 \times D_3 \cdots \times D_n \times i_1 + D_3 \times D_4 \cdots \times D_n 
+\times i_2 + \cdots + D_n \times i_{n-1} + i_n
+\end{displaymath}
+oppure per i patiti della matematica, puo' essere scritta piu' succintamente
+come:   
+\begin{displaymath}
+\sum_{j=1}^{n} \: \left( \prod_{k=j+1}^{n} D_k \right) \: i_j
+\end{displaymath}
+\MarginNote{Da questo puoi capire che l'autore e' laureato in fisica.(il riferimento
+al FORTRAN era una rivelazione)}
+La prima dimensione, $D_1$, non appare nella formula.
+
+Per la rappresentazione a livello di colonne, la formula generale sarebbe:
+\begin{displaymath}
+i_1 + D_1 \times i_2 + \cdots + D_1 \times D_2 \times \cdots \times D_{n-2} 
+\times i_{n-1} + D_1 \times D_2 \times \cdots \times D_{n-1} \times i_n
+\end{displaymath}
+o sempre per i patiti della matematica:
+\begin{displaymath}
+\sum_{j=1}^{n} \: \left( \prod_{k=1}^{j-1} D_k \right) \: i_j
+\end{displaymath}
+In questo caso, e' l'ultima dimensione, $D_n$, che non appare nella formula.
+
+\subsubsection{Passaggio di Array Multidimensionali come Parametri in C\index{array!multidimensionali!parametri|(}}
+
+La rappresentazione a livello di riga degli array multidimensionali ha
+un effetto diretto nella programmazione in C. Per gli array ad una dimesione,
+ls dimensione dell'array non e' necessaria per il calcolo della posizione
+di uno specifico elemento in memoria. Questo non e' vero per gli array
+multidimensionali. Per accedere agli elementi di questi array, il 
+compilatore deve conoscere tutte le dimensioni ad eccezione della prima.
+Questo diventa apparente quando consideriamo il prototipo di una funzione
+che accetta un array multidimensionale come parametro. Il seguente prototipo
+non verrebbe compilato:
+\begin{lstlisting}[stepnumber=0]{}
+  void f( int a[ ][ ] );  /* nessuna informazione sulla dimensione */
+\end{lstlisting}
+Invece questo verrebbe compilato:
+\begin{lstlisting}[stepnumber=0]{}
+  void f( int a[ ][2] );
+\end{lstlisting}
+Ogni array bidimensionale con due colonne puo' essere passato a questa funzione. 
+La prima dimensione non e' necessaria\footnote{Una dimesione puo' essere
+specificata in questo caso, ma sarebbe ignorata dal compilatore.}.
+
+Da non confondere con una funzione con questo prototipo:
+\begin{lstlisting}[stepnumber=0]{}
+  void f( int * a[ ] );
+\end{lstlisting}
+Questo definisce un puntatore ad un array di interi ad una dimensione (che
+accidentalmente puo' essere usato per creare un array di array che funziona
+come un array a due dimensioni).
+
+Per gli array con piu' dimensioni, tutte le dimensioni, ad eccezione della
+prima devono essere specificate nel parametro. Per esempio, un parametro
+array a 4 dimensioni dovrebbe essere passato in questo modo:
+\begin{lstlisting}[stepnumber=0]{}
+  void f( int a[ ][4][3][2] );
+\end{lstlisting}
+\index{array!multidimensionali!parametri|)}
+\index{array!multidimensionali|)}
+
+\section{Istruzioni Array/String}
+\index{istruzioni stringa|(} 
+
+La famiglia dei processori 80x86 fornisce diverse istruzioni che sono
+create espressamente per lavorare con gli array. Queste istruzioni sono
+chiamate \emph{istruzioni stringa}. Utilizzano i registri indice(ESI e EDI)
+per eseguire una operazione con incremento o decremento automatico di 
+uno dei due registri indice. Il \emph{flag di direzione}(DF)\index{registro!FLAGS!DF}
+nel registro FLAGS indica se i registri indice sono incrementati o
+decrementati. Ci sono due istruzioni che modificano il flag di direzione:
+\begin{description}
+\item[CLD] \index{CLD} pulisce il flag di direzione. In questo stato, i registri indice
+					sono incrementati.
+\item[STD] \index{STD} imposta il flag di direzione. In questo stato, i registri indice
+					sono decrementati.
+\end{description}
+Un errore \emph{molto} comune nella programmazione 80x86 e' quello di dimenticare
+di impostare esplicitamente il flag di direzione nello stato corretto. Questo 
+porta a codice che funzione per la maggior parte delle volte (quando il flag
+di direzione sembra essere nello stato desiderato), ma non funziona \emph{tutte} le
+volte.
+
+\begin{figure}[t]
+\centering
+{\code
+\begin{tabular}{|lp{1.5in}|lp{1.5in}|}
+\hline
+LODSB & AL = [DS:ESI]\newline ESI = ESI $\pm$ 1 & 
+STOSB & [ES:EDI] = AL\newline EDI = EDI $\pm$ 1 \\
+\hline
+LODSW & AX = [DS:ESI]\newline ESI = ESI $\pm$ 2 & 
+STOSW & [ES:EDI] = AX\newline EDI = EDI $\pm$ 2 \\
+\hline
+LODSD & EAX = [DS:ESI]\newline ESI = ESI $\pm$ 4 & 
+STOSD & [ES:EDI] = EAX\newline EDI = EDI $\pm$ 4 \\
+\hline
+\end{tabular}
+}
+\caption{Istruzioni string di Lettura e Scrittura\label{fig:rwString}
+         \index{LODSB} \index{STOSB} \index{LODSW} \index{LODSD} \index{STOSD}}
+\end{figure}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+segment .data
+array1  dd  1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+
+segment .bss
+array2  resd 10
+
+segment .text
+      cld                   ; non dimenticare questo!
+      mov    esi, array1
+      mov    edi, array2
+      mov    ecx, 10
+lp:
+      lodsd
+      stosd
+      loop  lp
+\end{AsmCodeListing}
+\caption{Esempio di caricamento e memorizzazione\label{fig:lodEx}}
+\end{figure}
+
+\subsection{Lettura e scrittura della memoria}
+
+Le istruzioni stringa di base possono leggere la memoria, scrivere
+in memoria oppure fare entrambe le operazioni. Possono leggere o
+scrivere un byte, una word o una double word alla volta.
+La Figura~\ref{fig:rwString} mostra queste istruzioni con una 
+piccola decrizione in pseudo codice di cosa fanno. Ci sono alcuni
+punti su cui porre l'attenzione. Prima di tutto, ESI e' usato per 
+la lettura e EDI per la scrittura. E' facile da ricordare se si
+tiena a mente che SI sta per \emph{Source Index}(indice sorgente) e DI
+sta per \emph{Destination Index}(indice destinazione). \index{register!ESI} \index{register!EDI}
+Inoltre, e' da notare che il registro che mantiene i dati e' fisso
+(AL,AX o EAX). Infine, le istruzioni di memorizzazione utilizzano
+ES per determinare il segmento in cui scrivere e non DS. Nella 
+programmazione in modalita' protetta questo non costituisce un 
+problema dal momento che c'e' solo un segmento dati ed ES viene
+automaticamente inizializato per riferenziare questo (come accade
+per DS). Nella programmazione in modalita' reale, invece, e'
+\emph{molto} importante per il programmatore inizializzare ES
+al corretto valore di selezione del segmento\index{registrp!segmento}\footnote{
+Un'altra complicazione sta nel fatto che non e' possibile copiare
+direttamente il valore del registro DS nel registro ES con una 
+istruzione {\code MOV}. Il valore di DC invece, deve essere copiato
+in un registro generale (come AX) e poi copiato da li' nel registro
+ES utilizzando due istruzioni {\code MOV}.}. La Figura~\ref{fig:lodEx}   
+mostra un esempio di utilizzo di queste istruzioni per la copia di
+un array in un'altro.
+
+\begin{figure}[t]
+\centering
+{\code
+\begin{tabular}{|lp{2.5in}|}
+\hline
+MOVSB & byte [ES:EDI] = byte [DS:ESI] \newline ESI = ESI $\pm$ 1 \newline
+        EDI = EDI $\pm$ 1 \\
+\hline
+MOVSW & word [ES:EDI] = word [DS:ESI] \newline ESI = ESI $\pm$ 2 \newline
+        EDI = EDI $\pm$ 2 \\
+\hline
+MOVSD & dword [ES:EDI] = dword [DS:ESI] \newline ESI = ESI $\pm$ 4 \newline
+        EDI = EDI $\pm$ 4 \\
+\hline
+\end{tabular}
+}
+\caption{Istruzioni stringa di spostamento memoria\label{fig:movString} \index{MOVSB}
+         \index{MOVSW} \index{MOVSD}}
+\end{figure}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+segment .bss
+array  resd 10
+
+segment .text
+      cld                   ; non dimenticarlo!
+      mov    edi, array
+      mov    ecx, 10
+      xor    eax, eax
+      rep stosd
+\end{AsmCodeListing}
+\caption{Esempio con array di zero\label{fig:zeroArrayEx}}
+\end{figure}
+
+La combinazione delle istruzioni {\code LODSx} e {\code STOSx} (alle 
+righe~13 e 14 della Figura~\ref{fig:lodEx}) e' molto comune. Infatti,
+questa combinazione puo' essere eseguita con una solo istruzione stringa
+{\code MOVSx}. La Figura~\ref{fig:movString} descrive le operazioni che 
+vengono eseguite da queste istruzioni. Le righe~13 e 14 della Figura~\ref{fig:lodEx}
+potrebbero essere sostituite con una sola istruzione {\code MOVSD} ottenendo
+lo stesso risultato. L'unica differenza sta nel fatto che il registro 
+EAX non verrebbe usato per nulla nel ciclo.
+
+\subsection{Il prefisso di istruzione {\code REP}\index{REP|(}}
+
+La famiglia 80x86 fornisce uno speciale prefisso di istruzione\footnote{
+Un prefisso di istruzione non e' una istruzione, ma uno speciale byte
+che anteposto alla istruzione stringa ne modifica il comportamento.
+Altri prefissi sono anche usati per sovrappore i difetti dei segmenti
+degli accessi alla memoria} chiamato {\code REP} che puo' essere usato con le
+istruzioni stringa di cui sopra. Questo prefisso dice alla CPU di ripetere
+la successiva istruzione stringa un numero di volte specificato. Il 
+registro ECX e' usato per contare le iterazioni (come per l'istruzione
+{\code LOOP}). Utilizzando il prefisso {\code REP}, il ciclo in 
+Figura~\ref{fig:lodEx} (righe dalla~12 alla 15) puo' essere sostituito
+con una singola riga:
+\begin{AsmCodeListing}[frame=none, numbers=none]
+      rep movsd
+\end{AsmCodeListing}
+La Figura~\ref{fig:zeroArrayEx} mostra un'altro esempio che azzera il 
+contenuto di un array.
+\index{REP|)}
+
+\begin{figure}[t]
+\centering
+{\code
+\begin{tabular}{|lp{3.5in}|}
+\hline
+CMPSB & compara il byte [DS:ESI] e il byte [ES:EDI] \newline ESI = ESI $\pm$ 1 
+        \newline EDI = EDI $\pm$ 1 \\
+\hline
+CMPSW & compara la word [DS:ESI] e la word [ES:EDI] \newline ESI = ESI $\pm$ 2 
+        \newline EDI = EDI $\pm$ 2 \\
+\hline
+CMPSD & compara la dword [DS:ESI] e la dword [ES:EDI] \newline ESI = ESI $\pm$ 4 
+        \newline EDI = EDI $\pm$ 4 \\
+\hline
+SCASB & compara AL e [ES:EDI] \newline EDI $\pm$ 1 \\
+\hline
+SCASW & compara AX e [ES:EDI] \newline EDI $\pm$ 2 \\
+\hline
+SCASD & compara EAX e [ES:EDI] \newline EDI $\pm$ 4 \\
+\hline
+\end{tabular}
+}
+\caption{Istruzioni stringa di comparazione\label{fig:cmpString}
+         \index{CMPSB} \index{CMPSW} \index{CMPSD} \index{SCASB}
+         \index{SCASW} \index{SCASD}}
+\end{figure}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single,commandchars=\\\{\}]
+segment .bss
+array        resd 100
+
+segment .text
+      cld
+      mov    edi, array    ; puntatore all'inizio dell'array
+      mov    ecx, 100      ; numero di elementi
+      mov    eax, 12       ; numero da scansionare
+lp:
+      scasd    \label{line:scasdSrchStrEx}
+      je     found
+      loop   lp
+ ; codice da eseguire se non trovato
+      jmp    onward
+found:
+      sub    edi, 4      ; edi ora punta a 12 nell'array\label{line:subSrchStrEx}
+ ; codice da eseguire se trovato
+onward:
+\end{AsmCodeListing}
+\caption{Esempio di ricerca\label{fig:srchStrEx}}
+\end{figure}
+
+\subsection{Istruzioni stringa di comparazione}
+
+La Figura~\ref{fig:cmpString} mostra diverse nuove istruzioni stringa che
+possono essere usate per comparare memoria con altra memoria o registro.
+Questo sono utili per la ricerca e la comparazione di array. Impostano
+il registro FLAGS come l'istruzione {\code CMP}. Le istruzioni {\code CMPSx}
+\index{CMPSB} \index{CMPSW} \index{CMPSD} comparano le corrispondenti
+locazioni di memoria e le istruzioni {\code SCASx} \index{SCASB}
+\index{SCASW} \index{SCASD} scansionano le locazioni di memoria
+per un valore specifico.
+
+La Figura~\ref{fig:srchStrEx} mostra un piccolo pezzo di codice che 
+ricerca il numero 12 in un array di double word. L'istruzione {\code SCASD}
+alla riga~\ref{line:scasdSrchStrEx} aggiunge sempre 4 a EDI, anche se 
+il valore cercato viene trovato. Cosi' se si vuole conoscere l'indirizzo
+del 12 trovato nell'array, e' necessario sottrarre 4 da EDI (come fa
+la riga~\ref{line:subSrchStrEx}). 
+
+\begin{figure}[t]
+\centering
+\begin{tabular}{|l|p{4in}|}
+\hline
+{\code REPE}, {\code REPZ} & ripete l'istruzione finche' lo Z flag e' settato o
+                             al massimo ECX volte \\
+\hline
+{\code REPNE}, {\code REPNZ} & ripete l'istruzione finche' lo Z flag e' pulito o
+                             al massimo ECX volte \\
+\hline
+\end{tabular}
+\caption{Prefissi di istruzione {\code REPx} \label{fig:repx} \index{REPE} 
+          \index{REPNE}}
+\end{figure}
+
+\begin{figure}
+\begin{AsmCodeListing}[frame=single,commandchars=\\\{\}]
+segment .text
+      cld
+      mov    esi, block1        ; indirizzo del primo blocco
+      mov    edi, block2        ; indirizzo del secondo blocc
+      mov    ecx, size          ; dimensione dei blocchi in bytes
+      repe   cmpsb              ; ripete finche' Z flag e' settato
+      je     equal              ; se Z e' settato, blocchi uguali \label{line:cmpBlocksEx}
+   ; codice da eseguire se i blocchi non sono uguali
+      jmp    onward
+equal:
+   ; codice da eseguire se sono uguali
+onward:
+\end{AsmCodeListing}
+\caption{Comparazione di blocchi di memoria\label{fig:cmpBlocksEx}}
+\end{figure}
+
+\subsection{Prefissi di istruzione {\code REPx}}
+
+Ci sono diversi altri prefissi di istruzione tipo {\code REP} che possono
+essere usati con le istruzioni stringa di comparazione. La Figura~\ref{fig:repx}
+mostra i due nuovi prefissi e descrive le loro operazioni. {\code REPE} \index{REPE} e
+{\code REPZ} sono sinonimi dello stesso prefisso (come lo sono {\code REPNE} \index{REPNE}
+e {\code REPNZ}). Se l'istruzione stringa di comparazione ripetuta si
+interrompe a causa del risultato della comparazione, il registro o i registri
+indice sono ancora incrementati ed ECX decrementato; Il registro FLAGS
+mantiene comunque lo stato che ha terminato al ripetizione.
+\MarginNote{Perche' non controllare se ECX e' zero dopo la comparazione 
+ripetuta?}E' cosi' possibile usare lo Z flag per determinare se la
+ripetizione della comparazione e' terminata a causa della comparazione
+stessa o per ECX che e' diventato 0. 
+
+La Figura~\ref{fig:cmpBlocksEx} mostra un pezzo di codice di esempio che
+stabilisce se due blocchi di memoria sono uguali. Il {\code JE} alla riga~\ref{line:cmpBlocksEx} dell'esempio controlla per vedere il 
+risultato della istruzione precedente. Se la comparazione ripetuta e'
+terminata perche' sono stati trovati due byte non uguali, lo Z flag sara'
+ancora pulito e non ci sara' nessun salto; Se le comparazioni terminano
+perche' ECX e' diventato zero, lo Z flag sara' ancora settato ed il codice
+saltera' all'etichetta {\code equal}. 
+
+\subsection{Esempio}
+
+Questa sezione contiene un file sorgente in assembly con diverse funzioni
+che implementano le operazioni sugli array utilizzando le istruzioni stringa.
+Molte di queste funzioni duplicano le note funzioni della libreria C.
+
+\index{memory.asm|(}
+\begin{AsmCodeListing}[label=memory.asm]
+global _asm_copy, _asm_find, _asm_strlen, _asm_strcpy
+
+segment .text
+; funzione _asm_copy
+; copia blocchi di memoria
+; prototipo C
+; void asm_copy( void * dest, const void * src, unsigned sz);
+; parametri:
+;   dest - puntatore al buffer in cui copiare
+;   src  - puntatore al buffer da cui copiare
+;   sz   - numero di byte da copiare
+
+; di seguito sono definiti alcuni simbli utili
+
+%define dest [ebp+8]
+%define src  [ebp+12]
+%define sz   [ebp+16]
+_asm_copy:
+        enter   0, 0
+        push    esi
+        push    edi
+
+        mov     esi, src        ; esi = indirizzo del buffer da cui copiare
+        mov     edi, dest       ; edi = indirizzo del in cui copiare
+        mov     ecx, sz         ; ecx = numero di byte da copiare
+
+        cld                     ; pulisce il flag di direzione
+        rep     movsb           ; esegue movsb ECX volte
+
+        pop     edi
+        pop     esi
+        leave
+        ret
+
+
+; funzione _asm_find
+; cerca in memoria un certo byte
+; void * asm_find( const void * src, char target, unsigned sz);
+; parametri:
+;   src    - puntatore al buffer di ricerca
+;   target - valore del byte da cercare
+;   sz     - numero di byte nel buffer
+; valore di ritorno:
+;   Se il valore e' trovato, e' ritornato il puntatore alla prima occorrenza del valore
+;   nel buffer
+;   altrimenti
+;     e' ritonato NULL 
+; NOTE: target e' un valore byte,ma e' messo nello stack come un valore dword.
+;       Il valore byte e' memorizzato negli 8 bit bassi.
+; 
+%define src    [ebp+8]
+%define target [ebp+12]
+%define sz     [ebp+16]
+
+_asm_find:
+        enter   0,0
+        push    edi
+
+        mov     eax, target     ; al ha il valore da cercare
+        mov     edi, src
+        mov     ecx, sz
+        cld
+
+        repne   scasb           ; cerca finche' ECX == 0 o [ES:EDI] == AL
+
+        je      found_it        ; se zero flag e' settato, il valore e' trovato
+        mov     eax, 0          ; se non trovato, ritorna puntatore NULL 
+        jmp     short quit
+found_it:
+        mov     eax, edi          
+        dec     eax              ; se trovato ritorna (DI - 1)
+quit:
+        pop     edi
+        leave
+        ret
+
+
+; funzione _asm_strlen
+; ritorno la dimensione della stringa
+; unsigned asm_strlen( const char * );
+; parametri:
+;   src - puntatore alla stringa
+; valore di riton:
+;   numero di caratteri della stringa (non contano lo 0 finale) (in EAX)
+
+%define src [ebp + 8]
+_asm_strlen:
+        enter   0,0
+        push    edi
+
+        mov     edi, src        ; puntatore alla stringa
+        mov     ecx, 0FFFFFFFFh ; usa il piu' grande ECX possibile
+        xor     al,al           ; al = 0
+        cld
+
+        repnz   scasb           ; cerca il terminatore 0
+
+;
+; repnz fara' un passo in piu', cosi' la lunghezza e' FFFFFFFE - ECX,
+; non FFFFFFFF - ECX
+;
+        mov     eax,0FFFFFFFEh
+        sub     eax, ecx        ; lunghezza = 0FFFFFFFEh - ecx
+
+        pop     edi
+        leave
+        ret
+
+; funzione _asm_strcpy
+; copia una stringa
+; void asm_strcpy( char * dest, const char * src);
+; parametri:
+;   dest - puntatore alla stringa in cui copiare
+;   src  - puntatore alla stringa da copiare
+; 
+%define dest [ebp + 8]
+%define src  [ebp + 12]
+_asm_strcpy:
+        enter   0,0
+        push    esi
+        push    edi
+
+        mov     edi, dest
+        mov     esi, src
+        cld
+cpy_loop:
+        lodsb                   ; carica AL & inc si
+        stosb                   ; memorizza AL & inc di
+        or      al, al          ; imposta i flag di condizione
+        jnz     cpy_loop        ; se non e' passato il terminatore 0, continua
+
+        pop     edi
+        pop     esi
+        leave
+        ret
+\end{AsmCodeListing}
+
+\LabelLine{memex.c}
+\begin{lstlisting}{}
+#include <stdio.h>
+
+#define STR_SIZE 30
+/* prototipi */
+
+void asm_copy( void *, const void *, unsigned ) __attribute__((cdecl));
+void * asm_find( const void *, 
+                 char target, unsigned ) __attribute__((cdecl));
+unsigned asm_strlen( const char * ) __attribute__((cdecl));
+void asm_strcpy( char *, const char * ) __attribute__((cdecl));
+
+int main()
+{
+  char st1[STR_SIZE] = "test string";
+  char st2[STR_SIZE];
+  char * st;
+  char   ch;
+
+  asm_copy(st2, st1, STR_SIZE);   /* copia tutti i 30 caratteri della stringa */
+  printf("%s\n", st2);
+
+  printf("Enter a char: ");  /* cerca il byte nella stringa */
+  scanf("%c%*[^\n]", &ch);
+  st = asm_find(st2, ch, STR_SIZE);
+  if ( st )
+    printf("Found it: %s\n", st);
+  else
+    printf("Not found\n");
+
+  st1[0] = 0;
+  printf("Enter string:");
+  scanf("%s", st1);
+  printf("len = %u\n", asm_strlen(st1));
+
+  asm_strcpy( st2, st1);     /* copia i dati significativi nella stringa */
+  printf("%s\n", st2 );
+
+  return 0;
+}
+\end{lstlisting}
+\LabelLine{memex.c}
+\index{memory.asm|)}
+\index{istruzioni stringa|)}
+\index{array|)}
+
+
+
+
+
+
+
+
+
+
+
+
+

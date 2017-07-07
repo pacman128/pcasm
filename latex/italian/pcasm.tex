@@ -1,0 +1,109 @@
+% To create PDF version, type
+%   pdflatex pcasm.tex
+% This will produce errors the first time, type R at the error prompt
+% Then rerun again (twice to get all the references.
+
+\documentclass[11pt]{book}
+\typeout{-----------------------------------------}
+\typeout{Enter files to be included. (*=all)}
+\typeout{(pcasm1,pcasm2,...)}
+\typeout{-----------------------------------------}
+%\typein[\infiles]{ }
+%\if*\infiles\else\includeonly{\infiles}\fi
+
+
+\newif\ifmypdf
+\ifx\pdfoutput\undefined
+    \pdffalse          % we are not running PDFLaTeX
+\else
+%    \pdfoutput=1       % we are running PDFLaTeX
+%    \pdftrue
+\fi
+%----------------------------------------------------------------------
+% The following is the construct that interests us in the end:
+%\ifpdf
+%   % Put PDF-specific stuff here
+%\else
+%   % Put LaTeX-specific stuff here
+%\fi
+
+\usepackage{indentfirst}  % indent first paragraph of sections
+%\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{epsfig}
+\usepackage{longtable}
+\usepackage{color}
+\usepackage[italian]{babel}
+\usepackage{makeidx}
+\ifmypdf
+\usepackage[pdftex,
+            bookmarks=true,
+            bookmarksnumbered=true,
+            pdftitle={PC Assembly Language},
+            pdfauthor={Paul A. Carter},
+            pdfsubject={80x86 Assembly Language Programming},
+	          pdfkeywords={80x86 assembly programming}]{hyperref}
+\fi
+\author{Paul~A.~Carter}
+\title{Il linguaggio PC Assembly}
+\date{20 Marzo 2005}
+\usepackage{lecnote}
+\makeindex
+
+
+\hyphenation{num-bers SF OF CF DF fact dif-fer-ence inter-rupts op-er-ands}
+\begin{document}
+\maketitle
+\newlength{\AsmMargin}
+\setlength{\AsmMargin}{-1cm}
+\DefineVerbatimEnvironment{AsmCodeListing}{Verbatim}
+{numbers=left, frame=lines,xleftmargin=\AsmMargin, labelposition=all, commentchar=^ }
+
+\newcommand{\MarginNote}[1]{\marginpar{\sloppy \em \small #1}}
+\thispagestyle{empty}
+\vspace*{\fill}
+\noindent Copyright \copyright\  2001, 2002, 2003, 2004 by Paul Carter\\
+
+\noindent \emph{Traduzione italiana a cura di Giacomo Bruschi}\\
+
+\noindent Questo documento puo' essere riprodotto e distribuito interamente (incluse le note sull'autore, i copyrights e i permessi), ammesso che non siano apportate modifiche al documento stesso, senza il consenso dell'autore. Cio' include un'uso 'corretto' del documento nelle rassegne e nella pubblicita', oppure in lavori di traduzione.\\
+
+\noindent Si noti che questa limitazione non e' intesa a proibire modifiche per il servizio di stampa o di copiatura del documento. \\
+
+\noindent Gli insegnanti sono incoraggiati ad usare questo documento come risorsa per l'insegnamento; comunque l'autore apprezzerebbe essere informato in questi casi.\\
+
+\noindent \emph{Nota alla traduzione italiana: Nel testo i termini tecnici sono
+stati tradotti nel corrispondene italiano, ad eccezione di quei termini la cui
+traduzione avrebbe determinato una perdita di chiarezza, o di quei termini che sono 
+comunemente usati e conosciuti in lingua inglese.}
+
+\index{sottoroutine|vedi{sottoprogramma}}
+\index{REPNZ|vedi{REPNE}}
+\index{REPZ|vedi{REPE}}
+\index{C++!funzioni membro|vedi{metodi}}
+\index{segmento testo|vedi{segmento codice}}
+
+\vfill
+\frontmatter
+\include{toc}
+\include{pcasmf}
+\mainmatter
+\include{pcasm1}
+\include{pcasm2}
+\include{pcasm3}
+\include{pcasm4}
+\include{pcasm5}
+\include{pcasm6}
+\include{pcasm7}
+%\include{pcasm8}
+\begin{appendix}
+\include{pcasma}
+\end{appendix}
+\clearpage
+\ifmypdf
+\phantomsection % fixes link anchor
+\fi
+\addcontentsline{toc}{chapter}{Index}
+\printindex
+\end{document}
+

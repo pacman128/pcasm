@@ -1,0 +1,1026 @@
+
+\chapter{Linguaggio Assembly di Base}
+
+\section{Lavorare con gli Interi \index{intero|(}}
+
+\subsection{Rappresentazione degli Interi \index{intero!rappresentazione|(}}
+
+\index{intero!unsigned|(}
+Gli interi possono essere di due tipi: unsigned e signed. Gli interi unsigned 
+(che non sono negativi) sono rappresentati direttamente in binario. 
+Il numero 200, come byte intero unsigned sarebbe rappresentato 
+come 11001000 (o C8 in esadecimale).
+\index{intero!unsigned|)}
+
+\index{intero!signed|(}
+Gli interi Signed (che possono essere positivi o negativi) sono rappresentati in maniera
+piu' complessa. Per esempio, consideriamo $-56$. $+56$ come byte sarebbe 
+rappresentato da 00111000. Sulla carta, si potrebbe rappresentare $-56$ come $-111000$,
+ma come potrebbe essere rappresentato questo numero, come byte, nella 
+memoria del computer? Come potrebbe essere memorizzato il meno?
+
+Ci sono tre tecniche generali che sono state usate per rappresentare gli interi
+signed nella memoria del computer. Tutti e tre i metodi usano il bit
+piu' significativo dell'intero come \emph{bit di segno}.\index{intero!bit di segno}
+Questo bit e' 0 se il numero e' positivo, 1 se negativo.
+
+\subsubsection{Signed Magnitude \index{intero!rappresentazione!signed magnitude}}
+
+Il primo metodo e' il piu' semplice ed e' chiamato \emph{signed magnitude}. Esso
+rappresenta l'intero in due parti. La prima parte e' il bit del segno, mentre la seconda rappresenta la magnitudine dell'intero: 56  sarebbe rappresentato come byte come $\underline{0}0111000$ (il bit del segno e' sottolineato) e $-56$
+come $\underline{1}0111000$. Il piu' grande valore rappresentabile in un byte
+sarebbe $\underline{0}1111111$ o $+127$ mentre il piu' piccolo sarebbe 
+$\underline{1}1111111$ o $-127$. Per negare un valore, il bit di segno e' invertito.
+Questo metodo e' diretto, ma ha i suoi svantaggi.
+Innanzitutto, ci sono due possibili valori di zero, $+0$ ($\underline{0}0000000$) e
+$-0$ ($\underline{1}0000000$). Dal momento che zero non e' ne' positivo ne' negativo,
+entrambe queste rappresentazioni dovrebbero comportarsi nello stesso modo.
+Questo complica la logica dell'aritmetica della CPU. Secondariamente, anche 
+l'aritmetica in generale viene complicata. Se 10 viene sommato a $-56$, questa operazione deve essere convertita come la sottrazione di 10 da 56. Di nuovo, la logica della CPU ne viene 
+complicata.
+
+\subsubsection{Complemento a Uno \index{intero!rappresentazione!complemento a 1}}
+Il secondo metodo e' conosciuto come rappresentazione in \emph(complemento a 1). 
+Il complemento a 1 di un numero e' trovato invertendo ogni bit del numero (oppure 
+, in altro modo, con la sottrazione $1 - \mathrm{numero in bit}$.)
+Per esempio il complemento a 1 di $\underline{0}0111000$ ($+56$) e' $\underline{1}1000111$.
+Nel notazione del complemento a 1, il complemento a 1 equivale alla negazione. Cosi',
+$\underline{1}1000111$ e' la rappresentazione per $-56$. Nota che il bit del segno 
+e' automaticamente cambiato dal complemento a 1 e che come ci si puo' aspettare,
+l'utilizzo del complemento a 1 due volte porta al numero originale. Come per
+il primo metodo, ci sono due rappresentazioni dello zero: 
+$\underline{0}0000000$ ($+0$) e $\underline{1}1111111$ ($-0$). L'aritmetica, con
+i numeri in completmento a 1 e' complicata.
+
+C'e' un semplice trucco per trovare il complemento a 1 di un numero in 
+esadecimale senza convertirlo in binario. Il trucco e' di sottrarre ogni 
+cifra esadecimale da F ( o 15 in decimale). Questo metodo assume che il 
+numero di bit nel numero sia un multiplo di 2. Ecco un'esempio: $+56$ e' 
+rappresentato da 38 in esadecimale. Per trovare il complemento a 1, si 
+sottrae ogni cifra da F per ottenere C7 (in Hex). Questo concorda con
+il risultato precedente.
+
+\subsubsection{Complemento a 2\index{intero!rappresentazione!complemento a 2|(}
+               \index{complemento a 2|(}}
+
+I primi due metodi descritti erano usati nei primi computer. I moderni computer
+usano un terzo metodo chiamato rappresentazione in \emph{complemento a 2}. Il 
+complemento a 2 di un numero e' trovato con il seguente algoritmo:
+\begin{enumerate}
+\item Si trova il complemento a uno del numero
+\item Si aggiunge 1 al risultato dello step 1
+\end{enumerate}
+Ecco un'esempio utilizzando $\underline{0}0111000$ (56). Prima si trova il
+complemnto a 1: $\underline{1}1000111$. Poi si aggiunge 1:
+\[
+\begin{array}{rr}
+ & \underline{1}1000111 \\
++&                    1 \\ \hline
+ & \underline{1}1001000
+\end{array}
+\]
+
+Nella notazione in complemento a 2, trovare il complemento a 2 equivale
+alla negazione del numero. Cosi', il numero $\underline{1}1001000$ e' la
+rappresentazione in complemento a 2 di $-56$. Due negazioni dovrebbero
+riprodurre il numero originale. Sorprendentemente il complemento a 2 
+soddisfa questo requisito. Proviamo ad trovare il complemento a  2
+di $\underline{1}1001000$ aggiungendo 1 al complemento a 1.
+
+\[
+\begin{array}{rr}
+ & \underline{0}0110111 \\
++&                    1 \\ \hline
+ & \underline{0}0111000
+\end{array}
+\]
+
+Quando si esegue l'addizione nella operazioni di complemento a 2, l'addizione
+del bit piu' a sinistra puo' produrre un riporto. Questo riporto \emph{non} e'
+usato. Ricorda che tutti i dati di un computer sono di dimensione fissa (in
+termini di numero di bit). La somma di 2 byte produce sempre un byte come 
+risultato ( cosi' come la somma di 2 word produce una word, {\em ecc\/}.) 
+Questa proprieta' e' importante per la notazione in complemento a due. Per
+esempio, consideriamo zero come un byte in complemento a due ($\underline{0}0000000$)
+Il calcolo del suo complemento a due produce la somma:
+\[
+\begin{array}{rr}
+ & \underline{1}1111111 \\
++&                    1 \\ \hline
+c& \underline{0}0000000
+\end{array}
+\]
+dove $c$ rappresenta il riporto. (Piu' tardi sara' mostrato come individuare 
+questo riporto, che non e' memorizzato nel risultato.) Cosi', nella notazione
+in complemento a due, c'e' solo uno zero. Cio' rende l'aritmetica del complemento
+a due molto piu' semplice rispetto a quella dei precedenti metodi. 
+
+\begin{table}
+\centering
+\begin{tabular}{||c|c||}
+\hline
+Numero & Rappresentazione Hex \\
+\hline
+0 & 00 \\
+1 & 01 \\
+127 & 7F \\
+-128 & 80 \\
+-127 & 81 \\
+-2 & FE \\
+-1 & FF \\
+\hline
+\end{tabular}
+\caption{Rappresentazione in complemento a due \label{tab:twocomp}}
+\end{table}
+
+Nella notazione in complemento a due, un byte con segno puo' essere
+utilizzato per rappresentare i numeri da $-128$ a $+127$. La Tabella~\ref{tab:twocomp}
+mostra alcuni valori selezionati. Se sono usati 16 bit, possono essere 
+rappresentati i numeri da $-32,768$ a $+32,767$. $-32,768$ e' rappresentato 
+da 7FFF, mentre $+32,767$ da 8000, -128 come FF80 e -1 come FFFF. 
+I numeri a 32 bit in complemento a due vanno approssimativamente
+da $-2$ miliardi a $+2$ miliardi.   
+
+
+La CPU non sa cosa un particolare byte (o una word o una double word) 
+rappresenta. Assembly non ha idea dei tipi, a differenza dei linguaggi
+di alto livello. Come viene intepretato un dato, dipende dalla istruzione
+che e' usata su quel dato. Considerare il valore esadecimale FF come  
+$-1$ (signed) o come $+255$(unsigned) dipende dal programmatore.
+Il linguaggio C definisce i tipi interi signed e unsigned. Questo 
+permette al compilatore del C di determinare correttamente quale
+istruzioni usare con i dati.  
+
+\index{complemento a 2|)}
+\index{intero!rappresentazione!complemento a 2|)}
+\index{intero!signed|)}
+
+\subsection{Estensione del Segno \index{intero!estensione del segno|(}}
+
+In assembly, tutti i dati hanno una dimensione specificata. E' spesso
+necessario aver bisogno di cambiare la dimensione dei dati, per utilizzarli
+con altri dati. Decrementare la dimensione e' piu' semplice. 
+
+\subsubsection{Decrementare la dimensione di un dato}
+
+Per decrementare la dimensione di un dato vengono rimossi i bit piu' 
+significativi. Ecco un'esempio:
+\begin{AsmCodeListing}[numbers=none,frame=none]
+      mov    ax, 0034h      ; ax = 52 (stored in 16 bits)
+      mov    cl, al         ; cl = lower 8-bits of ax
+\end{AsmCodeListing}
+
+Naturalmente, se il numero non puo' essere rappresentato correttamente
+in una dimensione minore, il decremento di dimensione non funziona. Per
+esempio, se {\code AX} fosse 0134h (o 308 in decimale), nel codice sopra
+{\code CL} sarebbe ancora impostato a 34h. Questo metodo funziona sia 
+con i numeri con segno che con i numeri senza segno. Considerando i
+numeri con segno, se {\code AX} fosse FFFFh ($-1$ come word), allora
+{\code CL} sarebbe FFh ($-1$ as a byte). E' da notare che questo
+non sarebbe stato corretto se il valore di {\code AX} fosse stato senza
+segno!
+
+La regola per i numeri senza segno e' che tutti i bit che vengono rimossi
+devono essere 0 per far si' che la conversione sia corretta. La regola
+per i numeri con segno e' che tutti i bit che vengono rimossi devono
+essere o tutti 1 o tutti 0. Inoltre, il primo bit non rimosso deve 
+avere lo stesso valore dei bit rimossi. Questo sara' il nuovo bit di 
+segno del valore piu' piccolo. E' importante che sia lo stesso
+del bit di segno originale.  
+
+\subsubsection{Incrementare la dimensione dei dati}
+
+Incrementare la dimensione dei dati e' piu' complicato che decrementare.
+Consideriamo il byte FF. Se viene esteso ad una word, quale valore
+dovrebbe avere la word? Dipende da come FF e' interpretato. Se FF e'
+un byte senza segno (255 in decimale), allora la word dovrebbe essere
+00FFh; Invece, se fosse un byte con segno ($-1$ in decimale), la word
+allora sarebbe FFFFh.
+
+In generale, per estendere un numero senza segno, occorre impostare a
+0 tutti i nuovi bit del numero espanso. Cosi', FF diventa 00FF. Invece,
+per estendere un numero con segno, occorre \emph{estendere} il bit del
+segno.\index{intero!bit di segno} Cio' significa che i nuovi bit diventano
+una copia del bit di segno. Dal momento che il bit di segno di FF e' 1, i
+nuovi bit dovranno essere tutti 1, per produrre FFFF. Se il numero con
+segno 5A(90 in decimale) fosse esteso, il risultato sarebbe 005A.
+
+L'80386 fornisce diverse istruzioni per l'estensione dei numeri. Ricorda 
+i computer non conoscono se un numero e' con segno o senza segno. Sta'
+al programmatore usare l'istruzione corretta.
+
+Per i numeri senza segno, occorre semplicemente mettere a 0 i bit piu' 
+alti utilizzando l'istruzione {\code MOV}. Per esempio per estendere
+il byte in AL ad una word senza segno in AX:
+\begin{AsmCodeListing}[numbers=none,frame=none]
+      mov    ah, 0   ; Imposta a 0 gli 8 bit superiori
+\end{AsmCodeListing}
+
+Invece non e' possibile usare l'istruzione {\code MOV} per convertire
+la word senza segno in AX nella double word senza segno in EAX. Perche'
+no? Non c'e' modo di impostare i 16 bit superiori in EAX con una {\code
+MOV}. L'80386 risolve il problema fornendo una nuova istruzione {\code
+MOVZX}. \index{MOVZX} Questa istruzione ha due operandi. La destinazione
+(primo operando) deve essere un registro a 16 o 32~bit. La sorgente
+(secondo operando) deve essere un registro a 8 o 16~bit oppure un byte
+o una word di memoria. L'altra restrizione e' che la destinazione deve
+essere piu' grande della sorgente (Molte istruzioni richiedono invece
+che la destinazione e la sorgente siano della stessa dimensione.)
+Ecco alcuni esempi:
+\begin{AsmCodeListing}[numbers=none,frame=none]
+      movzx  eax, ax      ; estende ax in eax
+      movzx  eax, al      ; estende al in eax
+      movzx  ax, al       ; estende al in ax
+      movzx  ebx, ax      ; estende ax in ebx
+\end{AsmCodeListing}
+
+Per i numeri con segno, non ci sono metodi semplici per usare 
+l'istruzione {\code MOV} in tutti i casi. L'8086 forniva diverse
+istruzioni per estendere i numeri con segno. L'istruzione {\code CBW} \index{CBW}
+(Converte Byte in Word) estende il segno del registro AL in AX. Gli 
+operandi sono impliciti. L'istruzione {\code CWD} \index{CWD} (Converte Word
+in Double word) estende il segno del registro AX in DX:AX. La notazione
+DX:AX indica di pensare ai registri DX e AX come ad un'unico registro
+a 32~bit con i 16 bit superiori in DX e 16 bit inferiori in AX. (Ricorda
+che l'8086 non aveva i registri a 32~bit!) L'80386 aggiungeva 
+diverse nuove istruzioni. L'istruzione {\code CWDE} \index{CWDE}
+(Converte word in double word) estende il segno di AX in EAX. L'istruzione
+{\code CDQ}\index{CDQ}(Converte Double word in Quad word) estende
+il segno di EAX in EDX:EAX \index{registro!EDX:EAX} (64~bit!). Infine,
+L'istruzione {\code MOVSX} \index{MOVSX}, che funziona come {\code MOVZX}
+, ma utilizza le regole per i numeri con segno. 
+ 
+\subsubsection{Applicazione alla programmazione in C}
+
+L'estensione \MarginNote{ANSI C non definisce se il tipo {\code char}
+e' con segno o senza. Sta ad ogni compilatore decidere. Per questo
+in Figura~\ref{fig:charExt} e' esplicitamente definito il tipo.} degli
+interi con segno e senza segno si verifica anche in C. Le variabili in C
+possono essere dichiarate con o senza segno ({\code int} e' con segno).
+Consideriamo il codice in Figura~\ref{fig:charExt}. Alla riga~3 la
+variabile {\code a} e' estesa utilizzando le regole per i valori senza
+segno (utilizzando {\code MOVZX}), mentre alla riga~4, le regole per i 
+numeri con segno sono utilizzate per {\code b} (utilizzando {\code MOVSX}).
+
+\begin{figure}[t]
+\begin{lstlisting}[frame=tlrb]{}
+unsigned char uchar = 0xFF;
+signed char   schar = 0xFF;
+int a = (int) uchar;     /* a = 255 (0x000000FF) */
+int b = (int) schar;     /* b = -1  (0xFFFFFFFF) */
+\end{lstlisting}
+\caption{}
+\label{fig:charExt}
+\end{figure}
+
+Esiste un bug comune nella programmazione in C che riguarda direttamente 
+questo punto. Consideriamo il codice in Figura~\ref{fig:IObug}. Il 
+prototipo di {\code fgetc()}{\samepage e':
+\begin{CodeQuote}
+int fgetc( FILE * );
+\end{CodeQuote}
+Ci si potrebbe chiedere } perche' la funzione ritorna un {\code int}
+dal momento che legge un carattere? La ragione e' che normalmente
+questa funzione ritorna un {\code char} (esteso ad {\code int} 
+utilizzando l'estensione a zero). Invece, c'e' un unico valore che
+viene restituito che non e' un carattere, {\code EOF}. Questo e' una
+macro che generalmente e' definita $-1$. Quindi, {\code fgetc()} 
+ritorna o un {\code char} esteso ad {\code int} ({\code 000000{\em
+xx}} in hex) oppure {\code EOF} ({\code FFFFFFFF} in
+hex).  
+
+\begin{figure}[t]
+\begin{lstlisting}[stepnumber=0,frame=tlrb]{}
+char ch;
+while( (ch = fgetc(fp)) != EOF ) {
+  /* fai qualcosa con ch */
+}
+\end{lstlisting}
+\caption{}
+\label{fig:IObug}
+\end{figure}
+
+Il problema di base col programma in Figura~\ref{fig:IObug} e' che
+{\code fgetc()} ritorna un {\code int}, ma il suo valore e' memorizzato
+in un {\code char}. C tronchera' i bit di ordine piu' alto per aggiustare
+il valore dell' {\code int} nel {\code char}. L'unico problema e' che
+i numeri (in Hex) {\code 000000FF} e {\code FFFFFFFF} saranno entrambi
+troncati ad un byte {\code FF}. In questo modo pero' il loop while non
+riesce a distinguere tra la lettura del carattere {\code FF} dal file
+oppure la fine del file.
+
+Cosa fa esattamente il codice in questo caso, dipende se {\code char} e'
+un numero con segno oppure senza segno. Perche'? Perche' alla riga 2, {\code ch}
+e' comparato a {\code EOF}. Dal momento che {\code EOF} e' un valore {\code int}
+\footnote{E' un comune credenza che i file abbiano un carattere EOF alla
+loro fine. Questo \emph{non} e' vero!}, {\code ch} sara' esteso ad un {\code int}
+in modo che i due valori da comparare sono della stessa dimensione.
+\footnote{La ragione di questo requisito sara' visto dopo.}.
+Come mostra la Figura~\ref{fig:charExt}, e' importante se una variabile
+e' con segno oppure senza segno. 
+
+Se il {\code char} e' senza segno, {\code FF} e' esteso a {\code 000000FF}.
+Questo e' comparato con {\code EOF} ({\code FFFFFFFF}) e non viene 
+trovato uguale. Cosi' il loop non finisce mai!.
+
+Se il {\code char} e' con segno, {\code FF} e' esteso a {\code FFFFFFFF}.
+In questo caso, la comparazione da' uguaglianza e il loop termina. Putroppo, 
+dal momento che il byte {\code FF} potrebbe essere letto anche dentro
+il file, il loop potrebbe terminare prematuramente.
+
+La soluzione per questo problema e' definire la variabile {\code ch} come 
+un {\code int}, non come un {\code char}. In questo modo, nessun troncamento
+viene fatto alla riga~2. Dentro il loop, e' sicuro troncare il valore dal 
+momento che {\code ch} \emph{deve} essere un byte la' dentro.
+
+\index{intero!estensione di segno|)}
+\index{intero!rappresentazion|)}
+
+\subsection{Aritmetica del complemento a 2 \index{complemento a 2!aritmetica|(}}
+
+Come visto prima, L'istruzione {\code add} effettua somme mentre 
+l'istruzione {\code sub} esegue sottrazioni. Due dei bit del registro
+FLAGS che queste istruzioni impostano sono i flag di \emph{overflow}
+e di \emph{carry}. Il flag di overflow e' impostato quando il risultato 
+di una operazione e' troppo grande per stare nella destinazione, nella
+aritmetica con segno. Il flag di carry e' impostato se una addizione ha
+generato un riporto nel suo msb oppure se una sottrazione ha generato un 
+resto nel suo msb. Cio' puo' essere usato per determinare l'overflow
+per l'aritmetica con segno. L'uso del flag di carry per l'aritmetica
+con segno sara' visto tra breve. Uno dei grossi vantaggi del 
+complemento a due e' che le regole per l'addizione e la sottrazione
+sono esattamente le stesse come per gli interi senza segno. Ne deriva
+che {\code add} e {\code sub} possono essere usati per gli interi
+con e senza segno.  
+\[
+\begin{array}{rrcrr}
+ & 002\mathrm{C} & & & 44\\
++& \mathrm{FFFF} & &+&(-1)\\ \cline{1-2} \cline{4-5}
+ & 002\mathrm{B} & & & 43
+\end{array}
+\]
+Questo e' un carry generato,ma non fa parte della risposta.
+
+\index{intero!moltiplicazione|(}
+\index{MUL|(}
+\index{IMUL|(}
+Ci sono due diverse istruzioni di moltiplicazione e divisione. Innanzitutto
+per moltiplicare si usa sia l'istruzione {\code MUL} che l'istruzione
+{\code IMUL}. L'istruzione e' usata per moltiplicare numeri senza
+segno e l'istruzione {\code IMUL} e' utilizzata per moltiplicare
+gli interi con segno. Perche' c'e' bisogno di istruzioni diverse?
+Le regole per la moltiplicazione sono diverse per i numeri senza
+segno e quelli con segno in complemento a 2. Perche'? Consideriamo
+la moltiplicazione del byte FF con se stessa che abbia come risultato
+una word. Utilizzando la moltiplicazione senza segno, si ha 255 per
+255, o 65025 (o FE01 in hex). Utilizzando la moltiplicazione con
+segno, sia ha $-1$ per $-1$ o 1 (0001 in hex).  
+
+Ci sono diverse forme per le istruzioni di moltiplicazione. La piu'
+vecchia e' la seguente:
+\begin{AsmCodeListing}[numbers=none,frame=none]
+      mul   sorgente
+\end{AsmCodeListing}
+La \emph{sorgente} puo' essere sia un registro che un  riferimento alla memoria.
+Non puo' essere un valore immediato. La dimensione dell'operando sorgente 
+determina come e' eseguita la moltiplicazione. Se l'operando e' un byte, viene
+moltiplicato per il byte nel registro AL e il risultato e' memorizzato
+nei 16 bit di EAX. Se la sorgente e' a 16 bit, viene moltiplicato per la
+word in AX e il risultato a 32 bit e' memorizzato in DX:AX. Se la
+sorgente e' a 32 bit, viene moltiplicato per EAX e il risultato a 64 bit
+e' memorizzato in EDX:EAX\index{registro!EDX:EAX}.
+\index{MUL|)}
+
+\begin{table}[t]
+\centering
+\begin{tabular}{|c|c|c|l|}
+\hline
+{ \bf dest} & { \bf source1 } & {\bf source2} & \multicolumn{1}{c|}{\bf Action} \\ \hline
+            & reg/mem8        &               & AX = AL*source1 \\
+            & reg/mem16       &               & DX:AX = AX*source1 \\
+            & reg/mem32       &               & EDX:EAX = EAX*source1 \\
+reg16       & reg/mem16       &               & dest *= source1 \\
+reg32       & reg/mem32       &               & dest *= source1 \\
+reg16       & immed8          &               & dest *= immed8 \\
+reg32       & immed8          &               & dest *= immed8 \\
+reg16       & immed16         &               & dest *= immed16 \\
+reg32       & immed32         &               & dest *= immed32 \\
+reg16       & reg/mem16       & immed8        & dest = source1*source2 \\
+reg32       & reg/mem32       & immed8        & dest = source1*source2 \\
+reg16       & reg/mem16       & immed16       & dest = source1*source2 \\
+reg32       & reg/mem32       & immed32       & dest = source1*source2 \\
+\hline
+\end{tabular}
+\caption{Istruzioni {\code imul} \label{tab:imul}}
+\end{table}
+
+L'istruzione {\code IMUL} ha gli stessi formati di {\code MUL}, ed
+inoltre aggiunge i formati di altre istruzioni. Ci sono formati a due
+e tre operandi: 
+\begin{AsmCodeListing}[numbers=none,frame=none]
+      imul   dest, source1
+      imul   dest, source1, source2
+\end{AsmCodeListing}
+La tabella~\ref{tab:imul} mostra le possibili combinazioni.
+\index{IMUL|)}
+\index{intero!moltiplicazione|)}
+
+\index{intero!divisione|(}
+\index{DIV}
+I due operatori di divisione sono {\code DIV} e {\code IDIV}.Questi 
+eseguono la divisione tra interi senza segno e con segno rispettivamente.
+Il formato generale e': 
+\begin{AsmCodeListing}[numbers=none,frame=none]
+      div   source
+\end{AsmCodeListing}
+Se l'operando source e' a 8 bit, allora AX e' diviso per l'operando. Il
+quoziente e' memorizzato in AL e il resto in AH. Se source e' a 16 bit,
+allora DX:AX e' diviso per l'operatore. Il quoziente e' memorizzato
+in AX e il resto in DX. Se source e' a 32 bit, infine, EDX:EAX\index{registro!EDX:EAX} 
+e' diviso per l'operando e il quoziente e' memorizzato in EAX e il
+resto in EDX. L'istruzione {\code IDIV}\index{IDIV} funziona nello
+stesso modo. Non ci sono istruzioni speciali {\code IDIV} come
+quella {\code IMUL}. Se il quoziente e' troppo grande per stare
+nel suo registro o se il divisore e' 0, il programma e' interrotto
+e terminato. Un'errore molto comune e' dimenticare di inizializzare
+DX o EDX prima della divisione.  
+\index{intero!divisione|)}
+
+L'istruzione {\code NEG} \index{NEG} nega il suo singolo operando,
+calcolando il suo complemento a 2. L'operando puo' essere un registro
+o una locazione di memoria di 8,16,o 32 bit.
+
+\subsection{Programma esempio}
+\index{math.asm|(}
+\begin{AsmCodeListing}[label=math.asm]
+%include "asm_io.inc"
+segment .data         ; stringhe di Output 
+prompt          db    "Inserisci un numero: ", 0
+square_msg      db    "Il quadrati dell'input e' ", 0
+cube_msg        db    "Il cubo dell'input e' ", 0
+cube25_msg      db    "Il cubo dell'input per 25 e' ", 0
+quot_msg        db    "Il quoziente dell'input/100 e' ", 0
+rem_msg         db    "Il resto del cubo/100 e' ", 0
+neg_msg         db    "La negazione del resto e' ", 0
+
+segment .bss
+input   resd 1
+
+segment .text
+        global  _asm_main
+_asm_main:
+        enter   0,0               ; setup routine
+	pusha
+
+        mov     eax, prompt
+        call    print_string
+
+        call    read_int
+        mov     [input], eax
+
+        imul    eax               ; edx:eax = eax * eax
+        mov     ebx, eax          ; memorizza la risposta in ebx
+        mov     eax, square_msg
+        call    print_string
+        mov     eax, ebx
+        call    print_int
+        call    print_nl
+
+        mov     ebx, eax
+        imul    ebx, [input]      ; ebx *= [input]
+        mov     eax, cube_msg
+        call    print_string
+        mov     eax, ebx
+        call    print_int
+        call    print_nl
+
+        imul    ecx, ebx, 25      ; ecx = ebx*25
+        mov     eax, cube25_msg
+        call    print_string
+        mov     eax, ecx
+        call    print_int
+        call    print_nl
+
+        mov     eax, ebx
+        cdq                       ; inizializza edx con l'estenzione di segno
+        mov     ecx, 100          ; non si puo' dividere per un valore immediato
+        idiv    ecx               ; edx:eax / ecx
+        mov     ecx, eax          ; salva il quoziente in ecx
+        mov     eax, quot_msg
+        call    print_string
+        mov     eax, ecx
+        call    print_int
+        call    print_nl
+        mov     eax, rem_msg
+        call    print_string
+        mov     eax, edx
+        call    print_int
+        call    print_nl
+        
+        neg     edx               ; nega il resto
+        mov     eax, neg_msg
+        call    print_string
+        mov     eax, edx
+        call    print_int
+        call    print_nl
+
+        popa
+        mov     eax, 0            ; ritorna il controllo al C
+        leave                     
+        ret
+\end{AsmCodeListing}
+\index{math.asm|)}
+
+\subsection{Aritmetica con precisione estesa \label{sec:ExtPrecArith} \index{intero!precisione estesa|(}}
+
+Il linguaggio assembly fornisce le istruzioni che permettono di 
+eseguire somme e sottrazioni di numeri piu' grandi di una double word.
+Queste istruzioni usano il carry flag. Come visto prima, sia 
+l'istruzione {\code ADD}\index{ADD} che l'istruzione {\code SUB}\index{SUB}
+modificano questo flag se viene generato un riporto o un resto
+rispettivamente. L'informazione memorizzata nel carry flag puo'
+essere usata per sommare o sottrarre grandi numeri spezzando
+l'operazione in pezzi piu' piccoli (double word o piu' piccoli).
+
+Le istruzioni {\code ADC} \index{ADC} e {\code SBB} \index{SBB} utilizzano questa
+informazione del carry flag. L'istruzione {\code ADC} esegue 
+l'operazione seguente:
+\begin{center}
+{\code \emph{operando1} = \emph{operando1} + carry flag + \emph{operando2} }
+\end{center}
+L'istruzione {\code SBB} invece esegue questa:
+\begin{center}
+{\code \emph{operando1} = \emph{operando1} - carry flag - \emph{operando2} }
+\end{center}
+Come sono usate? Consideriamo la somma di interi a 64 bit in EDX:EAX
+\index{registro!EDX:EAX} e in EBX:ECX. Il codice seguente memorizza
+la somma in EDX:EAX:
+\begin{AsmCodeListing}[frame=none]
+      add    eax, ecx       ; somma i 32 bit bassi
+      adc    edx, ebx       ; somma i 32 bit alti e il riporto dalla somma precedente
+\end{AsmCodeListing}
+La sottrazione e' molto simile. Il codice seguente sottrae EBX:ECX da 
+EDX:EAX:
+\begin{AsmCodeListing}[frame=none]
+      sub    eax, ecx       ; sottrae i 32 bit bassi
+      sbb    edx, ebx       ; sottraw i 32 bit alti e il resto
+\end{AsmCodeListing}
+
+Per numeri \emph{davvero} grandi, puo' essere usato un ciclo (vedi
+la sezione~\ref{sec:control}). Per un ciclo di somma potrebbe
+essere conveniente usare l'istruzione {\code ADC} per ogni 
+iterazione (ad eccezione della prima). Per questo si puo' utilizzare
+l'istruzione {\code CLC} \index{CLC}(Clear Carry), prima di iniziare
+il ciclo per inizializzare il flag di carry a 0. Se il flag di carry
+e' 0, non c'e' differenza fra le istruzioni {\code ADD} e {\code ADC}.
+Lo stesso principio puo' essere usato anche per le sottrazioni.  
+\index{intero!precisione estesa|)}
+\index{complemento a 2!aritmetica|)}
+
+\section{Strutture di controllo}
+\label{sec:control}
+I linguaggi di alto livello forniscono strutture di controllo (\emph es. i 
+comandi \emph{if} e \emph{while}) che controllano il processo di 
+esecuzione. Il linguaggio assembly non fornisce questo tipo di strutture
+complesse: Usa invece il comando \emph{goto}, tristemente noto che se
+usato impropriamente puo' generare \emph{spaghetti code}!\footnote{Spaghetti code
+e' un termine gergale non traducibile che indica codice scritto in maniera
+incomprensibile (ndt)} \emph{E'} comunque possibile scrivere programmi
+strutturati in linguaggio assembly. La procedura di base e' quella di
+definire la logica del programma utilizzando un linguaggio di alto livello
+conosciuto e tradurre il risultato nell'appropriato linguaggio 
+assembly (un po' come fanno i compilatori). 
+
+\subsection{Comparazioni \index{intero!comparazioni|(} \index{CMP|(}}
+%TODO: Make a table of all the FLAG bits
+
+\index{registro!FLAGS|(}
+Le strutture di controllo decidono cosa fare in base alla comparazione
+dei dati. In assembly, il risultato di una comparazione e' memorizzata 
+nel registro FLAGS per essere utilizzato piu' tardi. L'80x86 fornisce 
+l'istruzione {\code CMP} per eseguire comparazioni. Il registro FLAGS
+e' impostato in base alla differenza dei due operandi della istruzione
+{\code CMP}. Gli operandi sono sottratti e il FLAGS e' impostato sulla
+base del risultato, ma il risultato \emph{non} e' memorizzato da
+nessuna parte. Se occorre utilizzare il risultato, si utilizzi 
+l'istruzione {\code SUB} invece di {\code CMP}.
+
+\index{intero!unsigned|(}
+Per gli interi senza segno, ci sono 2 flag (bit nel registro FLAGS)
+che sono importanti: lo Zero flag (ZF) \index{registro!FLAGS!ZF} e il
+carry flag \index{registro!FLAGS!CF}. Lo Zero flag e' settato (1) se 
+la differenza risultante e' 0. Il carry flag e' usato come flag di prestito
+nella sottrazione. Considera la comparazione seguente:
+\begin{AsmCodeListing}[frame=none, numbers=none]
+      cmp    vleft, vright
+\end{AsmCodeListing}
+Viene calcolata la differenza di {\code vleft~-~vright} e i flag sono
+impostati di conseguenza. Se la differenza del {\code CMP} e' zero, cioe'
+{\code vleft~=~vright}, allora ZF e' impostato (\emph{i.e.} 1) e il CF 
+no (\emph{i.e.} 0). Se {\code vleft~>~vright} allora sia ZF che CF non 
+sono impostati(nessun  resto). Se {\code vleft~<~vright} allora ZF
+non e' settato mentre CF e' settato (resto).
+\index{intero!unsigned|)}
+
+\index{intero!signed|(} 
+Per gli interi con segno, ci sono tre flag che sono
+importanti: lo zero \index{register!FLAGS!ZF} (ZF) flag, l'
+overflow \index{register!FLAGS!OF}(OF) flag  e lo sign
+\index{register!FLAGS!SF} (SF) flag.\MarginNote{Perche' SF~=~OF se
+{\code vleft~>~vright}? Se non c'e' overflow, la differenza avra'
+un risultato corretto e dovra' non essere negativa. Cosi',
+SF~=~OF~=~0. Invece, se c'e' un overflow, la differenza  
+non avra' un valore corretto (ed infatti sara' negativa). Cosi',
+SF~=~OF~=~1.} L'overflow flag e' impostato se il risultato di una
+operazione ``trabocca''(overflow) o e' troppo piccolo (underflow). 
+Il sign flag e' impostato se il risultato di una operazione e' negativo. 
+Se {\code vleft~=~vright}, ZF e' impostato (come per gli interi senza 
+segno). Se {\code vleft~>~vright}, ZF non e' impostato e SF~=~OF. 
+Se {\code vleft~<~vright}, ZF non e' impostato e SF~$\neq$~OF.
+\index{intero!signed|)}
+
+Non dimenticare che altre istruzioni possono cambiare il registro
+FLAGS, non solo {\code CMP}.
+\index{CMP|)}
+\index{intero!comparzione|)}
+\index{registro!FLAGS|)}
+\index{intero|)}
+
+\subsection{Istruzioni di salto}
+
+Le istruzioni di salto possono trasferire l'esecuzione a punti
+arbitrari di un programma. In altre parole, si comportano come un \emph{goto}.
+Ci sono due tipi di salto: incondizionati e condizionati. Un salto 
+condizionato puo' eseguire o no un percorso dipendentemente dai 
+flag del registro FLAGS. Se il salto condizionato non esegue quel
+percorso, il controllo passa alla successiva istruzione.
+
+\index{JMP|(}
+L'istruzione {\code JMP} (abbreviazione di \emph{jump}) crea 
+ramificazioni incondizionate. Il suo solo operando e' solitamente una
+\emph{etichetta di codice} alla istruzione a cui saltare. L'assembler
+o il linker sostituiranno l'etichetta con il corretto indirizzo della
+istruzione. Questa e' un'altra delle operazioni noiose che l'assembler
+esegue per rendere piu' facile la vita del programmatore. E' importante
+capire che il comando immediatamente dopo l'istruzione {\code JMP} non
+sara' mai eseguito a meno che un'altra istruzione non salti a esso!
+
+Ci sono diverse varianti dell'istruzione di salto:
+\begin{description}
+
+\item[SHORT] Questo salto e' molto limitato come raggio. Puo' spostare 
+l'esecuzione solo di 128 bytes. Il vantaggio di questo salto e' che 
+usa meno memoria rispetto agli altri. Usa un solo byte con segno per
+memorizzare il \emph{dislocamento} del salto. Il dislocamento e' la misura
+che indica di quanti byte occorre muoversi avanti o indietro. (Il
+dislocamento e' sommano al registro EIP). Per specificare un salto di tipo
+short, si usa la parola chiave {\code SHORT} subito prima dell'etichetta
+nell'istruzione {\code JMP}.    
+
+\item[NEAR] Questo salto e' il tipo di default per le istruzioni di 
+salto condizionate e non condizionate e puo' essere usato per saltare
+a qualunque punto all'interno del segmento. L'80386 supporta due tipi
+di salto near. Il primo usa 2 byte per il dislocamento. Questo permette
+di spostarsi in avanti o indietro di 32.000 byte. L'altro tipo usa 4
+byte per il dislocamento, che naturalmente permette di spostarsi in 
+qualsiasi punto del segmento. Il tipo a 4 byte e' quello di default
+in modalita' protetta 386. Il tipo a 2 byte puo' essere usato, inserendo
+la parola chiave {\code WORD} prima della etichetta nella istruzione
+{\code JMP}. 
+
+\item[FAR] Questo salto permette di spostarsi da un segmento di codice 
+ad un'altro. Questa e' una operazione molto rara da fare in modalita'
+protetta 386.
+\end{description}
+
+Le etichette di codice valide seguono le stesse regole delle etichette
+dei dati. Le etichette di codice sono definite posizionandole nel
+segmento codice di fronte al comando che contrassegnano. Al nome
+dell'etichetta, nella definizione,  vengono aggiunti i due punti ('':'').
+I due punti \emph{non} fanno parte del nome. 
+\index{JMP|)}
+
+\index{salto condizionato|(}
+\begin{table}[t]
+\center
+\begin{tabular}{|ll|}
+\hline
+JZ  & salta solo se ZF e' impostato \\
+JNZ & salta solo se ZF non e' impostato \\
+JO  & salta solo se OF e' impostato \\
+JNO & salta solo se OF non e' impostato \\
+JS  & salta solo se SF e' impostato \\
+JNS & salta solo se SF non e' impostato \\
+JC  & salta solo se CF e' impostato \\
+JNC & salta solo se CF non e' impostato \\
+JP  & salta solo se PF e' impostato \\
+JNP & salta solo se PF non e' impostato \\
+\hline
+\end{tabular}
+\caption{Salti condizionati semplici \label{tab:SimpBran} \index{JZ} \index{JNZ}
+        \index{JO} \index{JNO} \index{JS} \index{JNS} \index{JC} \index{JNC}
+        \index{JP} \index{JNP}}
+\end{table}
+
+Ci sono molte istruzioni differenti di salto condizionato. Anche queste
+hanno come unico operando una etichetta di codice. Il piu' semplice
+controlla un solo flag nel registro FLAGS per determinare se effettuare
+il salto o meno. Vedi la Tabella~\ref{tab:SimpBran} per la lista di
+queste istruzioni. (PF e' il \emph{flag di parita'} \index{registro!FLAGS!PF}
+che indica la parita' o meno del numero di bit impostati negli 8 bit bassi
+del risultato.)
+
+Il seguente Pseudo codice:
+\begin{Verbatim}
+if ( EAX == 0 )
+  EBX = 1;
+else
+  EBX = 2;
+\end{Verbatim}
+potrebbe essere scritto in assembly come:
+\begin{AsmCodeListing}[frame=none]
+      cmp    eax, 0            ; imposta i flags (ZF impostato se eax - 0 = 0)
+      jz     thenblock         ; se ZF e' 1, salta a thenblock
+      mov    ebx, 2            ; parte ELSE dell'IF
+      jmp    next              ; salta alla parte THEN di IF
+thenblock:
+      mov    ebx, 1            ; parte THEN di IF
+next:
+\end{AsmCodeListing}
+
+Altre comparazione non sono cosi' semplici utilizzando i salti condizionati
+della Tabella~\ref{tab:SimpBran}. Per illustrarle, consideriamo
+il seguente Pseudo codice:
+\begin{Verbatim}
+if ( EAX >= 5 )
+  EBX = 1;
+else
+  EBX = 2;
+\end{Verbatim}
+Se EAX e' maggiore o uguale a 5, lo ZF potrebbe essere impostato o meno e
+SF sarebbe uguale a OF. Ecco il codice assembly che prova queste condizioni
+(assumiamo che EAX sia con segno):
+\begin{AsmCodeListing}[frame=none]
+      cmp    eax, 5
+      js     signon            ; va a signon se SF = 1
+      jo     elseblock         ; va a elseblock se OF = 1 e SF = 0
+      jmp    thenblock         ; va a thenblock se SF = 0 e OF = 0
+signon:
+      jo     thenblock         ; va a thenblock se SF = 1 e OF = 1
+elseblock:
+      mov    ebx, 2
+      jmp    next
+thenblock:
+      mov    ebx, 1
+next:
+\end{AsmCodeListing}
+
+\begin{table}
+\center
+\begin{tabular}{|ll|ll|}
+\hline
+\multicolumn{2}{|c|}{\textbf{Con Segno}} & \multicolumn{2}{c|}{\textbf{Senza Segno}} \\
+\hline
+JE & salta se {\code vleft = vright} & JE & salta se {\code vleft = vright} \\
+JNE & salta se {\code vleft $\neq$ vright} & JNE & salta se {\code vleft $\neq$ vright} \\
+JL, JNGE & salta se {\code vleft < vright} & JB, JNAE & salta se {\code vleft < vright} \\
+JLE, JNG & salta se {\code vleft $\leq$ vright} & JBE, JNA & salta se {\code vleft $\leq$ vright} \\
+JG, JNLE & salta se {\code vleft > vright} & JA, JNBE & salta se {\code vleft > vright} \\
+JGE, JNL & salta se {\code vleft $\geq$ vright} & JAE, JNB & salta se {\code vleft $\geq$ vright} \\
+\hline
+\end{tabular}
+\caption{Istruzioni di comparazione con segno e senza segno \label{tab:CompBran} \index{JE} \index{JNE}
+         \index{JL} \index{JNGE} \index{JLE} \index{JNG} \index{JG} \index{JNLE} \index{JGE}
+         \index{JNL}}
+\end{table}
+
+Il codice sopra e' molto contorto. Fortunatamente, l'80x86 fornisce ulteriori
+istruzioni di salto per rendere questo tipo di prove \emph{piu'} semplici da realizzare.
+Ci sono versioni di ogni comando per numeri con segno e per i numeri senza segno.
+La Tabella~\ref{tab:CompBran} mostra queste istruzioni. Le istruzioni 
+di uguale o non uguale (JE e JNE) sone le stesse sia per gli interi con
+segno e che senza segno. (Infatti, JE e JNE sono in realta' identici
+rispettivamente a JZ e JNZ). Ognuna delle altre istruzioni ha due
+sinonimi. Per esempio, si puo' vedere JL (jump less than, salta a se minore di)
+e JNGE (Jump not greater than or equal to, salta se non maggiore o uguale di).
+Queste sono la stessa istruzione perche': 
+\[ x < y \Longrightarrow \mathbf{not}( x \geq y ) \]
+Le istruzioni senza segno usano A per \emph{sopra} e B per \emph{sotto} invece
+di L e G.
+
+Utilizzando queste nuove istruzioni di salto, lo pseudo codice puo' essere
+tradotto in assembly piu' facilmente. 
+\begin{AsmCodeListing}[frame=none]
+      cmp    eax, 5
+      jge    thenblock
+      mov    ebx, 2
+      jmp    next
+thenblock:
+      mov    ebx, 1
+next:
+\end{AsmCodeListing}
+\index{Salti condizionati|)}
+
+\subsection{Le istruzioni iterative}
+
+L'80x86 fornisce diverse istruzioni definite per implementare cicli di
+tipo \emph{for}. Ognuna di queste istruzioni accetta come operando
+una etichetta di codice.
+\begin{description}
+\item[LOOP] 
+\index{LOOP}
+Decrementa ECX, se ECX $\neq$ 0, salta alla etichetta
+\item[LOOPE, LOOPZ]
+\index{LOOPE} \index{LOOPZ}
+Decrementa ECX (il registro FLAGS non e' modificato), se
+                    ECX $\neq$ 0 e ZF = 1, salta 
+\item[LOOPNE, LOOPNZ]
+\index{LOOPNE} \index{LOOPNZ}
+Decrementa ECX (il FLAGS non modificato), se ECX $\neq$ 0
+                      e ZF = 0, esegue il salto
+\end{description}
+
+Le due ultime istruzioni iterative sono utili per cicli di ricerca sequenziale.
+Lo pseudo codice seguente:
+\begin{lstlisting}[stepnumber=0]{}
+sum = 0;
+for( i=10; i >0; i-- )
+  sum += i;
+\end{lstlisting}
+\noindent puo' essere tradotto in assembly cosi':
+\begin{AsmCodeListing}[frame=none]
+      mov    eax, 0          ; eax e' sum
+      mov    ecx, 10         ; ecx e' i
+loop_start:
+      add    eax, ecx
+      loop   loop_start
+\end{AsmCodeListing}
+
+\section{Tradurre strutture di controllo standard}
+
+Questa sezione si occupa di capire come le strutture dei linguaggi di
+alto livello possono essere implementate in linguaggio assembly.
+
+\subsection{Istruzione If \index{istruzione if|(}}
+Il seguente pseudo:
+\begin{lstlisting}[stepnumber=0]{}
+if ( condition )
+  then_block;
+else
+  else_block;
+\end{lstlisting}
+\noindent puo' essere implementato cosi':
+\begin{AsmCodeListing}[frame=none]
+      ; codice per impostare FLAGS
+      jxx    else_block    ; seleziona xx in maniera da saltare se la condizione e' falsa
+      ; codice per il blocco then
+      jmp    endif
+else_block:
+      ; codice per il blocco else
+endif:
+\end{AsmCodeListing}
+
+Se non c'e' il blocco else, il ramo {\code else\_block} puo' essere
+sostituito con il ramo {\code endif}.
+\begin{AsmCodeListing}[frame=none]
+      ; codice per impostare FLAGS
+      jxx    endif    ; seleziona xx in maniera da saltare se la condizione e' falsa
+      ; codice per il blocco then
+endif:
+\end{AsmCodeListing}
+\index{istruzione if|)}
+
+\subsection{Ciclo While \index{ciclo while|(}}
+Il ciclo di \emph{while} e' un ciclo a controllo iniziale:
+\begin{lstlisting}[stepnumber=0]{}
+while( condizione ) {
+  corpo del ciclo;
+}
+\end{lstlisting}
+\noindent Questo puo' essere tradotto cosi':
+\begin{AsmCodeListing}[frame=none]
+while:
+      ; codice per impostare FLAGS in base alla condizione
+      jxx    endwhile     ; seleziona xx in maniera che salti se la condizione e' falsa
+      ; body of loop
+      jmp    while
+endwhile:
+\end{AsmCodeListing}
+\index{ciclo while|)}
+
+\subsection{Ciclo Do..while \index{ciclo do..while|(}}
+Il ciclo \emph{do..while} e' a controllo finale:
+\begin{lstlisting}[stepnumber=0]{}
+do {
+  corpo del loop ;
+} while( condizione );
+\end{lstlisting}
+\noindent Questo puo' essere tradotto cosi':
+\begin{AsmCodeListing}[frame=none]
+do:
+      ; corpo del ciclo
+      ; codice per impostare FLAGS in base alla condizione
+      jxx    do      ; seleziona xx in maniera che salti se la condizione e' vera
+\end{AsmCodeListing}
+\index{ciclo do..while|)}
+
+
+\begin{figure}[t]
+\begin{lstlisting}[frame=tlrb]{}
+  unsigned guess;   /* attuale ipotesi per il numero primo */
+  unsigned factor;  /* possibile fattore di guess     */
+  unsigned limit;   /* trova i numeri primi da questo valore */
+
+  printf("Find primes up to: ");
+  scanf("%u", &limit);
+  printf("2\n");    /* tratta i primi due numeri primi come */
+  printf("3\n");    /* casi speciali */
+  guess = 5;        /* ipotesi */
+  while ( guess <= limit ) {
+    /* cerca il fattore di guess */
+    factor = 3;
+    while ( factor*factor < guess &&
+            guess % factor != 0 )
+     factor += 2;
+    if ( guess % factor != 0 )
+      printf("%d\n", guess);
+    guess += 2;    /* cerca sono i numeri dispari */
+  }
+\end{lstlisting}
+\caption{}\label{fig:primec}
+\end{figure}
+
+\section{Esempio: Trovare i numeri primi}
+Questa sezione analizza un programma che trova i numeri primi. Ricordiamo
+che i numeri primi sono divisibili solo per 1 o per se stessi. Non ci
+sono formule per fare cio'. L'algoritmo che usa questo programma trova
+i fattori di tutti i numeri dispari\footnote{2 e' l'unico numeri primo
+pari.} sotto un dato limite. La Figura~\ref{fig:primec} mostra l'algoritmo
+ scritto in C.
+
+Ecco la versione in assembly:
+\index{prime.asm|(}
+\begin{AsmCodeListing}[label=prime.asm]
+%include "asm_io.inc"
+segment .data
+Message         db      "Find primes up to: ", 0
+
+segment .bss
+Limit           resd    1               ; trova i numeri primi fino a questo limite
+Guess           resd    1               ; l'ipotesi corrente del numero primo
+
+segment .text
+        global  _asm_main
+_asm_main:
+        enter   0,0               ; routine di setup 
+        pusha
+
+        mov     eax, Message
+        call    print_string
+        call    read_int             ; scanf("%u", & limit );
+        mov     [Limit], eax
+
+        mov     eax, 2               ; printf("2\n");
+        call    print_int
+        call    print_nl
+        mov     eax, 3               ; printf("3\n");
+        call    print_int
+        call    print_nl
+
+        mov     dword [Guess], 5     ; Guess = 5;
+while_limit:                         ; while ( Guess <= Limit )
+        mov     eax,[Guess]
+        cmp     eax, [Limit]
+        jnbe    end_while_limit      ; usa jnbe visto che i numeri sono senza segno
+
+        mov     ebx, 3               ; ebx e' il fattore = 3;
+while_factor:
+        mov     eax,ebx
+        mul     eax                  ; edx:eax = eax*eax
+        jo      end_while_factor     ; if answer won't fit in eax alone
+        cmp     eax, [Guess]
+        jnb     end_while_factor     ; if !(factor*factor < guess)
+        mov     eax,[Guess]
+        mov     edx,0
+        div     ebx                  ; edx = edx:eax % ebx
+        cmp     edx, 0
+        je      end_while_factor     ; if !(guess % factor != 0)
+
+        add     ebx,2                ; factor += 2;
+        jmp     while_factor
+end_while_factor:
+        je      end_if               ; if !(guess % factor != 0)
+        mov     eax,[Guess]          ; printf("%u\n")
+        call    print_int
+        call    print_nl
+end_if:
+        add     dword [Guess], 2     ; guess += 2
+        jmp     while_limit
+end_while_limit:
+
+        popa
+        mov     eax, 0            ; ritorna al C
+        leave                     
+        ret
+\end{AsmCodeListing}
+\index{prime.asm|)}
