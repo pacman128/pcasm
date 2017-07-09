@@ -1,0 +1,1368 @@
+﻿%-*- latex -*-
+\chapter{서브프로그램}
+
+이 장에서는 서브프로그램(subprogram) 을 이용하여 모듈화 된 프로그램
+(modular program) 및 C 와 같은 고급 언어들과 함께 작업하는 방법에 대해서
+다루어 보고자 한다. 고급언어에서의 서브프로그램으로는 함수와 프로시져들이 있다. 
+
+서브프로그램을 호출하는 코드와 서브프로그램 그 자체는 반드시 이들 
+사이에 데이터를 주고 받는 방법이 같아야 한다. 이렇게, 이들 사이에 
+어떠한 방식으로 데이터를 주고받는 방법을 정해 놓은 것을 \emph{호출 규약(calling convention)}
+이라고 부른다. 이 장은 C 프로그램들과 소통(interface)할 수 있는 어셈블리
+서브프로그램 제작을 위해서, C 호출 규약에 대해 많은 부분을 할애할 
+것이다. 이 호출 규약은 (그 외 많은 호출 규약 들도) 데이터의 주소(\emph{i.e.} 포인터) 를 전달해
+서브프로그램이 메모리의 데이터에 접근 할 수 있게 하는 방식으로 이루어진다. 
+
+\section{간접 주소 지정\index{간접 주소 지정|(}}
+
+간접적인 주소 지정은 레지스터를 포인터 변수들 처럼 사용할
+수 있게 한다. 레지스터가 포인터로 사용됨을 알려주기 위해서 대괄호([])로 묶어
+주어야 한다. 예를 들어 
+
+\begin{AsmCodeListing}[frame=none]
+      mov    ax, [Data]     ; 워드의 직접 메모리 주소 지정 
+      mov    ebx, Data      ; ebx = & Data
+      mov    ax, [ebx]      ; ax = *ebx
+\end{AsmCodeListing}
+
+AX 가 워드를 보관하고 있기 때문에 ~3행은 EBX 에 저장된 주소에서 시작되는 워드
+를 읽어 들이게 된다. 만약 AX 대신 AL 을 이용한다면 오직 한 개의 바이트만 읽어
+들이게 될 것이다. C 에서의 변수들과는 달리 레지스터들은 형(type) 이 없다는 사실
+을 명심해야 한다. EBX 에 무엇을 가리키냐는 어떠한 명령이 사용되냐에 따라 완전히
+달라진다. 심지어 명령에 의해서도 EBX 가 포인터라는
+사실도 정해진다. 만약 EBX 가 잘못 사용 되어도 어셈블러는 아무런 오류를 내놓지 
+않는다. 그러나, 프로그램은 올바르게 작동하지 않는다. 이 때문에 어셈블리 프로그래밍은
+고급 언어 프로그래밍 보다 훨씬 오류가 많게 된다. 
+
+모든 32 비트 범용 레지스터 (EAX, EBX, EDX, EDX) 와 인덱스 (ESI, EDI) 레지스터들은
+모두 간접 주소 지정으로 사용될 수 있다. 통상적으로 16 비트와 8 비트는 사용될 수 없다, 
+
+\index{간접 주소 지정|)}
+
+\section{간단한 서브프로그램 예제\index{서브프로그램|(}}
+
+서브프로그램은 프로그램의 다른 영역에서 쓰이는 독립적인 코드라고 볼 수 있다. 즉,
+서브프로그램은 C 언어에서의 함수라고 생각하면 된다. 분기 명령을 통해 서브프로그램을
+호출 할 수 있지만 리턴하는 부분에서 문제가 생긴다. 만약 서브프로그램이 프로그램의 각기
+다른 영역에서 호출되었다면 서브프로그램은 호출 된 각각의 위치로 돌아가기 위해
+엄청난 수의 라벨을 사용하게 되므로 매우 복잡해 질 것이다. 반면에 아래의 코드는 이를 간접 형태의 {\code JMP} 
+명령을 사용하여 구현한 것을 볼 수 있다. 
+이 형태의 명령은 레지스터에 저장된 값을 이용하여 어디로 분기할 것인지 알 게 된다.
+(따라서, 레지스터들은 C 에서의 \emph{함수 포인터(function pointer)} 과 같이 쓰인다)
+아래는 ~1 장의 첫 번째 프로그램을 서브프로그램을 이용한 형태로 다시 작성한 것이다. 
+
+\begin{AsmCodeListing}[label=sub1.asm]
+; 파일: sub1.asm
+; 서브프로그램 예제 프로그램
+%include "asm_io.inc"
+
+segment .data
+prompt1 db    "Enter a number: ", 0       ; 널 종료 문자를 잊지 마시오
+prompt2 db    "Enter another number: ", 0
+outmsg1 db    "You entered ", 0
+outmsg2 db    " and ", 0
+outmsg3 db    ", the sum of these is ", 0
+
+segment .bss
+input1  resd 1
+input2  resd 1
+
+segment .text
+        global  _asm_main
+_asm_main:
+        enter   0,0               ; 셋업 루틴
+        pusha
+
+        mov     eax, prompt1      ; prompt 를 출력
+        call    print_string
+
+        mov     ebx, input1       ; input1 의 주소를 ebx 에 저장 
+        mov     ecx, ret1         ; ecx 에 리턴 주소를 저장 
+        jmp     short get_int     ; 정수를 읽는다 
+ret1:
+        mov     eax, prompt2      ; prompt 출력 
+        call    print_string
+
+        mov     ebx, input2
+        mov     ecx, $ + 7        ; ecx = 현재주소 + 7
+        jmp     short get_int
+  
+        mov     eax, [input1]     ; eax = input1 의 dword
+        add     eax, [input2]     ; eax += input2 의 dword
+        mov     ebx, eax          ; ebx = eax
+
+        mov     eax, outmsg1
+        call    print_string      ; 첫 번째 메세지 출력 
+        mov     eax, [input1]     
+        call    print_int         ; input1 을 출력 
+        mov     eax, outmsg2
+        call    print_string      ; 두 번째 메세지 출력 
+        mov     eax, [input2]
+        call    print_int         ; input2 를 출력 
+        mov     eax, outmsg3
+        call    print_string      ; 세 번째 메세지 출력 
+        mov     eax, ebx
+        call    print_int         ; 합 (ebx) 출력 
+        call    print_nl          ; 개행 문자 출력 
+        
+        popa
+        mov     eax, 0            ; C 로 리턴
+        leave                     
+        ret
+; 서브프로그램 get_int
+; 인자:
+;   ebx - 정수를 저장한 dword 의 주소 
+;   ecx - 리턴할 명령의 주소 
+; 참고 사항:
+;    eax 에 저장된 값은 사라진다. 
+get_int:
+        call    read_int
+        mov     [ebx], eax         ; input 을 메모리에 저장 
+        jmp     ecx                ; 호출한 곳으로 리턴 
+\end{AsmCodeListing}
+
+{\code get\_int} 서브프로그램은 단순한 레지스터 기반 호출 규약을 사용한다.
+이는 EBX 레지스터가 입력값을 저장할 DWORD 의 주소를 갖고 있고, ECX 레지스터가
+되돌아갈 코드 주소값을 가지고 있다고 생각한다. ~25 에서 28 행까지 {\code ret1} 라벨은
+리턴 주소를 계산하기 위해 사용되었다. ~32 에서 34 행까지 {\code \$} 연산자는 리턴
+주소를 계산하기 위해 사용되었다. {\code \$} 는 현재 행의 주소를 리턴한다. {\code \$ + 7}
+은 ~36 행의 {\code MOV} 명령의 주소를 계산하기 위해 사용되었다. 
+
+위 두 가지 방식의 리턴 주소 계산은 매우 복잡하다. 첫 번째 방법은 매 서브프로그램 호출
+마다 라벨을 필요로 한다. 두 번째 방법은 라벨을 필요로 하진 않지만 오류가 나지 않기
+위해 심사숙고 할 필요가 있다. 예를 들어 near 분기 대신에 short 분기가 사용되었다면 
+{\code \$} 에 더해진 값은 7 이 아니게 된다. 다행이도, 서브프로그램을 호출 하기 위한
+더 쉬운 방법이 있다. 이 방법은 \emph{스택(stack)} 을 이용한다. 
+
+\section{스택\index{스택|(}}
+
+대다수의 CPU 는 스택의 사용을 지원한다. 스택은 후입 선출(Last-In First-Out,
+\emph{LIFO} 라고 부르며, 나중에 들어간 데이터가 먼저 나오게 된다) 리스트 이다.
+스택은 이와 같은 규칙으로 구성된 메모리의 일부분 이다. {\code PUSH} 명령을 통해
+스택에 데이터를 추가하고 {\code POP} 명령을 통해 데이터를 빼낼 수 있다. 
+언제나 빼내진 데이터는 마지막으로 추가된 데이터 이다. (이 때문에 스택을 
+후입 선출 리스트라 부른다)
+
+SS 세그먼트 레지스터는 스택을 보관한 세그먼트를 정의한다. (보통 이는 
+데이터가 저장된 세그먼트와 동일하다) ESP 레지스터는 스택으로 부터 빼내질
+데이터의 주소를 보관한다. 이 데이터는 흔히 스택의 \emph{최상위(top)} 에 있다고
+말한다. 데이터는 오직 더블워드의 형태로만 저장된다. 따라서, 스택에 단일
+바이트를 집어 넣을 수 없다. 
+
+{\code PUSH} 명령은 ESP 레지스터의 값을 4 감소 시킨 후, 더블워드\footnote{사실, 워드들도 스택에
+들어 갈 수 있지만 32 비트 보호 모드에서는 오직 더블워드들만 가지고 다루는
+것이 낫다.} 를 {\code [ESP]} 에 위치한 더블워드에 집어 넣는다. {\code POP} 명령은
+{\code [ESP]} 에 위치한 더블워드를 읽어 들이고, ESP 에 4 를 더한다. 아래의 코드는 
+ESP 가 {\code 1000H} 이였다고 할 때 명령에 따라 값이 어떻게 변화하는지 보여준다. 
+
+\begin{AsmCodeListing}[frame=none]
+      push   dword 1    ; 1 이 0FFCh 에 저장됨, ESP = 0FFCh
+      push   dword 2    ; 2 가 0FF8h 에 저장됨, ESP = 0FF8h
+      push   dword 3    ; 3 이 0FF4h 에 저장됨, ESP = 0FF4h
+      pop    eax        ; EAX = 3, ESP = 0FF8h
+      pop    ebx        ; EBX = 2, ESP = 0FFCh
+      pop    ecx        ; ECX = 1, ESP = 1000h
+\end{AsmCodeListing}
+
+스택은 임시적으로 데이터를 저장하는데 요긴하게 사용할 수 있다. 이를 통해서
+인자(parameter)들과 지역 변수(local variable) 을 전달하고 
+서브프로그램 호출을 할 수 있다. 
+
+80x86 은 또한 {\code PUSHA} 명령을 이용하여 EAX, EBX, ECX, EDX, ESI, EDI, EBP 
+레지스터의 값들을 모두 스택에 집어 넣을(푸시) 수 있게 한다. (이 순서로 집어 넣는 것은 아니다) 
+{\code POPA} 명령을 통해 이들을 다시 빼낼(팝) 수 있게 한다.
+
+\index{스택|)}
+
+\section{CALL 과 RET 명령\index{서브프로그램!호출|(}}
+\index{CALL|(}
+\index{RET|(}
+80x86 은 서브프로그램을 빠르고 간편하게 호출하기 위해서 스택을 이용한 2 가지의
+명령을 지원한다. CALL 명령은 서브프로그램으로의 무조건 분기를 한 후, 그 다음에 
+실행될 명령의 주소를 스택에 \emph{푸시(push)}한다. RET 명령은 그 주소를 \emph{팝(pop)} 한 후
+그 주소로 점프를 한다. 이 명령을 이용할 때, 스택을 정확하게 관리하여 RET 명령에 의해
+정확한 주소 값이 팝 될 수 있도록 해야 한다. 
+
+따라서 이전의 프로그램은 새로운 명령을 이용하여 아래와 같이 ~25 에서 34 행을 바꾸어 
+쓸 수 있다. 
+
+\begin{AsmCodeListing}[numbers=none]
+      mov    ebx, input1
+      call   get_int
+
+      mov    ebx, input2
+      call   get_int
+\end{AsmCodeListing}
+또한 서브프로그램 {\code get\_int} 를 아래와 같이 바꾼다:
+\begin{AsmCodeListing}[numbers=none]
+get_int:
+      call   read_int
+      mov    [ebx], eax
+      ret
+\end{AsmCodeListing}
+
+CALL 과 RET 에는 몇 가지 장점들이 있다. 
+
+\begin{itemize}
+\item 이는 단순하다! 
+\item 서브프로그램 호출이 쉽게 이루어지게 한다. {\code get\_int} 가 {\code read\_int} 를
+호출 하는 부분을 보아라. 이 호출은 스택에 또다른 주소를 집어 넣는다. {\code read\_int}
+코드의 마지막 부분에는 RET 가 리턴 주소를 빼내고, {\code get\_int} 의 코드로 
+다시 분기 된다. 그리고 {\code get\_int} 의 RET 이 이루어진다면 리턴 주소를 
+빼내어 {\code asm\_main} 으로 분기된다. 이는 스택이 LIFO 구조 이기에 올바르게 일어난다. 
+
+\end{itemize}
+
+스택에 푸시 된 모든 데이터는 나중에 \emph{반드시} 다시 팝 해야 한다.
+예를 들어, 아래와 같은 소스 코드를 생각해 보자:
+
+\begin{AsmCodeListing}[frame=none]
+get_int:
+      call   read_int
+      mov    [ebx], eax
+      push   eax
+      ret                  ; 리턴 주소 대신 EAX 값을 팝!
+\end{AsmCodeListing}
+이 코드는 올바르게 리턴되지 않는다. 
+
+\index{RET|)}
+\index{CALL|)}
+
+\section{호출 규약\index{호출 규약|(}}
+
+서브프로그램이 호출 되었을 때, 호출하는 코드와 서브프로그램 (이를 
+\emph{피호출자(callee)} 은 서로의 데이터 전송 방식이 같아야 한다. 
+고급 언어에서는 \emph{호출 규약(calling conventions)} 이라는 기본적인 
+데이터 전송 방법이 있다. 고급 언어 코드와 어셈블리가 함께 작업하기 위해서는
+어셈블리 코드들도 반드시 고급 언어에서의 규약과 일치해야 한다. 이 호출 규약은
+컴파일러 마다 다를 수 있으며, 코드가 어떠한 방식으로 컴파일 되느냐에 따라서
+(\emph{e.g} 최적화의 유무)도 다를 수 있다. 하나의 공통된 점이라 하면
+코드는 {\code CALL} 을 통해 호출하고 {\code RET} 을 통해 리턴된다는 점이다. 
+
+모든 PC C 컴파일러는 이 장의 나머지 부분에서 다루게 될 호출 규약을 지원한다. 
+이 규약을 통해 \emph{재진입(reentrant)} 서브프로그램을 만들 수 있다. 재진입
+서브프로그램은 프로그램의 어떤 부분에서도 자유롭게 호출 될 수 있다. 
+(심지어 서브프로그램 그 자체 내부에서도) 
+
+\subsection{스택에 인자들을 전달하기}\index{스택|(}\index{스택!인자|(}
+
+서브프로그램으로 스택을 통해 인자들이 전달 될 수 있다. 이 인자들은 {\code CALL}
+명령을 하기 전에 스택으로 푸시되어진다. C 에서처럼 서브프로그램에서 인자의 
+값이 바뀌기 위해서는 인자의 \emph{값}이 아닌, 인자의 \emph{주소}가 반드시 
+전달 되어야만 한다. 만약 인자의 크기가 더블워드보다 작다면, 반드시 푸시 되기
+전에 더블워드로 변환되어야만 한다. 
+
+스택에 저장된 인자들은 서브프로그램에 의해 빼내어(Pop) 지지 않는다. 그 대신에, 이
+들은 스택 자체에서 접근이 가능하다. 왜냐하면, 
+
+\begin{itemize}
+\item 이들은 {\code CALL} 명령 전에 스택에 푸시 되어야만 하기 때문에 
+리턴 주소는 가장 먼저 팝 되어야만 한다 
+
+\item 인자들은 종종 서브프로그램의 여러 부분에서 사용된다. 보통, 서브프로그램
+실행 내내 레지스터에 인자들을 저장할 수 없으므로, 메모리에 저장되어야 한다.
+따라서, 인자들을 스택에 보관함으로써 서브프로그램의 어떠한 부분에서도 인자에
+접근 할 수 있게 된다. 
+
+\end{itemize}
+
+\begin{figure}
+\centering
+\begin{tabular}{l|c|}
+\cline{2-2}
+&  \\ \cline{2-2}
+ESP + 4 & 인자 \\ \cline{2-2}
+ESP     & 리턴 주소 \\ \cline{2-2}
+ & \\ \cline{2-2}
+\end{tabular}
+\caption{}
+\label{fig:stack1}
+\end{figure}
+스택에 하나의 인자를 저장한 서브프로그램을 생각하자 \MarginNote{간접
+주소지정을 사용시, 80x86 프로세서는 간접 주소지정 표현시 어떠한 레지스터가
+사용되느냐에 따라서 각기 다른 세그먼트에 접근한다. ESP (또한 EBP) 는 
+스택 세그먼트를 사용하며, EAX, EBX, ECX, EDX 는 데이타 세그먼트를 사용한다.
+그러나, 보호 모드 프로그램에서는 별로 중요한 문제는 아니다. 왜냐하면
+데이터 세그먼트와 스택 세그먼트는 동일하기 때문이다. }
+서브프로그램이 호출 되었을 때, 스택은 ~\ref{fig:stack1} 과 같이 나타난다.
+간접 주소 지정을 사용하여 인자에 접근({\code [ESP+4]} \footnote{간접 주소지정을 사용시 레지스터에 상수를 더하는 것이 가능하다. 
+뿐만 아니라 더 복잡한 표현들도 가능하다. 이것에 대한 자세한 내용은 다음 장에서
+다룬다}) 할 수 있다. 
+
+\begin{figure}
+\centering
+\begin{tabular}{l|c|}
+\cline{2-2}
+&  \\ \cline{2-2}
+ESP + 8 & 인자 \\ \cline{2-2}
+ESP + 4 & 리턴 주소 \\ \cline{2-2}
+ESP     & 서브프로그램 데이터 \\ \cline{2-2}
+\end{tabular}
+\caption{}
+\label{fig:stack2}
+\end{figure}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+subprogram_label:
+      push   ebp           ; 원래의 EBP 값을 스택에 저장
+      mov    ebp, esp      ; 새로운 EBP = ESP
+; subprogram code
+      pop    ebp           ; 이전의 EBP 값을 불러온다. 
+      ret
+\end{AsmCodeListing}
+\caption{통상적인 서브프로그램의 형태 \label{fig:subskel1}}
+\end{figure}
+
+만일, 서브프로그램 내에서도 데이터를 저장하기 위해 스택을 사용한다면, 
+ESP 에 더해저야할 값이 달라지게 된다. 예를 들어 그림 ~\ref{fig:stack2} 에서
+더블워드가 스택에 푸시되었을 때 어떻게 나타나는지 보여준다. 이 때, 
+인자는 {\code ESP + 4} 가 아닌 {\code ESP + 8} 에 위치하게 된다. 따라서,
+ESP 를 이용하여 인자에 접근시 오류를 낼 확률이 크다. 이 문제를 해결하기 위해
+80386 은 EBP 라는 또다른 레지스터를 사용 가능하게 했다. 이 레지스터의 목적은 
+스택의 데이터를 가리키는 것 이다. C 호출 규약에선 반드시 서브프로그램이 먼저 EBP 
+의 값을 스택에 저장하고 EBP 가 ESP 와 같게 만들게 해야 한다. 이를 통해 EBP 의 값을
+변경하지 않고도 스택에 데이터가 푸시되고 팝 됨에 따라 ESP 가 변경될 수 있게 
+한다. 서브프로그램의 끝 부분에선 원래의 EBP 값이 반드시 불러와져야 한다
+(이 때문에 우리가 서브프로그램 처음에 EBP 값을 저장했다) 그림 ~\ref{fig:subskel1}
+은 위 규약들을 만족하는 서브프로그램의 일반적인 모습을 보여준다. 
+
+\begin{figure}[t]
+\centering
+\begin{tabular}{ll|c|}
+\cline{3-3}
+&  & \\ \cline{3-3}
+ESP + 8 & EBP + 8 & 인자 \\ \cline{3-3}
+ESP + 4 & EBP + 4 & 리턴 주소\\ \cline{3-3}
+ESP     & EBP     & 저장된 EBP \\ \cline{3-3}
+\end{tabular}
+\caption{}
+\label{fig:stack3}
+\end{figure}
+
+그림 ~\ref{fig:subskel1} 의 2 와 3 행에서 보통의 서브프로그램의 
+\emph{시작 부분}을 보여주고 있다. 5 와 6 행에서는 \emph{마지막 부분}을 
+보여준다. 그림 ~\ref{fig:stack3} 에서 시작 부분을 막 통과한 후의 스택의
+모습을 보여준다. 이제, 인자들은 {\code [EBP + 8]} 을 통해
+서브프로그램에 의해 스택에 데이터가 푸시되고 팝 되는 것에 무관하게 
+어떠한 부분에서도 인자에 접근할 수 있게 되었다. 
+
+서브프로그램이 종료되면, 스택에 푸시되었던 인자들은 반드시 제거되어야만
+한다. C 호출 규약은 호출자의 코드가 이를 하게 명시했다. \index{호출 규약!C}
+모든 언어의 호출 규약이 동일한 것이 아니다. 예를 들어 파스칼의 호출 규약 \index{호출 규약!파스칼}
+은 서브프로그램이 이를 제거하라 명시했다. (이를 쉽게 하기 위한 RET 명령\index{RET}의 다른 형태가 있다)
+일부 C 컴파일러들은 이 규약을 지원하기도 한다. {\code pascal} 키워드를 
+함수의 원형과 정의 부분에서 사용하여 컴파일러로 하여금 파스칼의 호출 규약을 
+이용하게 만들 수 있다. 사실, 마이크로소프트 윈도우즈 API C 함수들이 
+이용하는 {\code stdcall} 규약 \index{호출 규약!stdcall} 도 파스칼의 경우와 같다.
+이 방법을 이용하면 어떠한 장점이 있을까? 이는 C 호출 규약보다 조금 더 능률적이다. 
+그렇다면 왜 C 함수들은 이 호출규약을 이용하지 않는 것일까? 
+보통 C 는 함수가 가변 개수의 인자를 가짐을 지원한다 (\emph{e.g.}, {\code printf}
+와 {\code scanf} 가 대표적). 이러한 형식의 함수에선 스택에서 인자들을 
+지우는 명령들의 횟수가 달라지게 된다. 
+이러한 형식의 함수들은, 스택으로 부터 인자들을 제거하는 명령은 함수의 호출마다 
+달라지게 된다. C 호출 규약에선 이러한 연산들을 손쉽게 할 수 있는 명령들을 지원한다. 그러나 
+파스칼이나 stdcall 호출 규약에선 이러한 연산들은 매우 복잡하다. 
+따라서 파스칼 호출 규약은 이러한 형식의 함수를 지원하지 않는다.
+마이크로소프트 윈도우즈의 경우 어떠한 API
+함수도 가변 인자를 가지지 않기 때문에 파스칼 형태의 호출 규약을 이용할 수 있었다. 
+
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+      push   dword 1        ; 1 을 인자로 전달
+      call   fun
+      add    esp, 4         ; 스택에서 인자를 제거
+\end{AsmCodeListing}
+\caption{서브프로그램 호출 예제\label{fig:subcall}}
+\end{figure}
+
+그림 ~\ref{fig:subcall} 는 C 호출 규약을 이용하는 서브프로그램을
+어떻게 호출하는지 보여준다. ~3행은 스택 포인터의 값을 조정함으로써 인자를 스택에서
+지워버린다. {\code POP} 명령을 통해 이를 할 수 도 있으나, 필요 없는 값이 레지스터에
+저장되어야 한다. 사실, 이 특별한 경우에 대해선 많은 컴파일러들은 
+{\code POP ECX} 명령을 이용하여 인자를 제거한다. 왜냐하면 {\code ADD} 명령이 더 많은 바이트를
+사용하기 때문이다. 그러나 {\code POP} 또한 ECX 의 값을 바꾼다. 다음의 또 다른 예제는 
+위에서 설명한 C 호출 규약을 사용한 프로그램들이다. ~54 행 (그리고 다른 행들에서) 에서 
+하나의 소스파일에 여러개의 데이타와 텍스트 세그먼트들이 정의되었음을
+볼 수 있다. 이들은 링크 과정에서 하나의 데이터와 텍스트 세그먼트들로 합쳐질 것이다. 
+데이터와 코드를 여러개의 세그먼트로 쪼갬을 통해 서브프로그램이 사용하는 데이터가
+서브프로그램 근처에 정의되게 할 수 있다. 
+
+\index{스택!인자|)}
+
+\begin{AsmCodeListing}[label=sub3.asm]
+%include "asm_io.inc"
+
+segment .data
+sum     dd   0
+
+segment .bss
+input   resd 1
+
+;
+; 의사 코드 알고리즘
+; i = 1;
+; sum = 0;
+; while( get_int(i, &input), input != 0 ) {
+;   sum += input;
+;   i++;
+; }
+; print_sum(num);
+segment .text
+        global  _asm_main
+_asm_main:
+        enter   0,0               ; 셋업 루틴
+        pusha
+
+        mov     edx, 1            ; 의사 코드에서의 i 가 edx 이다. 
+while_loop:
+        push    edx               ; i 를 스택에 저장 
+        push    dword input       ; 입력값의 주소를 스택에 저장 % 정확한가?
+        call    get_int
+        add     esp, 8            ; i 와 &input 을 스택에서 제거 
+
+        mov     eax, [input]
+        cmp     eax, 0
+        je      end_while
+
+        add     [sum], eax        ; sum += input
+
+        inc     edx
+        jmp     short while_loop
+
+end_while:
+        push    dword [sum]       ; 합을 스택에 푸시 
+        call    print_sum
+        pop     ecx               ; 스택에서 [sum] 을 제거 
+
+        popa
+        leave                     
+        ret
+
+; 서브프로그램 get_int
+; 인자들 (스택에 푸시된 순서로 나타남)
+;   입력값의 수 ([ebp + 12] 에 위치)
+;   입력값을 저장할 워드의 주소 ([ebp + 8] 에 위치)
+; 참고:
+;   eax 와 ebx 의 값들은 파괴된다. 
+segment .data
+prompt  db      ") Enter an integer number (0 to quit): ", 0
+
+segment .text
+get_int:
+        push    ebp
+        mov     ebp, esp
+
+        mov     eax, [ebp + 12]
+        call    print_int
+
+        mov     eax, prompt
+        call    print_string
+        
+        call    read_int
+        mov     ebx, [ebp + 8]
+        mov     [ebx], eax         ; 입력값을 메모리에 저장
+
+        pop     ebp
+        ret                        ; 호출자로 분기  
+
+; 서브프로그램 print_sum
+; 합을 출력한다 
+; 인자:
+;   출력하기 위한 합([ebp+8] 에 위치)
+; 참고: eax 의 값이 파괴된다.
+;
+segment .data
+result  db      "The sum is ", 0
+
+segment .text
+print_sum:
+        push    ebp
+        mov     ebp, esp
+
+        mov     eax, result
+        call    print_string
+
+        mov     eax, [ebp+8]
+        call    print_int
+        call    print_nl
+
+        pop     ebp
+        ret
+\end{AsmCodeListing}
+
+
+\subsection{스택에서의 지역변수}\index{스택!지역변수|(}
+
+스택은 지역변수들의 편리한 저장 창고로 사용될 수 있다. 이는 C 가 보통의
+변수들 (또는C 용어로 \emph{automatic})을 저장하는 곳이다. 변수들을
+위해 스택을 사용하는 것은 재진입 서브프로그램을 만드는데 유용하다. 
+재진입 서브프로그램은 서브프로그램 그 자체를 포함한 어떠한 곳에서도 호출되어도
+잘 작동하는 서브프로그램을 말한다. 다시 말해, 재진입 서브프로그램은 
+\emph{재귀적(recursively)}으로 호출 가능하다. 변수들을 위해 스택을 사용하는 것을 통해
+메모리도 아낄 수 있다. 스택에 저장되지 않는 데이터들은 프로그램의 
+시작 부터 종료 될 때 까지 메모리 상에 상주하게 된다. (C 는 이러한 형식의 변수들을
+\emph{전역(global)} 이나 \emph{정적(static)} 변수라 부른다) 스택에 저장된 
+데이터들의 경우 오직 서브프로그램이 실행 될 때 에만 메모리 상에 상주한다. 
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+subprogram_label:
+      push   ebp                ; 기존의 EBP 값을 스택에 저장한다. 
+      mov    ebp, esp           ; 새로운 EBP = ESP
+      sub    esp, LOCAL_BYTES   ; 지역 변수에 의해 = # 바이트 필요
+; 서브프로그램 코드
+      mov    esp, ebp           ; 지역 변수를 해제(deallocate)
+      pop    ebp                ; 기존의 EBP 값을 불러온다. 
+      ret
+\end{AsmCodeListing}
+\caption{지역 변수를 이용한 일반적인 서브프로그램 모습\label{fig:subskel2}}
+\end{figure}
+
+\begin{figure}[t]
+\begin{lstlisting}[frame=tlrb]{}
+void calc_sum( int n, int * sump )
+{
+  int i, sum = 0;
+
+  for( i=1; i <= n; i++ )
+    sum += i;
+  *sump = sum;
+}
+\end{lstlisting}
+\caption{합 프로그램의 C 언어 버전 \label{fig:Csum}}
+\end{figure}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+cal_sum:
+      push   ebp
+      mov    ebp, esp
+      sub    esp, 4               ; 지역 변수 sum 의 공간을 할당 
+
+      mov    dword [ebp - 4], 0   ; sum = 0
+      mov    ebx, 1               ; ebx (i) = 1
+for_loop:
+      cmp    ebx, [ebp+8]         ; i <= n 인가?
+      jnle   end_for
+
+      add    [ebp-4], ebx         ; sum += i
+      inc    ebx
+      jmp    short for_loop
+
+end_for:
+      mov    ebx, [ebp+12]        ; ebx = sump
+      mov    eax, [ebp-4]         ; eax = sum
+      mov    [ebx], eax           ; *sump = sum;
+
+      mov    esp, ebp
+      pop    ebp
+      ret
+\end{AsmCodeListing}
+\caption{합 프로그램의 어셈블리 버전 \label{fig:Asmsum}}
+\end{figure}
+
+지역 변수들은 스택에 저장된 EBP 값 바로 다음부터 저장된다. 이들은 프로그램 서두에서,
+ESP 로 부터 필요한 만큼의 바이트를 뺌으로써 할당 될 수 있다. 그림 ~\ref{fig:subskel2} 는
+새로운 서브프로그램의 구조를 보여준다. EBP 레지스터는 지역 변수에 접근하기 위해 사용된다.
+그림 ~\ref{fig:Csum} 의 C 함수를 보자. 그림 ~\ref{fig:Asmsum} 은 이와 동일한 서브프로그램이
+어셈블리어로 어떻게 쓰일 수 있는지 보여준다. 
+
+\begin{figure}[t]
+\centering
+\begin{tabular}{ll|c|}
+\cline{3-3}
+ESP + 16 & EBP + 12 & {\code sump} \\ \cline{3-3}
+ESP + 12 & EBP + 8  & {\code n} \\ \cline{3-3}
+ESP + 8  & EBP + 4  & 리턴 주소 \\ \cline{3-3}
+ESP + 4  & EBP      & 저장된 EBP \\ \cline{3-3}
+ESP      & EBP - 4  & {\code sum} \\ \cline{3-3}
+\end{tabular}
+\caption{}
+\label{fig:SumStack}
+\end{figure}
+
+그림 ~\ref{fig:SumStack} 은 그림 ~\ref{fig:Asmsum} 의 프로그램 상단 부분을 
+실행한 후의 스택의 모습을 보여준다. 인자, 리턴 정보, 지역 변수를 포함한
+위와 같은 스택의 영역을 \emph{스택 프레임(stack frame)} 이라 부른다. C 함수를 
+호출 할 때 마다 스택에 새로운 스택 프레임을 생성하게 된다. 
+
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+subprogram_label:
+      enter  LOCAL_BYTES, 0   ; 지역 변수에 의해 필요한 = # 바이트
+; subprogram code
+      leave
+      ret
+\end{AsmCodeListing}
+\caption{{\code ENTER} 와 {\code LEAVE} 명령, 그리고 지역 변수를 사용한
+일반적인 서브프로그램의 모습 \label{fig:subskel3}}
+\end{figure}
+
+\MarginNote{비록 {\code ENTER} 와 {\code LEAVE} 명령들이 서브프로그램의 시작 부분과
+끝 부분을 간단하게 해주지만 잘 쓰이지는 않는다. 왜냐하면, 이들은 동일한 간단한
+명령들의 모임보다 더 느리기 때문이다. 이는 우리가 언제나 하나의 명령이 여러개의 명령들
+보다 빠르다고 확신할 수 없음을 보여주는 하나의 예이다. }
+
+프로그램의 시작 부분과 끝 부분은 오직 이러한 목적을 위해 만들어진 두 명령
+{\code ENTER} 와 {\code LEAVE} 명령이 사용되고 있다. {\code ENTER} 명령은 
+시작 부분의 명령을 처리하고 {\code LEAVE} 명령은 마지막 부분의 명령을 처리한다.
+{\code ENTER} 명령은 두 개의 즉시 피연산자를 가진다. C 호출 규약에선 
+두 번째 피연산자는 언제나 0 이다. 첫 번째 인자는 지역 변수가 필요로 하는 
+바이트의 크기를 나타낸다. {\code LEAVE} 명령은 피연산자를 갖지 않는다.
+그림 ~\ref{fig:subskel3} 은 이러한 명령들이 어떻게 쓰이는지 보여주고 있다. 이 때,
+골격 프로그램 (그림 ~\ref{fig:skel}) 또한 {\code ENTER} 와 {\code LEAVE}를
+사용하고 있음을 주목해라. 
+
+\index{스택!지역 변수|)}
+\index{스택|)}
+\index{호출 규약|)}
+\index{서브프로그램!호출|)}
+
+\section{다중 모듈 프로그램}\index{다중 모듈 프로그램|(}
+
+\emph{다중 모듈 프로그램(multi-module program)}은 한 개보다 많은 수의
+목적 파일 (object file)들로 구성된 프로그램을 말한다. 여태까지 소개한 프로그램들은
+모두 다중 모듈 프로그램이였다. 이들은 C 드라이버 목적 파일과 어셈블리 목적 파일
+(C 라이브러리 목적 파일도)들로 이루어져 있다. 링커는 이러한 여러 개의 목적 파일들을
+하나의 실행 가능한(executable) 프로그램으로 통합해 주는 것을 상기해라. 링커는
+각 모듈(\emph{i.e.} 목적 파일)들에서의 라벨들을 각각의 정의에 맞게 대응시켜 주어야만 한다.
+모듈 B 에서 정의된 라벨을 모듈 A 에서 사용하기 위해선, {\code extern} 지시어가 사용되어만
+한다. {\code extern} \index{지시어!extern} 지시어 옆에는 반점으로 구분은 라벨들의 목록들이
+나열된다. 이 지시어는 어셈블러에 이 라벨들이 모듈이 \emph{외부(external)}에서 
+정의되었음을 알려준다. 따라서, 이러한 라벨들은 다른 모듈에서 정의되었음에도 불구하고
+사용될 수 있다. {\code asm\_io.inc} 파일은 {\code read\_int}, 루틴 \emph{등등}을 모두 외부로
+선언한다. 
+
+어셈블리에서는 기본적으로 라벨들은 외부에서 접근이 불가능하도록 되어있다. 만약 라벨이 다른
+모듈에서 접근이 가능하다면 이 라벨은 정의된 모듈에서 반드시 \emph{전역}으로 선언되어야
+한다. {\code global} \index{지시어!전역} 지시어가 이 일을 한다. 아래 그림 ~\ref{fig:skel} 의
+뼈대 프로그램의 ~13 행을 보면, {\code \_asm\_main} 라벨이 전역으로 정의되어있음을 볼 수 
+있다. 이 정의 없이는 링커 오류가 발생할 것이다. 왜냐하면 C 코드는 \emph{내부(internal)}로 선언된
+{\code \_asm\_main} 라벨을 참조할 수 없기 때문이다. 
+
+다음 코드는 이전의 예제를 두 개의 모듈을 이용하여 사용한 것이다. 이 두 개의 서브프로그램
+({\code get\_int} 와 {\code print\_sum}) 은 {\code \_asm\_main} 루틴과는 달리 2 개의 개개의
+소스 파일에 작성되어 있다. 
+
+\begin{AsmCodeListing}[label=main4.asm,commandchars=\\\{\}]
+%include "asm_io.inc"
+
+segment .data
+sum     dd   0
+
+segment .bss
+input   resd 1
+
+segment .text
+        global  _asm_main
+\textit{        extern  get_int, print_sum}
+_asm_main:
+        enter   0,0               ; 셋업 루틴
+        pusha
+
+        mov     edx, 1            ; edx 는 의사코드에서 'i' 와 같다. 
+while_loop:
+        push    edx               ; i 를 스택에 저장한다. 
+        push    dword input       ; 입력값의 주소를 스택에 푸시 
+        call    get_int
+        add     esp, 8            ; i 와 &input 을 스택에서 제거 
+
+        mov     eax, [input]
+        cmp     eax, 0
+        je      end_while
+
+        add     [sum], eax        ; sum += input
+
+        inc     edx
+        jmp     short while_loop
+
+end_while:
+        push    dword [sum]       ; 합을 스택에 푸시 
+        call    print_sum
+        pop     ecx               ; [sum] 을 스택에서 제거 
+
+        popa
+        leave                     
+        ret
+\end{AsmCodeListing}
+
+\begin{AsmCodeListing}[label=sub4.asm,commandchars=\\\{\}]
+%include "asm_io.inc"
+
+segment .data
+prompt  db      ") Enter an integer number (0 to quit): ", 0
+
+segment .text
+\textit{        global  get_int, print_sum}
+get_int:
+        enter   0,0
+
+        mov     eax, [ebp + 12]
+        call    print_int
+
+        mov     eax, prompt
+        call    print_string
+        
+        call    read_int
+        mov     ebx, [ebp + 8]
+        mov     [ebx], eax         ; 입력값을 메모리에 저장
+
+        leave
+        ret                        ; 호출자로 분기
+
+segment .data
+result  db      "The sum is ", 0
+
+segment .text
+print_sum:
+        enter   0,0
+
+        mov     eax, result
+        call    print_string
+
+        mov     eax, [ebp+8]
+        call    print_int
+        call    print_nl
+
+        leave
+        ret
+\end{AsmCodeListing}
+
+이전의 코드는 오직 전역 \index{지시어!전역}코드 라벨들만 가지고 있었다.
+그러나, 전역 데이터 라벨들은 똑같은 방법으로 작동된다. 
+
+\index{다중 모듈 프로그램|)}
+
+\section{C 와 소통하기}\index{C 와 소통하기|(}\index{호출 규약!C|(}
+
+오늘날, 매우 적은 수의 프로그램들만 완전히 어셈블리어로 작성된다. 컴파일러는
+고급 레벨 코드를 효율적인 기계어 코드로 변환하는 일을 매우 잘한다. 고급 언어로
+코드를 작성하는 것이 쉽기에, 이는 훨씬 대중적이다. 게다가, 고급 언어는 어셈블리어에
+비해 \emph{훨씬} 이식성이 높다!
+
+만일 어셈블리어가 직접적으로 사용된다면 오직 코드의 작은 부분들에서만 사용된다. 
+이는 두 가지 방법으로 가능하다: C 에서 어셈블리 서브루틴을 호출하던지, 인라인(inline)
+어셈블리를 이용하는 것이다. 인라인 어셈블리는 프로그래머로 하여금 C 코드에 어셈블리
+문장을 직접적으로 넣을 수 있게 해주는 것이다. 이는 매우 편리하다. 그러나, 인라인 어셈블리에도
+몇 가지 단점이 있다. 어셈블리 코드는 반드시 컴파일러가 사용하는 형식으로 작성되어야만
+한다. 그러나, 현재 NASM 의 형식을 지원하는 컴파일러가 없다. 다른 컴파일러들은
+다른 형식을 사용한다. 볼랜드와 마이크로소프트사의 경우 MASM 형식을 이용한다. 
+DJGPP 와 리눅스의 gcc 는 GAS \footnote{GAS 는 모든 GNU 컴파일러가 사용하는 어셈블러
+이다. 이는 AT\&T 문법을 이용하는데, AT\&T 의 문법은 문법이 대략 비슷한 MASM, TASM, NASM 들과는 
+달리 매우 다르다.} 형식을 이용한다. PC 에선 어셈블리 서브루틴을 호출하는 방법이 
+훨씬 표준화 되어 있다. 
+
+어셈블리 루틴들은 다음과 같은 이유로 C 코드와 함게 사용된다:
+
+\begin{itemize}
+\item C 로 하기에 어렵거나 매우 힘든 컴퓨터 하드웨어의 
+      직접적인 접근 
+\item 매우 빠르게 작동 되어야만 루틴, 컴파일러가 할 수 있는 것  
+      보다도 빠르게 프로그래머가 직접 손으로 최적화를 해야 되는 부분 
+\end{itemize}
+
+마지막 이유는 예전과는 달리 거의 사실이 아니게 되었다. 컴파일러 기술은 해를
+거듭하여 진보하였고, 컴파일러들은 매우 효율적인 코드(특히, 컴파일러 최적화가
+진행된다면)를 만들어 낼 수 있다. 어셈블리 루틴의 단점은 : 이식성이 낮고,
+가독성이 떨어진다. 
+
+대부분의 C 호출 규약은 이미 이야기 하였다. 그러나, 몇 개의 설명이 필요한
+부분들이 남아있다. 
+
+\subsection{레지스터 저장하기}\index{호출 규약!C!레지스터|(}
+먼저, C 는 서브루틴이 다음의 레지스터의 값을 보관하다고 생각한다:
+EBX, ESI, EDI, EBP, CS, DS, SS, ES. 
+\MarginNote{
+{\code register} 키워드는 컴파일러에게 C 변수를 메모리 공간에 저장하지
+않고 레지스터에 저장하라고 명령하는 것이다. 현대의 컴파일러들은 이를
+특별히 명시하지 않고도 자동적으로 해준다.} 이 말은, 서브루틴이 내부적으로
+이들을 바꿀 수 없다는 것이 아니다. 그 대신에, 이이것말은 이 레지스터들의 값을
+바꾸더라도 서브루틴이 리턴할 경우 이전의 값들을 복원할 수 있어야만 한다는 
+것이다. EBX, ESI, EDI 의 값을은 반드시 변경되면 안되는데 왜냐하면 C 는 이 
+레지스터들을 \emph{레지스터 변수(register variable)} 로 사용하기 때문이다.
+보통 스택은 위 레지스터들의 원래 값들을 저장하는데 사용된다. 
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+segment .data
+x            dd     0
+format       db     "x = %d\n", 0
+
+segment .text
+...
+      push   dword [x]     ; x 의 값을 푸시
+      push   dword format  ; 형식 문자열의 주소를 푸시
+      call   _printf       ; _ 에 주목!
+      add    esp, 8        ; 스택에서 인자들을 제거 
+\end{AsmCodeListing}
+\caption{{\code printf} 로 호출 \label{fig:Cprintf}}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\begin{tabular}{l|c|}
+\cline{2-2}
+EBP + 12 & {\code x} 의 값 \\ \cline{2-2}
+EBP + 8  & 형식 문자열의 주소\\ \cline{2-2}
+EBP + 4  & 주소를 리턴 \\ \cline{2-2}
+EBP      & EBP 를 저장 \\ \cline{2-2}
+\end{tabular}
+\caption{{\code printf} 내부의 스택 모습\label{fig:CprintfStack}}
+\end{figure}
+\index{호출 규약!C!레지스터|)}
+
+\subsection{함수들의 라벨}\index{호출 규약!C!라벨|(}
+
+대부분의 C 컴파일러들은 함수나, 전역/정적 변수들의 이름 앞에 
+{\code \_} 한 개를 붙인다. 예를 들어서 {\code f} 라는 이름의 함수는
+{\code \_f} 라는 이름의 라벨로 대응된다. 따라서, 이것이 어셈블리
+루틴이 되기 위해선 반드시 {\code f} 가 아닌 {\code \_f} 로
+라벨이 붙어야만 한다. 리눅스 gcc 컴파일러는 어떠한 문자도 붙이지
+\emph{않는다}. 리눅스 ELF 실행 가능 파일들의 경우, C 함수 {\code f}
+에 대해 그냥 {\code f} 라는 이름의 라벨을 사용한다. 그러나
+DJGPP 의 gcc 는 {\code \_} 를 붙인다. 어셈블리 골격 프로그램(그림 ~\ref{fig:skel})
+을 보면 메인 루틴의 라벨은 {\code \_asm\_main} 로 되어 있음을 주목해라. 
+
+\index{호출 규약!C!라벨|)}
+
+\subsection{인자 전달하기}\index{호출 규약!C!인자|(}
+
+C 호출 규약의 경우, 스택에 푸시된 함수들의 인자들은 함수 호출시 \emph{역순}으로
+나타나게 된다.
+
+예를 들어 다음과 같은 C 문장을 생각해 보자:\verb|printf("x = %d\n",x);|
+그림 ~\ref{fig:Cprintf} 는 이것이 어떻게 컴파일 될 지 보여준다. (동일한 NASM 형식으로 나타남)
+그림 ~\ref{fig:CprintfStack} 은 {\code printf} 의 처음 부분을 실행한 후의 스택의
+모습을 보여준다. {\code printf} 함수는 C 라이브러리의 함수 중 하나로, 가변 개수의
+인자들을 가질 수 있다. C 호출 규약의 경우 이러한 형식의 함수들을 작성할 수 있다. 
+
+\MarginNote{C 에서 어셈블리를 이용하여 임의의 개수의 인자를 받는 과정을 만들어 줄 필요는 없다.
+{\code stdarg.h} 헤더파일은 위 과정을 손쉽게 할 수 있는 메크로를 제공해 준다. 다른 
+C 언어 책을 참조하면 된다.}
+
+형식 문자열의 주소가 마지막에 푸시되므로, 이것의 스택에서의 위치는 \emph{언제나} 얼마나
+많은 수의 인자들이 푸시되느냐에 상관 없이 {\code EBP+8} 이 된다. {\code printf} 코드는 
+형식 문자열을 보아서 알마나 많은 수의 인자들이 전해 졌는지 알아 내어, 스택을 찾아 볼 수 있다. 
+
+당연하게도, \verb|printf("x = %d\n")| 와 같이 실수를 한다면 {\code printf} 코드는 {\code [EBP+12]}
+에 위치한 더블워드 값을 출력할 것이다. 그러나, 이 값은 {\code x} 의 값이 아니다! 
+
+\index{호출 규약!C!인자|)}
+
+\subsection{지역 변수의 주소 계산하기}\index{스택!지역 변수|(}
+
+{\code data} 나 {\code bss} 세그먼트에 정의된 라벨의 주소를 찾는 것은 
+간단하다. 기본적으로 링커가 이러한 작업을 한다. 그러나, 직관적으로 스택에
+저장된 지역 변수(혹은 인자) 의 주소를 계산하는 것은 어렵다. 그러나, 우리가 
+서브루틴들을 호출시에 이 작업을 자주 하게 된다. 아래와 같이 변수 ({\code x} 라 하자) 
+의 주소를 함수(이를 {\code foo} 라 한다)에 전달하는 경우를 살펴보자. 
+만일 {\code x} 가 EBP $-$ 8 의 스택에 위치해 있다면, 우리는 아래와 같이
+그냥 사용할 수 없다. 
+
+\begin{AsmCodeListing}[numbers=none,frame=none]
+      mov    eax, ebp - 8
+\end{AsmCodeListing}
+
+왜냐하면 {\code MOV} 명령을 통해 EAX 로 저장되는 값이 계산되어야만 하기 
+때문이다. (이 명령의 피연산자는 반드시 상수여야 한다.) 그러나, 위와 같은 연산을 하는
+명령이 있다. 이는 \index{LEA|(} {\code LEA} (\emph{Load Effective Address} 의 약자)
+이다. 아래의 코드는 EAX 로 {\code x} 의 주소를 계산하여 집어 넣는다. 
+
+\begin{AsmCodeListing}[numbers=none,frame=none]
+      lea    eax, [ebp - 8]
+\end{AsmCodeListing}
+
+이제 EAX 는 {\code x} 의 주소를 가지고, {\code foo} 를 호출시에 스택에 푸시될 수 있다.
+종종 위 명령을 [EBP\nolinebreak$-$\nolinebreak8] 에 있는 데이터를 읽어 들이는 것으로 착각하는데,
+이것은 사실이 \emph{아니다}. {\code LEA} 명령은 \emph{절대로} 메모리를 읽어들이지 않는다.
+이는 오직 다른 명령이 읽어들일 주소값을 계산하고, 이를 첫 번째 레지스터 피연산자에 저장할
+뿐 이다. 이것이 메모리를 읽어들이지 않기 때문에 메모리 크기를 지정(\emph{e.g} 
+{\code dword}) 할 필요가 없다. 
+
+\index{LEA|)}
+\index{스택!지역 변수|)}
+
+\subsection{리턴값}\index{호출 규약!C!리턴값|(}
+
+void C 함수가 아닌 것들은 모두 값을 반환한다. C 호출 규약은 이를 어떻게 해야할 
+지 정해 놓았다. 리턴값은 레지스터를 통해서 전달된다. 모든 정수형 ({\code char}, {\code int}, {\code enum}, \emph{etc.})
+리턴값들은 EAX 레지스터에 저장되어 리턴된다. 만일 리턴값이 32 비트 보다 작을 경우 32 비트로 확장되어
+EAX 에 저장된다. 64 비트 값들은 EDX:EAX \index{레지스터!EDX:EAX} 레지스터 쌍에 저장된다. 
+포인터 값 또한 EAX 에 저장된다. 부동 소수점 값들의 경우, 수치 부프로세서의 ST0 레지스터에 저장된다.
+(이 레지스터에 대해선, 부동 소수점 장에서 다루겠다.)
+
+\index{호출 규약!C!리턴값|)}
+\index{호출 규약!C|)}
+
+\subsection{다른 호출 규약}\index{호출 규약|(}
+
+위에 설명한 것들은 모두 80x86 C 컴파일러에 의해 지원되는 표준
+C 호출 규약이였다. 보통 컴파일러들은 다른 형식의 호출 규약들도 
+지원한다. 어셈블리 언어와 다른 언어를 같이 이용한다면, 컴파일러가 무슨 호출 규약을
+이용하는지 아는 것이 매우 중요하다. 많은 경우 기본적으로는 표준 호출 규약을
+이용한다. 그러나, 모든 컴파일러가 그러는 것은 아니다.
+\footnote{Watcom C 컴파일러는 \index{컴파일러!Watcom} 표준 호출 규약을 
+기본값으로 이용하지 \emph{않는} 예이다. 자세한 내용은 Watcom 을 위한
+예제 코드를 참조해라.}
+여러 종류의 호출 규약을 사용할 수 있는 컴파일러들의 경우, 커맨드 라인에서 
+스위치를 이용하여 기본값으로 무슨 호출 규약을 이용 할지 설정 할 수 있다. 
+또한, C의 문법을 확장하여 개개의 함수를 다른 호출 규약을 이용하여 컴파일
+할 수도 있다. 그러나, 이러한 확장은 표준화 되어 있지 않으며, 컴파일러 마다
+다를 수 있다. 
+
+GCC 컴파일러는 여러 종류의 호출 규약을 지원한다. 함수의 호출 규약은 
+{\code \_\_attribute\_\_} \index{컴파일러!gcc!\_\_attribute\_\_}. 확장을 이용하여 개별로 지정할 수 있다. 
+예를 들어서, 표준 호출 규약을 이용하는 {\code f} 란 이름의 1 개의 {\code int} 인자를 가지는 void 함수를 선언하려면,
+\index{호출 규약!C} 함수의 원형에 대해 아래와 같이 이용하면 된다. 
+
+\begin{lstlisting}[stepnumber=0]{}
+void f( int ) __attribute__((cdecl));
+\end{lstlisting}
+
+GCC 는 또한 \emph{표준 호출(standard call)} \index{호출 규약!stdcall} 규약
+을 지원한다. {\code stdcall} 로 정의하려면 {\code cdecl} 을 {\code stdcall} 로 바꾸면
+된다. {\code stdcall} 과 {\code cdecl} 의 차이점은 {\code stdcall} 의 경우
+서브루틴이 스택으로 부터 인자를 제거해야 된다는 점이다. (이는 Pascal 호출 규약과 유사하다) 
+따라서, {\code stdcall} 호출 규약은 오직 고정된 수의 인자를 가지는 함수들에게서만
+사용될 수 있다. (\emph{i.e} 이는 {\code printf} 나 {\code scanf} 와는 다르다) 
+
+GCC 는 또한 {\code regparm} 라는 attribute 를 지원하여 
+\index{호출 규약!레지스터} 컴파일러로 하여금 스택을 이용하지 않고
+레지스터를 통해 최대 3 개의 정수 인자를 전달하게 한다. 이러한 형식의 최적화는
+많은 컴파일러들이 이용하고 있다. 
+
+볼랜드와 마이크로소프트는 호출 규약을 선언할 때 동일한 문법을 사용한다.
+이 들은 C 에 {\code \_\_cdecl}\index{호출 규약!\_\_cdecl} 와
+{\code \_\_stdcall}\index{호출 규약!\_\_stdcall} 키워드를 추가하였다. 
+이 키워드들은 함수의 원형의 이름 바로 앞에 써 주면 된다. 예를 들어 위의 함수 {\code f} 는
+볼랜드나 마이크로소프트사의 경우 아래와 같이 정의된다. 
+
+\begin{lstlisting}[stepnumber=0]{}
+void __cdecl f( int );
+\end{lstlisting}
+
+각각의 호출 규약에는 장점과 단점이 있다. {\code cdecl} 
+\index{호출 규약!C} 의 가장 큰 장점으로는 이는 매우 단순하고 다루기 쉽다.
+이는 어떠한 형식의 C 함수나 C 컴파일러에서 든지 사용될 수 있다. 다른 형식의
+호출 규약의 경우 서브루틴의 이식성을 떨어뜨린다. 하지만, 이 규약의 가장 큰
+단점은 바로 다른 호출 규약들에 비해 느릴 수 있고, 더 많은 메모리를 차지한다는
+것이다. (왜냐하면 함수가 호출 될 때마다, 코드에 저장된 인자들을 제거하는 명령을
+수행해야 되기 때문이다) 
+
+{\code stdcall} 호출 규약의 장점\index{호출 규약!표준 호출}은 {\code cdecl}
+보다 메모리를 적게 소모한다는 점이다. {\code CALL} 명령 이후에 스택을 정리할 필요가 없다.
+다만, 이 규약의 가장 큰 단점으로는 이 규약이 가변 개수의 인자들을 가지는 
+함수들에게 사용 될 수 없다는 점이다. 
+
+레지스터를 이용하는 호출 규약의 장점으로는 인자를 전달하는 속도가 매우 빠르다는
+점이다. 그러나, 이러한 규약들은 좀 더 복잡하다. 인자들 중 일부는 레지스터에, 
+나머지는 스택에 보관되어야 하기 때문이다. 
+
+\index{호출 규약|)}
+
+\subsection{예제}
+
+다음 예제는 어떻게 어셈블리 루틴이 C 프로그램에서 작동할 수 있는지 보여준다.
+(이 프로그램은 그림 ~\ref{fig:skel} 과 같은 어셈블리 뼈대 프로그램이나, driver.c 
+모듈과 같은 것을 사용하지 않는다.) 
+
+\LabelLine{main5.c}
+\begin{lstlisting}[escapeinside=~~]{}
+#include <stdio.h>
+/* ~ 어셈블리 루틴의 원형~ */
+void calc_sum( int, int * ) __attribute__((cdecl));
+
+int main( void )
+{
+  int n, sum;
+
+  printf("Sum integers up to: ");
+  scanf("%d", &n);
+  calc_sum(n, &sum);
+  printf("Sum is %d\n", sum);
+  return 0;
+}
+\end{lstlisting}
+\LabelLine{main5.c}
+
+\begin{AsmCodeListing}[label=sub5.asm, commandchars=\\\%|]
+; 서브루틴 _calc_sum
+; 1 부터 n 까지 정수들의 합을 구한다. 
+; 인자:
+;   n    - 어디까지 합할 지 저장 ([ebp + 8] 에 위치)
+;   sump - sum 을 저장할 공간에 대한 int 포인터([ebp + 12] 에 위치)
+; 의사 C 코드:
+; void calc_sum( int n, int * sump )
+; {
+;   int i, sum = 0;
+;   for( i=1; i <= n; i++ )
+;     sum += i;
+;   *sump = sum;
+; }
+
+segment .text
+        global  _calc_sum
+;
+; 지역변수:
+;   [ebp-4] 에 위치한 합 
+_calc_sum:
+        enter   4,0               ; sum 을 위한 스택 공간을 할당
+        push    ebx               ; 매우 중요하다! \label%line:pushebx|
+
+        mov     dword [ebp-4],0   ; sum = 0
+        dump_stack 1, 2, 4        ; ebp-8 에서 ebp+16 까지 스택을 출력\label%line:dumpstack|
+        mov     ecx, 1            ; ecx 는 의사코드에서의 i 
+for_loop:
+        cmp     ecx, [ebp+8]      ; cmp i 와 n
+        jnle    end_for           ; if i <= n 가 아니면, 종료
+
+        add     [ebp-4], ecx      ; sum += i
+        inc     ecx
+        jmp     short for_loop
+
+end_for:
+        mov     ebx, [ebp+12]     ; ebx = sump
+        mov     eax, [ebp-4]      ; eax = sum
+        mov     [ebx], eax
+
+        pop     ebx               ; restore ebx
+        leave
+        ret
+\end{AsmCodeListing}
+
+\begin{figure}[t]
+\begin{Verbatim}[frame=single]
+Sum integers up to: 10
+Stack Dump # 1
+EBP = BFFFFB70 ESP = BFFFFB68
+ +16  BFFFFB80  080499EC
+ +12  BFFFFB7C  BFFFFB80
+  +8  BFFFFB78  0000000A
+  +4  BFFFFB74  08048501
+  +0  BFFFFB70  BFFFFB88
+  -4  BFFFFB6C  00000000
+  -8  BFFFFB68  4010648C
+Sum is 55
+\end{Verbatim}
+\caption{sub5 프로그램의 실행 예제 \label{fig:dumpstack}}
+\end{figure}
+
+왜 {\code sub5.asm} 의 ~\ref{line:pushebx} 행이 중요할까? 왜냐하면 C 호출 규약은
+EBX 의 값이 바뀌면 안되기 때문이다. 만일, 이 처리를 해주지
+않는다면 프로그램이 제대로 동작하지 않을 가능성이 매우 크다. 
+
+~\ref{line:dumpstack} 행은 {\code dump\_stack} 매크로가 어떻게 작동하는지 보여주고 있다.
+첫 번째 인자는 단지 정수 라벨, 두 번째와 세번째 인자는 출력할 EBP 의 범위를 설정하는 것임을
+기억하자. 그림 ~\ref{fig:dumpstack} 은 프로그램을 실행한 모습을 보여준다. 이 덤프에서, 합을
+저장한 곳의 주소가 BFFFFB80 (EBP~+~12 에 위치) 이고, 어디까지 합할지 기억한 값은 
+0000000A (EBP~+~8 에 위치), 루틴의 리턴 주소는 08048501(EBP~+~4 에 위치), 
+저장된 EBP 의 값은 BFFFFB88(EBP 에 위치), 지역 변수의 값은 0 (EBP~-~4 에 위치), 
+마지막으로 저장된 EBX 의 값은 4010648C(EBP ~-~8 에 위치) 임을 알 수 있다. 
+
+{\code calc\_sum} 함수는 합을 저장하는 것을 포인터 인자로 받아들이는 대신에 
+합을 리턴값으로 출력하게 수정할 수 있다. 합이 정수값이기 때문에 그 합은 EAX 에 저장되어야 한다. 
+{\code main5.c} 의 ~11 행은 아래와 같이 바뀐다:
+
+\begin{lstlisting}[stepnumber=0]{}
+  sum = calc_sum(n);
+\end{lstlisting}
+또한, {\code calc\_sum} 의 원형 또한 변경되어야 한다. 아래는 수정된
+어셈블리 코드 이다:
+\begin{AsmCodeListing}[label=sub6.asm]
+; 서브루틴 _calc_sum
+; 1 부터 n 까지 정수들의 합을 구한다. 
+; 인자:
+;   n    - 어디까지 합할 지 저장 ([ebp + 8] 에 위치)
+; 리턴값:
+;   합한 값
+; 의사 C 코드:
+; int calc_sum( int n )
+; {
+;   int i, sum = 0;
+;   for( i=1; i <= n; i++ )
+;     sum += i;
+;   return sum;
+; }
+segment .text
+        global  _calc_sum
+;
+; local variable:
+;   sum at [ebp-4]
+_calc_sum:
+        enter   4,0               ; 합을 저장할 공간을 스택에 할당
+
+        mov     dword [ebp-4],0   ; sum = 0
+        mov     ecx, 1            ; ecx 는 의사코드에서의 i
+for_loop:
+        cmp     ecx, [ebp+8]      ; cmp i 와 n
+        jnle    end_for           ; if i <= n 가 아니면, 종료
+
+        add     [ebp-4], ecx      ; sum += i
+        inc     ecx
+        jmp     short for_loop
+
+end_for:
+        mov     eax, [ebp-4]      ; eax = sum
+
+        leave
+        ret
+\end{AsmCodeListing}
+
+\subsection{어셈블리에서 C 함수를 호출하기}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+segment .data
+format       db "%d", 0
+
+segment .text
+...
+      lea    eax, [ebp-16]
+      push   eax
+      push   dword format
+      call   _scanf
+      add    esp, 8
+...
+\end{AsmCodeListing}
+\caption{어셈블리에서 {\code scanf} 호출하기\label{fig:scanf}}
+\end{figure}
+
+C 와 어셈블리를 같이 이용하는데 있어서 가장 큰 장점은 바로 어셈블리 코드를 
+통해서 C 라이브러리와 유저가 작성한 함수들에 접근이 가능하다는 점이다.
+예를 들어, 만약 {\code scanf} 함수를 호출하여 키보드로 부터 정수를 
+입력 받고 싶다고 하자. 그림 ~\ref{fig:scanf} 는 위 작업을 하는 코드를
+보여준다. {\code scanf} 는 C 호출 규약을 지킨다는 점을 잊지 말아야 한다. 
+이 말은 즉슨, 이는 EBX, ESI, EDI 레지스터의 값을 저장하지만, EAX, ECX, EDX
+레지스터의 값은 변경 될 수 있다는 점이다. 사실, EAX 는 {\code scanf} 호출의
+리턴값을 저장하기 때문에 값이 반드시 바뀌게 된다. C 코드를 함께 이용하는 어셈블리
+코드들의 예를 보고 싶다면 {\code asm\_io.obj} 를 만들기 이용하였던
+{\code asm\_io.asm} 의 코드를 한 번 봐보면 좋다. 
+
+\index{C 와 함께 작업하기|)}
+
+\section{재진입 및 재귀 서브프로그램}\index{재귀|(}
+
+\index{서브프로그램!재진입|(}
+재진입 서브프로그램(reetrant) 는 다음의 조건들을 반드시 만족해야 한다. 
+
+\begin{itemize}
+\item 
+이는 어떠한 코드 명령도 수정하면 안된다. 고급 언어에선 조금 어렵겠지만,
+어셈블리에서는 자기 자신의 코드를 수정하지 않는 일은 어렵지 않다. 예를 들어:
+
+\begin{AsmCodeListing}[frame=none, numbers=none]
+      mov    word [cs:$+7], 5      ; 5 를 7 바이트 앞에 있는 워드에 복사 
+      add    ax, 2                 ; 이전의 문장은 2 에서 5 로 바뀐다.
+\end{AsmCodeListing}
+
+위 코드는 실제모드에서 작동한다. 그러나 보호모드에서는 코드 세그먼트가 오직
+읽기 전용(Read-Only)이다. 따라서, 위 첫번째 행이 실행된다면 보호모드 시스템에선 프로그램이
+중단될 것이다. 이러한 형식의 프로그래밍은 여러 이유에서 좋지 않다. 이는 혼란스러울
+뿐더러, 유지, 보수가 어렵고, 코드 공유(code sharing)를 할 수 없다. (아래 참고)
+
+\item 이는 전역 데이터를 수정하면 안된다. (예를 들어 {\code data} 나
+{\code bss} 세그먼트에 들어있는 데이터) 모든 변수들은 스택에 보관된다. 
+
+\end{itemize}
+
+재진입 코드를 쓰면 몇 가지 좋은 점들이 있다. 
+
+\begin{itemize}
+\item 재진입 프로그램은 재귀적으로 호출 가능하다.
+\item
+재진입 프로그램은 다수의 프로세스들에 의해 공유 가능하다. 많은 수의 
+멀티태스킹 운영체제에선, 하나의 프로그램에서 작동되는 여러 개의 인스턴스(instance)가
+있을 때, 오직 코드의 \emph{한} 부분만이 메모리에 상주한다. 공유되는 
+라이브러리와 DLL (\emph{동적 링크 라이브러리(Dynamic Link Libraries)}) 또한
+이 아이디어를 이용한다. 
+\item 재진입 프로그램은 \emph{다중 쓰레드(multi-threaded)} 에서 더 잘 작동된다. 
+\footnote{다중 쓰레드 프로그램은 실행시 여러 개의 쓰레드를 가진다. 이 말은, 
+프로그램 자체가 멀티태스킹을 한다는 뜻이다.} pro\-grams. Windows 9x/NT 그리고
+대부분의 UNIX 꼴의 운영체제 (Solaris, Linux, \emph{etc.}) 가 다중 쓰레드 프로그램을
+지원한다. 
+
+
+\end{itemize}
+\index{서브프로그램!재진입|)}
+
+\subsection{재귀 서브프로그램}
+
+이러한 형식의 서브프로그램들은 자기 자신을 호출한다. 재귀 호출은 
+\emph{직접(direct)} 혹은 \emph{간접(indirect)} 호출이 될 수 있다. 직접
+재귀 호출은 {\code foo} 라는 서브프로그램이 {\code foo} 내부에서
+스스로 호출했을 때를 일컫는다. 간접 재귀 호출은 서브프로그램이 자기
+자신으로 부터 직접적으로 호출되지 않았지만 다른 서브프로그램이 호출하기에 
+호출된 것을 의미한다. 예를 들면 {\code foo} 는 {\code bar} 을 호출 할 수 있고,
+{\code bar} 은 {\code foo} 를 호출 할 수 있는 경우 이다. 
+
+재귀 서브프로그램들은 반드시 \emph{종료 조건(termination condition)} 
+이 있어야 한다. 만약 위 조건이 참이라면 더이상의 재귀 호출은 만들어
+지지 않는다. 만약 재귀 루틴이 종료 조건이 없거나, 조건이 절대로 참이 
+될 수 없다면 이는 스스로 재귀를 무한히 반복할 것이다. (마치 무한 루프 처럼)
+
+\begin{figure}
+\begin{AsmCodeListing}[frame=single]
+; finds n!
+segment .text
+      global _fact
+_fact:
+      enter  0,0
+
+      mov    eax, [ebp+8]    ; eax = n
+      cmp    eax, 1
+      jbe    term_cond       ; 만일 n <= 1 이면 종료
+      dec    eax
+      push   eax
+      call   _fact           ; eax = fact(n-1)
+      pop    ecx             ; eax 에 답 저장
+      mul    dword [ebp+8]   ; edx:eax = eax * [ebp+8]
+      jmp    short end_fact
+term_cond:
+      mov    eax, 1
+end_fact:
+      leave
+      ret
+\end{AsmCodeListing}
+\caption{재귀 팩토리얼 함수\label{fig:factorial}}
+\end{figure}
+
+\begin{figure}
+\centering
+%\includegraphics{factStack.eps}
+\input{factStack.latex}
+\caption{팩토리얼 함수의 스택 프레임\label{fig:factStack}}
+\end{figure}
+
+그림 ~\ref{fig:factorial} 은 재귀적으로 팩토리얼을 계산하는 함수를 보여준다.
+이는 C 를 통해 아래와 같이 호출될 수 있다:
+
+\begin{lstlisting}[stepnumber=0]{}
+x = fact(3);         /* find 3! */
+\end{lstlisting}
+
+그림 ~\ref{fig:factStack} 은 마지막으로 호출 될 때의 스택의 모습을 보여준다.
+
+\begin{figure}[t]
+\begin{lstlisting}[frame=tlrb]{}
+void f( int x )
+{
+  int i;
+  for( i=0; i < x; i++ ) {
+    printf("%d\n", i);
+    f(i);
+  }
+}
+\end{lstlisting}
+\caption{또다른 예제 (C 버전)\label{fig:rec2C}}
+\end{figure}
+
+\begin{figure}
+\begin{AsmCodeListing}[frame=single]
+%define i ebp-4
+%define x ebp+8          ; 유용한 매크로
+segment .data
+format       db "%d", 10, 0     ; 10 = '\n'
+segment .text
+      global _f
+      extern _printf
+_f:
+      enter  4,0           ; i 를 위한 스택 공간 할당
+
+      mov    dword [i], 0  ; i = 0
+lp:
+      mov    eax, [i]      ; i < x 인가?
+      cmp    eax, [x]
+      jnl    quit
+
+      push   eax           ; printf 호출
+      push   format
+      call   _printf
+      add    esp, 8
+
+      push   dword [i]     ; f 호출
+      call   _f
+      pop    eax
+
+      inc    dword [i]     ; i++
+      jmp    short lp
+quit:
+      leave
+      ret
+\end{AsmCodeListing}
+\caption{또다른 예제 (어셈블리 버전)\label{fig:rec2Asm}}
+\end{figure}
+
+그림 ~\ref{fig:rec2C} 와 \ref{fig:rec2Asm} 은 각각 C 와 어셈블리를 이용한
+좀 더 복잡한 예제를 보여준다. {\code f(3)} 의 결과는 무엇일까? {\code ENTER} 명령이
+새로운 {\code i} 를 각 재귀 호출 마다 스택에 생성한다는 점을 주목해라. 따라서, 각각의 
+{\code f} 의 재귀 인스턴스는 독립적인 변수 {\code i} 를 가지게 된다. 이는 {\code i} 를 
+{\code 데이터} 세그먼트에 더블워드로 정의하는 것과 다르다. 
+
+\index{재귀|)}
+
+\subsection{C 변수 저장 형식에 대해서}
+
+C 는 변수를 저장하기 위한 방법으로 몇 가지 형식들을 지원한다. 
+\begin{description}
+\item[전역(global)] 
+\index{저장 형식!전역}
+이러한 변수들은 모든 함수의 외부에서 정의되며, 고정된 메모리 위치에
+저장되어 있다 ({\code data} 나 {\code bss} 세그먼트에) 또한, 프로그램
+시작 부터 끝날 때 까지 계속 존재한다. 기본적으로 이들은 프로그램의 어떠한
+함수에서든지 접근이 가능하다. 그러나, 이들이 {\code static} 으로 선언되어
+있으면, 오직 같은 모듈에서의 함수들만이 이들에 접근가능하다 (\emph{i.e.}
+어셈블리 형식으로 말하자면, 라벨이 외부(external) 이 아닌 내부(internal) 이다).
+
+\item[정적(static)] 
+\index{저장 형식!정적}
+
+이들은 함수의 \emph{지역(local)} 변수로, {\code static} 으로 선언된다.
+(불행이도, C 언어는 {\code static} 을 두 가지 용도로 사용한다!) 이러한 변수들
+또한 고정된 메모리 위치에 상주한나, ({\code data} 나 {\code bss}) 오직
+이들이 정의되어 있는 함수에서만 직접적으로 접근이 가능하다. 
+
+\item[자동(automatic)] 
+\index{저장 형식!자동}
+
+이는 C 변수가 함수 내에서 정의될 때 기본적으로 지정되는 형식이다. 이러한 
+변수들은 함수가 호출 될 때 스택에 할당되고, 함수가 리턴될 때 스택에서 
+사라진다. 따라서 이들은 고정된 메모리 위치를 갖고 있지 않는다. 
+
+\item[레지스터(register)] 
+\index{저장 형식!레지스터}
+
+이 키워드는 컴파일러로 하여금 이 변수의 데이터를 위해 레지스터를 사용하도록 한다.
+이는 단순히 \emph{요청} 이다. 즉, 컴파일러는 이를 반드시 지켜야 할 필요가 \emph{없다}.
+이 변수의 주소가 프로그램에서 사용된다면 이 요청은 무시된다 (왜냐하면 레지스터들은
+주소가 없기 때문이다). 또한, 오직 단순한 정수 형식들 만이 레지스터의 값이 될 수 있다. 
+구조형은 될 수 없다; 왜냐하면 이들은 레지스터 크기에 맞지 않기 때문이다! C 컴파일러는 종종 보통의
+자동 변수들을 프로그래머에 알리지 않고 레지스터 변수로 바꾸어 주기도 한다. 
+
+\item[휘발성(volatile)] 
+\index{저장 형식!휘발성}
+
+이 키워드는 컴파일러에게 이 변수의 값이 어무 때나 바뀔 수 있음을 알려준다. 
+이 말은 컴파일러가 이 변수가 언제 수정될지에 대한 정보를 알 수 없다는 
+뜻이다. 종종 컴파일러는 변수의 값을 레지스터에 잠시 보관해 놓고, 변수가 
+사용되는 코드에서 이를 대신 사용한다. 그러나, {\code volatile} 형식의 변수들에겐
+이러한 형태의 최적화를 할 수 없다. 가장 흔한 volatile 예제로는 다중 쓰레드 프로그램에서
+두 개의 쓰레드에 의해 값이 변경 될 수 있는 변수 이다. 아래의 코드를 고려하자
+\begin{lstlisting}{}
+x = 10;
+y = 20;
+z = x;
+\end{lstlisting}
+
+{\code x} 는 다른 쓰레드에 의해 변경 될 수 있고, ~1 과 3 행에서 다른 쓰레드가
+{\code x} 의 값을 변경하여 {\code z} 가 0 이 안될 수 있다. 그러나, {\code x} 가
+휘발성으로 선언되지 않으면 컴파일러는 {\code x} 가 변경되지 않았다고 생각하고
+{\code z} 를 10 으로 바꾸어 준다. 
+
+{\code volatile} 은 컴파일러가 변수를 위해 레지스터를 사용하는 것을
+막을 수 있다. 
+
+\end{description}
+\index{서브프로그램|)}

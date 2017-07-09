@@ -1,0 +1,949 @@
+﻿
+\chapter{어셈블리 언어의 기초}
+
+\section{정수들 다루기 \index{정수|(}}
+
+\subsection{정수의 표현 \index{정수!표현|(}}
+
+\index{정수!부호 없는 정수|(}
+정수는 두 가지 종류로 나눌 수 있다 : 부호 없는 정수(unsigned) 와 부호 있는 정수(signed) 이다. 부호 없는 정수 (즉, 음이 아닌) 는 이진수로 직관적으로 표현된
+다. 예를 들어 200 은 1 바이트 부호 없는 정수로, 11001000 (또는 16 진수로 C8) 로 나타난다. 
+
+\index{정수!부호 없는 정수|)}
+
+\index{정수!부호 있는 정수|(}
+부호 있는 정수 (이는 양수 또는 음수가 될 수 있다) 는 좀더 복잡한 방법으로 표현된다. 예를 들어, $-56$ 과 $+56$ 은 바이트로 똑같이 00111000 으로 표현될 
+것이다. 종이에다가는 우리가 $-56$ 을 $-111000$ 이라 쓸 수 있지만 컴퓨터 메모리 상에선 어떻게 할 것인가? 어떻게 마이너스 기호가 저장될 수 있는가?
+
+컴퓨터 메모리에 부호 있는 정수를 나타내는 방법은 대표적으로 3 가지가 있다. 이 모든 방법들은 공통적으로 정수의 최상위 비트를 \emph{부호 비트(sign bit)}
+\index{정수!부호 비트} 로 사용한다. 이 비트는 만약 이 정수가 양수이면 0, 음수이면 1 의 값을 가진다. 
+
+\subsubsection{부호 있는 크기 표현법 \index{정수!표현!부호있는 크기}}
+
+첫 번째 방법은 가장 단순한 방법인데, \emph{부호 있는 크기(signed magnitude)} 표현법 이라 부른다. 이는 정수를 두 부분으로 나누는데, 첫 번째 부분은 부호 비트이고
+나머지 부분 그 정수의 절대값(크기)을 나타낸다. 따라서 56 은 바이트로 $\underline{0}0111000$ 으로 나타내지고 (부호 비트에 밑줄 쳐짐) $-56$ 은 바이트로 
+$\underline{1}10111000$ 이 된다. 가장 큰 바이트 값은 $\underline{0}1111111$, 혹은 $+127$ 이 되고 가장 작은 바이트 값은 $\underline{1}1111111$ 혹은 $-127$
+이 된다. 어떠한 값의 부호를 바꾸려면 단순히 부호 비트의 값만 바꾸어 주면 된다. 이 표현법은 상당히 직관적이지만 몇 가지 단점이 있다. 0 은 양수도, 음수도 아니기
+때문에 0 을 두 가지로 표현할 수 있게 된다. $+0$($\underline{0}0000000$) 과 $-0$($\underline{1}0000000$) 이다. 이 때문에 CPU 의 산술 연산 로직이 복잡하게 된다.
+두 번째로 보통의 산술 연산 로직도 복잡해 지는데 예를 들어 10 에 $-56$ 이 더해진다면 이는 다시 10 에서 56 을 빼었다고 생각되어야 하기 때문이다. 
+결과적으로 이 표현법을 사용하면 CPU 의 로직이 복잡해지게 된다.
+
+\subsubsection{1 의 보수 표현법}\index{정수!표현!1의 보수}
+
+두 번째 방법은 \emph{1의 보수(one's complement)} 표현법이다. 어떠한 수의 1 의 보수는 단순히 각각의 비트를 반전(1 을 0, 0 을 1로)시키면 얻을 수 있다.
+(이는 새 비트의 값을 ($1 -$ 이전의 비트) 로 하는 것으로도 생각할 수 있다.) 예를 들어 $\underline{0}0111000$ ($+56$) 의 1 의 보수는
+$\underline{1}1000111$ 이 된다. 
+1 의 보수 표현법이서, 어떤 수의 1 의 보수를 계산하는 것은 단순히 - 를 붙이는 것과 같다. 따라서 $\underline{1}1000111$ 은 $-56$ 을 표현한 것과 같다. 
+1의 보수 표현에서 부호 비트의 값이 자연스럽게 바뀌었다. 첫 번째 방법에서 처럼 0 을 나타내는 방법은 두 가지가 있는데 $\underline{0}0000000$ ($+0$) 과 
+$\underline{1}1111111$ ($-0$) 이 된다. 
+16 진수를 이진수로 바꾸지 않고도 보수를 계산하는 방법은 단순히 각 자리를 F (또는 십진수로 15) 에서 빼는 것이다. 예를 들어 $+56$ 의 경우 16 진수로
+38 로 나타나는데 1의 보수를 찾기위해 각 자리를 F 에서 빼면 C7 이 된다. 이는 위에서 나타난 결과와 일치한다. 
+
+\subsubsection{2의 보수 표현법 \index{정수!표현!2의 보수|(}
+               \index{2의 보수|(}}
+
+위 두 방법들은 모두 초기의 컴퓨터에서만 사용되었던 방법들이다. 현대의 컴퓨터는 이 세 번째 방법을 사용하는데 이를 \emph{2의 보수} 표현법 이라 한다.
+어떤 수의 2의 보수는 아래 두 단계를 통해 찾을 수 있다 :
+\begin{enumerate}
+\item 어떤 수의 1 의 보수를 계산한다. 
+\item 위 단계에서 나온 결과에 1 을 더한다. 
+\end{enumerate}
+아래는 $\underline{0}0111000$(56) 을 이용한 방법이다. 먼저, 56 의 1 의 보수를 계산하면: $\underline{1}1000111$. 그리고 1 을 더하면:
+\[
+\begin{array}{rr}
+ & \underline{1}1000111 \\
++&                    1 \\ \hline
+ & \underline{1}1001000
+\end{array}
+\]
+
+2 의 보수 표현법에서 2 의 보수를 계산하는 것은 숫자에 - 를 붙이는 것과 같다. 따라서 $\underline{1}1001000$ 은 $-56$ 를 2 의 보수 표현법으로 나타낸 것
+이다. 어떤 수에 음을 두 번 취하면 원래 수로 돌아와야 하는데 놀랍게도 2 의 보수 표현법에서는 이를 잘 만족한다. 한 번 $\underline{1}1001000$
+의 2의 보수 표현을 취해 보자. 
+
+\[
+\begin{array}{rr}
+ & \underline{0}0110111 \\
++&                    1 \\ \hline
+ & \underline{0}0111000
+\end{array}
+\]
+
+2의 보수 표현에서 1 을 더할 때, 이 덧셈에서 최상위 비트에서 캐리(carry)가 있을 것이다. 이 캐리는 쓰이지 \emph{않는다}. 컴퓨터의 모든 데이터들은 정해진 
+크기(비트의 수)로 보관된다. 두 개의 바이트를 더하면 언제나 결과는 바이트로 나온다. (또한 워드에 워드를 더하면 워드가 나오고, 다른 것들도 매한가지) 
+이는 2의 보수 표현에서 가장 중요한 부분이다. 예를 들어서 1 바이트의 0 을 생각하자. ($\underline{0}0000000$). 이것의 2의 보수를 계산하면
+
+\[
+\begin{array}{rr}
+ & \underline{1}1111111 \\
++&                    1 \\ \hline
+c& \underline{0}0000000
+\end{array}
+\]
+
+이 때, $c$ 는 캐리(carry)를 나타낸다. (이 장 뒷부분에서, 결과에 저장되지 않는 올림이 발생되었음을 어떻게 알아채는지에 대해 이야기 하겠다.)
+따라서 0 을 나타내는 2의 보수 표현은 오직 한 가지 방법밖에 없다. 이 때문에 2의 보수 표현을 이용한 산술 연산을 이전의 방법을 이용하였을 때 보다 
+훨씬 쉽게 수행할 수 있게 된다. 
+
+\begin{table}
+\centering
+\begin{tabular}{||c|c||}
+\hline
+수& 16 진수 표현 n \\
+\hline
+0 & 00 \\
+1 & 01 \\
+127 & 7F \\
+-128 & 80 \\
+-127 & 81 \\
+-2 & FE \\
+-1 & FF \\
+\hline
+\end{tabular}
+\caption{2의 보수 표현 \label{tab:twocomp}}
+\end{table}
+
+2 의 보수 표현을 이용하여 한 개의 바이트를 통해 $-128$ 에서 $+127$ 까지 나타낼 수 있게 되었다. 표 ~\ref{tab:twocomp} 는 2의 보수 표현으로 나타낸
+몇 개의 수를 보여준다. 만약 16 비트가 이용된다면 $-32,768$ 에서 $+32,767$ 까지 표현할 수 있게 된다. $+32,767$ 은 7FFF 로 나타나고, $-32,768$ 은 
+8000 으로, -128 은 FF80, -1 은 FFFF 로 나타나게 된다. 32 비트를 이용한다면 대략 $-20$ 억에서 $+20$ 억의 수를 모두 나타낼 수 있게 된다. 
+
+CPU 는 어떤 바이트 (혹은 워드나 더블워드) 가 어떠한 형식으로 표현되어 있는지 알 수 없다. 어셈블리어는 고급 언어가 가지고 있는 형(type) 에 대한 
+개념이 없다. 데이터가 어떻게 생각되느냐는 그 데이터에 어떠한 명령이 사용되는지에 달려 있다. 16 진수 값 FF 가 $-1$ 로 생각되든지 (부호 있는 경우) 
+아니면 $+255$ 로 생각되든지는 (부호 없는 경우) 오직 프로그래머에 달려 있다. 반면에 C 언어는 부호 있는 정수(signed)와 부호 없는 정수(unsigned)를 각각 정의한다. 
+이는 C 컴파일러로 하여금 그 데이터에 정확한 명령들을 내리게 해준다. 
+
+\index{2의 보수|)}
+\index{정수!표현!2의 보수|)}
+\index{정수!부호 있는 정수|)}
+
+\subsection{부호 확장}\index{정수!부호 확장|(}
+
+어셈블리어에서 모든 데이터는 정해진 크기가 있다. 다른 데이터와 사용하기 위해 데이터의 크기를 줄이는 작업을 자주 하게 된다. 크기를 감소시키는 것이
+가장 쉽다. 
+
+\subsubsection{데이터의 크기 줄이기}
+
+데이터의 크기를 줄이기 위해 단순히 데이터의 가장자리 비트를 줄이면 된다. 아래는 그 예 이다. 
+
+\begin{AsmCodeListing}[numbers=none,frame=none]
+      mov    ax, 0034h      ; ax = 52 (16 비트로 저장됨)
+      mov    cl, al         ; cl = ax 의 하위 8 바이트
+\end{AsmCodeListing}
+
+당연하게도, 크기를 줄였는데 수의 값이 정확하게 표현이 되지 않으면 크기를 줄이는 방법은 소용이 없을 것이다. 예를 들어서 {\code AX}  에 0134h (혹은 10 진수
+로 308, 이 때 끝에 붙은 h 는 이 수가 16 진수 (hex) 로 나타내져 있음을 알려준다.) 이 있었는데 위 코드를 실행하면 {\code CL} 에 34h 가 된다. 이 방법은 부호 
+있는 정수와 부호 없는 정수 모두 사용 가능하다. 부호 있는 정수를 고려해보면 {\code AX} 에 FFFFh (워드로 $-1$) 가 있었다면 {\code CL} 은 FFh (바이트로 
+$-1$) 이 된다. 그러나, {\code AX} 의 값이 부호가 없는 경우라면 맞지 않음을 유의해라. 
+
+부호 없는 정수의 경우 변환이 올바르게 일어나기 위해선 제거되는 비트들이
+반드시 0 이어야 한다. 반면에 부호 있는 정수들의 경우 제거되는
+비트들은 모두 0 이거나 모두 1 이어야 한다. 또한, 제거 되지 않은 첫 번째 비트는 
+반드시 제거된 비트들과 같은 값을 가져야한다.
+이 비트는 나중에 작아진 값의 새로운 부호 비트가 될 것이다.
+이 비트가 이전의 부호 비트와 같아야 한다는 점이 중요하다.  
+
+\subsubsection{데이터의 크기 늘리기}
+
+데이터의 크기를 늘리는 작업은 줄이는 작업보다 좀 더 복잡하다.
+예를 들어서 1 바이트 FF 를 생각해보자. 만약 이것이 워드로 늘
+려진다면, 그 워드가 가질 수 있는 값은 무엇이 있을까? 이는 FF
+가 어떻게 해석되기에 따라 달라진다. 만약 FF 가 부호 없는 정수
+였다면 (십진수로 255), 워드로 확장 시, 그 값은 00FF 가 된다.
+그러나, 만약 이 FF 가 부호 있는 정수 (십진수로 $-1$) 였다면 워드
+로 확장시 FFFF 가 되어야만 한다. 
+
+보통 부호 없는 정수를 확장한다면 확장된 새 비트가 모두 0 이 된다. 따라서
+FF 는 00FF 가 된다. 그러나, 부호 있는 정수를 확장하려면 반드시 부호 비트를
+\emph{확장} 하게 된다. \index{정수!부호 비트} 이 말은 새로운 비트가 이전의
+부호 비트의 값과 같다는 뜻이다. 따라서, FF 의 부호 비트의 값이 1 이였으므로
+새롭게 확장된 수에 추가된 비트들은 모두 1 이 되어 FFFF 가 된다. 만약 부호 
+있는 정수의 값이 5A (십진수로 90) 이였다면 확장시 005A 가 될 것이다. 
+
+80386 은 몇 가지 수를 확장하는 명령들을 제공한다. 컴퓨터는 그 수가 부호가 있는
+정수 인지, 부호 없는 정수인지 알 수 없다는 사실을 명심하라. 이 모든 것은
+프로그래머가 정확한 명령을 사용하는데 달려 있다. 
+
+부호 없는 정수들에 한에서 {\code MOV} 연산을 통해 상위 비트에 0 을 집어 
+넣을 수 있다. 예를 들어서 바이트 AL 을 워드 AX 로 확장시키기 위해선:
+\begin{AsmCodeListing}[numbers=none,frame=none]
+      mov    ah, 0   ; 상위 8 비트들을 모두 0 으로 만듦
+\end{AsmCodeListing}
+
+그러나 {\code MOV} 명령을 통해 AX 에 저장된 부호 없는 워드를 부호 없는
+더블워드인 EAX 에 저장할 순 없다. 왜냐하면, EAX 의 상위 16 비트를 가리키는
+말이 {\code MOV} 명령에선 없기 때문이다. 80386 은 이 문제를 {\code MOVZX}
+명령을 추가함으로써 해결하였다. \index{MOVZX} 이 명령은 2 개의 피연산자를
+가진다. 값이 들어가는 피연산자(데스티네이션, destination) 는 첫 번째 피연산자로, 16 비트나 
+32~ 비트 레지스터여야 한다. 값을 주는 피연산자(소스, source) 는 두 번째 피연산자로
+8 또는 16~ 비트 레지스터, 혹은 메모리상의 바이트나 워드 이어야만 한다. 
+다른 조건으로는 데스티네이션이 반드시 소스의 크기 보다 커야 한다는 점이다. 
+(대부분의 명령들은 모두 소스의 크기와 데스티네이션의 크기가 같아야 한다)
+아래 그 예가 있다:
+
+\begin{AsmCodeListing}[numbers=none,frame=none]
+      movzx  eax, ax      ; ax 를 eax 로 확장
+      movzx  eax, al      ; al 을 eax 로 확장
+      movzx  ax, al       ; al 을 ax 로 확장
+      movzx  ebx, ax      ; ax 를 ebx 로 확장
+\end{AsmCodeListing}
+
+부호 있는 정수 들의 경우 {\code MOV} 연산을 적용하리란 쉽지 않다. 8086 은 
+부호 있는 정수들의 확장을 위해 몇가지 명령들을 지원하였다. {\code CBW} 
+\index{CBW} (바이트를 워드로 변환) 명령은 AL 레지스터를 AX 로 확장해 준다. 
+이 때, 피연산자는 쓸 필요가 없다. {\code CWD} \index{CWD} (워드를 더블 
+워드로 변환) 명령은 AX 를 DX:AX 로 확장해 준다. 이 때, DX:AX 의 뜻은 
+DX 와 AX 레지스터를 묶어서 하나의 32~ 비트 레지스터로 생각하란 뜻이다. 
+이 때 상위 16 비트는 DX 레지스터가, 하위 16 비트는 AX 레지스터가 갖게 된다.
+(8086은 32 비트 레지스터가 없었음을 상기하자!) 80386 에서는 몇 가지 새로운 명령들을
+사용할 수 있다. {\code CWDE} \index{CWDE} (워드를 더블워드 확장으로
+변환) 명령은 AX 를 EAX 로 확장한다. {\code CDQ} 명령은 EAX 를 EDX:EAX (
+64~ 비트!) \index{레지스터!EDX:EAX} 로 확장해준다. 마지막으로
+{\code MOVSX} \index{MOVSX} 명령은 부호 있는 정수에 대해서 
+{\code MOVZX} 와 똑같은 작업을 한다. 
+
+\subsubsection{C 프로그래밍에 응용하기}
+
+C 에서도 부호 있는/없는 정수들의 확장이 사용된다. \MarginNote{
+ANSI C 는 {\code char} 가 부호가 있는지 없는지 정의하지 않고 개개의 컴파일러
+에게 정하라고 한다. 이는 타입이 그림 ~\ref{fig:charExt} 에서 명확히 정의
+되는 이유이다. } C 의 변수들은 부호가 있다/없다 로 정의된다. ({\code int} 는 
+부호가 있다). 그림 ~\ref{fig:charExt} 의 코드를 생각해 보자. 행 ~3 에서 변수
+{\code a} 는 부호 없는 정수들을 위한 확장규칙에 따라 ({\code MOVZX} 
+를 사용하여) 확장되었지만 행 ~4 를 보면 부호 있는 정수들을 위한 확장규칙
+에 따라 {\code b} 가 확장되었음을 알 수 있다. ({\code MOVSX} 를 사용하여)
+
+\begin{figure}[t]
+\begin{lstlisting}[frame=tlrb]{}
+unsigned char uchar = 0xFF;
+signed char   schar = 0xFF;
+int a = (int) uchar;     /* a = 255 (0x000000FF) */
+int b = (int) schar;     /* b = -1  (0xFFFFFFFF) */
+\end{lstlisting}
+\caption{}
+\label{fig:charExt}
+\end{figure}
+
+이 주제와 관련하여 대표적인 C 프로그래밍 버그가 있다. 그림 ~\ref{fig:IObug}
+의 코드를 보자. {\code fgetc()}{\samepage 함수의 원형은 :
+\begin{CodeQuote}
+int fgetc( FILE * );
+\end{CodeQuote}
+이다. 아마 여러분은 } 이 함수가 문자를 읽어들이는데 왜 {\code int} 를 반환
+하는지 궁금해 할 것이다. 사실 이 함수는  {\code char} 형태로 반환한다. 
+(다만, {\code int} 로 앞에 0 이 붙는 방법으로 확장되어서) 그러나 {\code char} 형태로
+반환할 수 없는 것이 딱 하나 있는데 바로 {\code EOF} 이다. 이 매크로는 
+보통 $-1$ 로 정의된다. 따라서, {\code fgetc()} 는 {\code char} 이 
+{\code int} 형태로 확장된 값을 반환하거나 (이는 {\code 000000{\em xx}} 와
+같은 형태로 16 진수로 나타날 것이다) {\code EOF} (이는 16 진수로 
+{\code FFFFFFFF} 로 나타난다) 를 반환할 것이다. 
+
+\begin{figure}[t]
+\begin{lstlisting}[stepnumber=0,frame=tlrb,escapeinside=~~]{}
+char ch;
+while( (ch = fgetc(fp)) != EOF ) {
+  /* ~ch 로 무언가 작업을 한다~ */
+}
+\end{lstlisting}
+\caption{}
+\label{fig:IObug}
+\end{figure}
+
+그림 ~\ref{fig:IObug} 의 기본적인 문제는 {\code fgetc()} 가 
+{\code int} 를 반환하지만 그 값은 {\code char} 에 저장되어 있다는 것이다. C 는 {\code char}
+에 값을 맞추기 위해 {\code int} 값의 상위 비트들을 잘라낼 것이다. 문제는
+(16 진수로) {\code 000000FF} 와 {\code FFFFFFFF} 모두 {\code FF} 로 잘려진다는 것이다.
+따라서 while 루프는 파일의 바이트 {\code FF} 를 읽어들
+이고 있는지, 아니면 파일의 마지막을 읽어들이고 있는 지 알 수 없게 된다.
+
+위 상황에서 코드가 어떤 일을 하느냐는 {\code char} 이 부호가 있느냐, 없느냐
+에 달려있다. 왜냐하면 ~2 행에서 {\code ch} 는 {\code EOF} 와 비교되기 때문이다.
+{\code EOF} 가 {\code int} 의 값을 가지고 있으므로 
+\footnote{파일의 끝에 EOF 문자가 있다는 것은 흔한 잘못된 생각이다. 이는 사실이
+\emph{아니다}} {\code ch} 의 값은 {\code int} 
+로 확장되어 두 값이 같은 크기로 비교될 수 있게 한다 \footnote{이에 대한 이유는
+나중에 다루도록 하자} 그림 ~\ref{fig:charExt} 에서 나타나듯이, 변수에 부호가 있는지
+없는지에 대한 유무는 매우 중요하다. 
+
+만약 {\code char} 이 부호가 없다면 {\code FF} 는 {\code 000000FF} 로 확장될 것이다.
+이는 {\code EOF} ({\code FFFFFFFF}) 와 비교되어 값이 다르다고 나타날 것이다. 따라서, 
+루프에서 절대로 빠져 나갈 수 없다! 
+
+만약 {\code char} 부호가 있다면 {\code FF} 는 {\code FFFFFFFF} 로 확장될 것이다. 이는
+EOF 문자를 입력된다면 성공적으로 루프를 빠져 나갈 수 있게 된다. 그러나, {\code FF} 는 
+파일의 중간에서 입력 될 수 도 있다. 따라서, 루프가 파일을 다 읽어들이지 못한 채 끝날
+수 도 있다.
+
+위 문제에 대한 해결책은 {\code ch} 변수를 {\code char} 이 아닌 {\code int} 로 선언하는
+것이다. 이렇게 된다면 ~2 행에서 값의 확장이나 잘리는 일이 없게 된다. 루프 내부에선 
+값을 잘라도 아무런 문제가 없는데 왜냐하면 {\code ch} 가 \emph{반드시} 단순한 바이트
+로 행동하기 때문이다. 
+
+
+\index{정수!부호 확장|)}
+\index{정수!표현|)}
+
+\subsection{2의 보수의 산술 연산 \index{2의 보수!산술 연산|(}}
+
+이미 앞에서 보았듯이 {\code add} 명령은 덧셈을 수행하고 {\code sub} 명령은 뺄셈을
+수행한다. 이 두 개의 명령들은 플래그 레지스터의 2 개의 비트를 변경하는데 이 비트들은
+각각 \emph{오버플로우(overflow)} 와 \emph{캐리 플래그(carry flag)} 이다. 
+오버플로우 플래그는 부호 있는 정수 연산시, 결과값이 너무나 커서 데스티네이션에 
+들어갈 수 없을 때 세트(set) 된다. 캐리 플래그는 부호 없는 정수 연산시, 덧셈이나 뺄셈에서 받아 올림이나
+받아 내림이 최상위/하위 (MSB, Most Significant Bit) 비트에 있을 때 세트 된다. 부호 있는
+연산에서의 캐리 플래그의 역할은 조금 있다가 살펴 볼 것이다. 2 의 보수의 가장 큰
+장점은 부호 없는 정수에 대해서 덧셈과 뺄셈이 정확히 일치한다는 것이다. 따라서 
+{\code add} 와 {\code sub} 는 부호 있는/없는 정수들에게서 사용 될 수 있다. 
+
+\[
+\begin{array}{rrcrr}
+ & 002\mathrm{C} & & & 44\\
++& \mathrm{FFFF} & &+&(-1)\\ \cline{1-2} \cline{4-5}
+ & 002\mathrm{B} & & & 43
+\end{array}
+\]
+여기에선 캐리가 발생하지만 결과엔 포함되지 않는다. 
+
+\index{정수!곱셈|(}
+\index{MUL|(}
+\index{IMUL|(}
+곱셈과 나눗셈 연산에는 각각 2 개의 명령들이 있다. 첫째로, 곱셈에선 {\code MUL}
+이나 {\code IMUL} 연산을 사용할 수 있다. {\code MUL} 연산은 두 개의 부호 없는
+정수를 곱할 때 사용하고 {\code IMUL} 연산은 부호 있는 정수를 곱할 때 사용한다.
+왜 두 개의 다른 명령들이 필요하냐면, 곱셈을 하는 방법이 부호 없는 정수와
+2 의 보수의 부호 있는 정수들과 다르기 때문이다. 어떻게 다르냐면, 바이트 FF 를
+제곱해 워드로 결과를 얻어보자. 일단, 부호 없는 경우 $255$ 곱하기 $255$ 로 
+그 값은 65025 (혹은 16 진수로 FE01) 이 된다. 만약 부호 있는 곱셈을 하였다면
+$-1$ 곱하기 $-1$ 가 되어 1 (혹은 16 진수로 0001) 이 된다. 
+
+곱셈 명령에는 여러 형태가 있다. 가장 오래된 형태는 아래와 같다. 
+
+\begin{AsmCodeListing}[numbers=none,frame=none]
+      mul   source
+\end{AsmCodeListing}
+\emph{source} 는 레지스터나 메모리의 한 값이 될 수 있다. 이 값은 즉시값 
+(immediate value) 이 될 수 없다. 피연산자(source)의 크기에 따라 곱셈
+연산이 어떻게 실행될 지는 달라진다. 만약 피연산자가 바이트 크기라면 
+이는 AL 레지스터의 바이트와 곱해져 그 값은 16 비트 AX 에 저장된다. 만약
+16 비트라면 이는 AX 의 워드와 곱해져 32 비트 결과값으로 DX:AX 에 저장된다.
+만약 소스가 32 비트라면 그 값은 EAX 에 곱해져서 64 비트 결과값으로 
+EDX:EAX \index{레지스터!EDX:EAX} 에 저장된다. 
+\index{MUL|)}
+
+\begin{table}[t]
+\centering
+\begin{tabular}{|c|c|c|l|}
+\hline
+{ \bf destination} & { \bf source1 } & {\bf source2} & \multicolumn{1}{c|}{\bf 작업} \\ \hline
+            & reg/mem8        &               & AX = AL*source1 \\
+            & reg/mem16       &               & DX:AX = AX*source1 \\
+            & reg/mem32       &               & EDX:EAX = EAX*source1 \\
+reg16       & reg/mem16       &               & dest *= source1 \\
+reg32       & reg/mem32       &               & dest *= source1 \\
+reg16       & immed8          &               & dest *= immed8 \\
+reg32       & immed8          &               & dest *= immed8 \\
+reg16       & immed16         &               & dest *= immed16 \\
+reg32       & immed32         &               & dest *= immed32 \\
+reg16       & reg/mem16       & immed8        & dest = source1*source2 \\
+reg32       & reg/mem32       & immed8        & dest = source1*source2 \\
+reg16       & reg/mem16       & immed16       & dest = source1*source2 \\
+reg32       & reg/mem32       & immed32       & dest = source1*source2 \\
+\hline
+\end{tabular}
+\caption{{\code imul} 명령들 \label{tab:imul}}
+\end{table}
+
+{\code IMUL} 명령은 {\code MUL} 명령과 형식이 같지만 몇 개의 다른 명령 형식들을
+추가하였다. 2 또한 3 개의 피연산자를 가질 수 있는데:
+\begin{AsmCodeListing}[numbers=none,frame=none]
+      imul   dest, source1
+      imul   dest, source1, source2
+\end{AsmCodeListing}
+표 ~\ref{tab:imul} 이 가능한 모든 조합을 보여준다. 
+\index{IMUL|)}
+\index{정수!곱셈|)}
+
+\index{정수!나눗셈|(}
+\index{DIV}
+나눗셈 명령으로는 {\code DIV} 와 {\code IDIV} 로 2 개가 있다. 이 들은 
+부호 없는/있는 정수들의 나눗셈을 각각 수행한다. 통상적인 형식은:
+\begin{AsmCodeListing}[numbers=none,frame=none]
+      div   source
+\end{AsmCodeListing}
+만약 소스가 8비트 라면 AX 는 피연산자로 나뉘어 진다. 그 몫은 AL 에 저장되고
+나머지는 AH 에 저장된다. 만약 소스가 16 비트라면 DX:AX 는 소스에 의해
+나누어 지고 몫은 AX 에, 나머지는 DX 에 저장된다. 만약 소스가 32비트 라면
+EDX:EAX\index{레지스터!EDX:EAX} 는 소스로 나누어 지고 몫이 EAX 에, 나머지가
+EDX 에 저장된다. {\code IDIV} \index{IDIV} 명령도 같은 방식으로 작동한다.
+{\code IDIV} 의 경우 {\code IMUL} 과는 달리 특별한 명령들이 추가된 것은
+없다. 만약 몫이 레지스터에 저장되기에 너무 크거나, 제수가 0 이라면 프로그램은
+인터럽트 되고 종료된다. 가장 흔한 애러는 DX 와 EDX 를 나눗셈 하기 전에 초기화 
+하지 않는 것이다. 
+\index{정수!나눗셈|)}
+
+{\code NEG}\index{NEG} 명령은 한 개의 피연산자를 가지며 피연산자의 2 의 보수를 계산함으로써
+부호를 바꾸어 버린다. 이 때 피연산자는 8비트, 16비트, 32비트
+레지스터거나 메모리 값이여야 한다. 
+
+\subsection{예제 프로그램}
+\index{math.asm|(}
+\begin{AsmCodeListing}[label=math.asm]
+%include "asm_io.inc"
+segment .data         ; 출력되는 문자열
+prompt          db    "Enter a number: ", 0
+square_msg      db    "Square of input is ", 0
+cube_msg        db    "Cube of input is ", 0
+cube25_msg      db    "Cube of input times 25 is ", 0
+quot_msg        db    "Quotient of cube/100 is ", 0
+rem_msg         db    "Remainder of cube/100 is ", 0
+neg_msg         db    "The negation of the remainder is ", 0
+
+segment .bss
+input   resd 1
+
+segment .text
+        global  _asm_main
+_asm_main:
+        enter   0,0               ; 셋업 루틴
+	pusha
+
+        mov     eax, prompt
+        call    print_string
+
+        call    read_int
+        mov     [input], eax
+
+        imul    eax               ; edx:eax = eax * eax
+        mov     ebx, eax          ; 그 결과를 ebx 에 저장
+        mov     eax, square_msg
+        call    print_string
+        mov     eax, ebx
+        call    print_int
+        call    print_nl
+
+        mov     ebx, eax
+        imul    ebx, [input]      ; ebx *= [input]
+        mov     eax, cube_msg
+        call    print_string
+        mov     eax, ebx
+        call    print_int
+        call    print_nl
+
+        imul    ecx, ebx, 25      ; ecx = ebx*25
+        mov     eax, cube25_msg
+        call    print_string
+        mov     eax, ecx
+        call    print_int
+        call    print_nl
+
+        mov     eax, ebx
+        cdq                       ; 부호 확장을 위해 edx 를 초기화
+        mov     ecx, 100          ; 즉시값으로 나눌 수 없다. 
+        idiv    ecx               ; edx:eax / ecx
+        mov     ecx, eax          ; 몫을 ecx 에 저장
+        mov     eax, quot_msg
+        call    print_string
+        mov     eax, ecx
+        call    print_int
+        call    print_nl
+        mov     eax, rem_msg
+        call    print_string
+        mov     eax, edx
+        call    print_int
+        call    print_nl
+        
+        neg     edx               ; 나머지에 음을 취한다
+        mov     eax, neg_msg
+        call    print_string
+        mov     eax, edx
+        call    print_int
+        call    print_nl
+
+        popa
+        mov     eax, 0            ; C 로 리턴
+        leave                     
+        ret
+\end{AsmCodeListing}
+\index{math.asm|)}
+
+\subsection{확장 정밀도 산술 연산}\index{정수!확장 정밀도|(}\label{sec:ExtPrecArith} 
+
+어셈블리어는 또한 더블워드 보다 큰 수들을 위한 덧/뺄셈 명령을 지원한다. 
+이 명령들을 캐리 플래그를 이용한다. 위에서 설명했던 대로 {\code ADD} 
+\index{ADD} 와 {\code SUB}\index{SUB} 명령은 모두 만약 받아 올림/내림 
+이 발생했을 경우 캐리 플래그의 값을 변경한다. 이 캐리 플래그에 저장된
+정보를 통해 큰 수를 작은 더블워드 조각(혹은 더 작게)들로 쪼개에서 연산을 수행해 덧/뺄셈
+을 수행할 수 있게 한다. 
+
+{\code ADC}\index{ADC} 와 {\code SBB}\index{SBB} 명령은 이 캐리 플래그의 
+저장된 정보를 이용한다. {\code ADC} 명령은 아래의 작업을 수행한다 :
+
+\begin{center}
+{\code \emph{operand1} = \emph{operand1} + carry flag + \emph{operand2} }
+\end{center}
+{\code SBB} 명령은 아래의 작업을 수행한다:
+\begin{center}
+{\code \emph{operand1} = \emph{operand1} - carry flag - \emph{operand2} }
+\end{center}
+이들이 어떻게 사용될까? EDX:EAX \index{레지스터!EDX:EAX} 와 EBX:ECX 레지스터에
+저장된 64비트 정수들의 합을 계산한다고 하자. 아래의 코드는 그 합을 EDX:EAX 
+레지스터에 넣을 것이다. 
+
+\begin{AsmCodeListing}[frame=none]
+      add    eax, ecx       ; 하위 32 비트를 더한다 
+      adc    edx, ebx       ; 상위 32 비트와 이전의 덧셈에서의 캐리를 더한다. 
+\end{AsmCodeListing}
+뺄셈도 매우 비슷하다. 아래의 코드는 EBX:ECX 를 EDX:EAX 에서 뺀다. 
+
+\begin{AsmCodeListing}[frame=none]
+      sub    eax, ecx       ; 하위 32 비트를 뺀다. 
+      sbb    edx, ebx       ; 상위 32 비트를 빼고 받아 내림을 뺀다. 
+\end{AsmCodeListing}
+
+정말로 \emph{큰} 수들의 경우, 루프를 사용할 수 있다. (~\ref{sec:control} 참조) 
+덧셈 루프에서, 되풀이 되는 부분 마다 {\code ADC} 명령을 사용한다면 
+편리할 것이다. 그 대신 첫 번째 루프에는 {\code ADD} 를 이용해야 되는데 이는
+{\code CLC} \index{CLC} (캐리 클리어, Clear Carry) 명령을 통해 통해 루프
+시작하기 직전에 캐리 플래그를 0 으로 만들어버림으로써 시행될 수 있다. 
+만약 캐리 플래그가 0 이라면 {\code ADD} 와 {\code ADC} 명령 사이에는 아무
+런 차이가 없게 된다. 같은 방식으로 뺄셈도 할 수 있다. 
+
+\index{정수!확장 정밀도|)}
+\index{2의 보수!산술 연산|)}
+
+\section{제어 구조}
+\label{sec:control}
+고급 언어들은 실행의 흐름을 제어하기 위해 높은 수준의 제어 구조
+(\emph{e.g.} \emph{if} 문이나 \emph{while} 문) 를 지원한다. 어셈블리는
+그와 같은 높은 수준의 제어 구조를 제공하진 않는다. 그 대신에 악명높은 
+\emph{goto} 와 잘못 사용시 난잡한 코드를 만들 수 있는 것들을 지원한다. 그러나 
+어셈블리를 통해서도 잘 짜인 프로그램을 만드는 것은 \emph{가능} 하다. 이를 위해
+먼저 친숙한 고급 언어를 이용하여 프로그램의 구조를 디자인 한 뒤에 동일한 어셈블리로
+바꾸어 주면 된다. (이는 컴파일러가 하는 일과 비슷하다) 
+
+\subsection{비교}\index{정수!비교|(} \index{CMP|(}
+%TODO: Make a table of all the FLAG bits
+
+\index{레지스터!플래그|(}
+제어 구조는 데이터의 비교를 통해 무엇을 할지 결정한다. 어셈블리어에서 그 비교의
+결과를 나중에 사용하기 위해 플래그 레지스터에 저장된다. 80x86 은 비교를 위해 
+{\code CMP} 명령을 지원한다. 플래그 레지스터는 {\code CMP} 연산의 두 개의
+피연산자의 차이에 의해 설정된다. 피연산자가 서로 뺄셈을 수행하고 그 결과에 따라 
+플래그 레지스터가 설정 되는데 그 결과는 플래그 레지스터의 \emph{정해진} 부분에 저장된다.
+만약 뺄셈의 결과를 얻고 싶다면 {\code CMP} 명령 대신
+SUB 을 수행해야 한다. 
+
+\index{정수!부호 없는 정수|(}
+부호 없는 정수들의 경우 2 개의 플래그(플래그 레지스터의 개개의 비트)가 중요하다:
+제로(ZF) \index{레지스터!플래그!ZF} 와 캐리(CF) \index{레지스터!플래그!CF} 플래그 이다. 
+제로 플래그는 두 피연산자의 차이가 0 일 때 세트\footnote{역자 주) 여기서 세트 된다는
+의미는 1 로 만든다는 것이다. 뒤에 나타날 언세트 된다는 의미는 0 으로 만든다는 것이다}
+된다. 캐리 플래그는 뺄셈에서의 받아 내림 플래그와 같이 사용된다. 아래와 같은 비교문을 고려하자.
+
+\begin{AsmCodeListing}[frame=none, numbers=none]
+      cmp    vleft, vright
+\end{AsmCodeListing}
+{\code vleft~-~vright} 의 차이가 계산되어 이에 따라 플래그들이 세팅된다. 만약 {\code CMP}
+연산 결과가 0 이라면 {\code vleft~=~vright}, ZF 플래그가 세트(\emph{i.e.} 1) 되고 
+CF 는 언세트(받아내림 없음) 된다. 만일 {\code vleft~>~vright} 이라면, ZF 는 언세트 되고
+CF 도 언세트(받아내림 없음) 된다. 만약 {\code vleft~<~vright} 인 경우 ZF 는 언세트되고, CF
+는 세트 (받아내림 있음) 된다. 
+
+\index{정수!부호 없는 정수|)}
+
+\index{정수!부호 있는 정수|(} 
+부호 있는 정수들의 경우, 3 개의 플래그들이 중요한 역할을 한다:제로
+\index{레지스터!플래그!ZF} (ZF) 플래그, 오버플로우\index{레지스터!플래그!OF}(OF)
+플래그, 부호 \index{레지스터!플래그!SF}(SF) 플래그 이다. \MarginNote{왜 
+{\code vleft~>~vright} 이면 SF~=~OF 일까? 만약 오버플로우가 없다면 그 차이는
+양수이고 정확한 값을 가질 것이다. 따라서 SF~=~OF~=~0 이다. 그러나 오버플로우
+가 있다면 그 차이는 정확한 값이 아닐 것이다. (그리고 사실 음수이다.) 따라서, 
+SF~=~OF~=~1 이 된다.} 
+오버플로우 플래그는 연산의 결과에 오버플로우(또는 언더플로우(underflow) 발생시)
+세트 된다. 부호 플래그는 연산의 결과가 음수이면 세트 된다. 만약 {\code vleft~=~vright}
+라면 ZF 가 세트 된다. (부호 없는 정수들의 경우와 마찬가지) 만약 {\code vleft~>~vright} 
+라면 ZF 가 언세트 되고 SF~=~OF 가 된다. 만약 {\code vleft~<~viright} 라면 ZF 는 
+언세트 되고 SF~$\neq$~OF 이다.
+\index{정수!부호 있는 정수|)}
+
+{\code CMP} 만이 아닌 다른 연산들 역시 플래그 레지스터의 값을 바꿀 수 있다는
+사실을 명심하라. 
+
+\index{CMP|)}
+\index{정수!비교|)}
+\index{레지스터!플래그|)}
+\index{정수|)}
+
+\subsection{분기 명령}
+
+분기 명령(Branch instruction) 은 프로그램의 임의의 부분으로 실행의 흐름을
+옮길 수 있다. 다시 말해, 이들은 \emph{goto} 문과 같다. 2 가지 종류의 분기
+명령들이 있는데 : 무조건 분기 명령과 조건 분기 명령이다. 무조건 분기 명려은 goto 
+와 같이 반드시 분기를 한다. 조건 분기 명령은 플래그 레지스터의 플래그의 상태에 
+따라서 분기를 할지 안할지 결정한다. 만약 조건 분기 명령에서 분기가 일어나지 
+않으면 그 다음 명령이 실행되게 된다. 
+
+\index{JMP|(}
+{\code JMP} (\emph{jump} 의 준말) 명려은 무조건 분기 명령을 실행한다. 이는 하나
+의 인자를 가지며 보통 분기할 \emph{코드의 라벨(code label)}을 가진다. 어셈블러, 혹은
+링커는 이 라벨을 정확한 주소로 대체하게 된다. 이는 어셈블러가 프로그래밍을 편리
+하게 해주는 부분 이기도 한다. 한 가지 명심할 점은 {\code JMP} 명령의 바로 다음 명령
+으로 분기하지 않는다면 그 명령은 수행되지 않는 다는 것이다. 
+
+분기 명령에 몇 가지 형태 들이 있다. 
+
+\begin{description}
+
+\item[SHORT] 
+이는 매우 한정된 범위에서 분기를 한다. 이는 메모리 상의 최대 128 바이트 까지 분기
+할 수 있다. 이 분기에 장점은 다른 것들에 비해 메모리를 적게 차지한다는 점이다. 이는 
+점프할 \emph{변위(displacement)}를 저장하기 위해 1 부호 있는 바이트를 사용한다. 
+이 변위는 얼마나 많은 바이트를 분기할 지 나타낸다. (EIP 에 이 변위가 더해진다) 
+short 분기를 명확히 지정하기 위해선 {\code SHORT} 키워드를 {\code JMP} 명령에서의
+라벨 바로 앞에 써 주면 된다. 
+
+\item[NEAR] 
+이 분기는 무조건/조건 분기의 기본으로 지정된 형태로, 세그먼트의 어떠한 부분으로도
+점프를 할 수 있다. 사실, 80386 은 near 분기의 두 가지 형태를 지원한다. 첫 번째는 
+변위를 위해 2 바이트를 사용한다. 이는 대략 32,000 바이트 위, 아래로 분기할 수 있게 한다.
+다른 형태는 변위를 위해 4 바이트를 사용하는데 이를 통해 코드 세그먼트의 어떠한 부분
+으로도 분기할 수 있게 해준다. 386 보호 모드에선 4 바이트 유형이 기본값으로 설정되어 있다.
+만약 2 바이트 만 사용하는 것으로 하려면 {\code JMP} 명령에서의 라벨 바로 앞에 
+{\code WORD} 를 써주면 된다. 
+
+
+\item[FAR]
+이 분기는 다른 코드 세그먼트로의 분기를 허용한다. 이를 이용하는 것은 386 보호 모드
+에선 매우 드문 일이다. 
+\end{description}
+
+올바른 코드 라벨들은 데이터 라벨들과 같은 규칙이 적용된다. 코드 라벨은 코드 세그먼트 에서
+그들이 가리키는(label) 문장 바로 앞에 놓임으로써 정의된다. 라벨 뒤에는 콜론(:) 이 오게
+되는데 이는 라벨 이름에 포함되지 \emph{않는다}. 
+
+\index{JMP|)}
+
+\index{조건 분기|(}
+\begin{table}[t]
+\center
+\begin{tabular}{|ll|}
+\hline
+JZ  & ZF 가 세트 될 때 에만 분기  \\
+JNZ & ZF 가 언세트 될 때 에만 분기 \\
+JO  & OF 가 세트 될 때 에만 분기 \\
+JNO & OF 가 언세트 될 때 에만 분기 \\
+JS  & SF 가 세트 될 때 에만 분기 \\
+JNS & SF 가 언세트 될 때 에만 분기 \\
+JC  & CF 가 세트 될 때 에만 분기 \\
+JNC & CF 가 언세트 될 때 에만 분기 \\
+JP  & PF 가 세트 될 때 에만 분기 \\
+JNP & PF 가 언세트 될 때 에만 분기 \\
+\hline
+\end{tabular}
+\caption{단순한 조건 분기들 \label{tab:SimpBran} \index{JZ} \index{JNZ}
+        \index{JO} \index{JNO} \index{JS} \index{JNS} \index{JC} \index{JNC}
+        \index{JP} \index{JNP}}
+\end{table}
+
+많은 수에 조건 분기 명령들이 있다. 이들은 코드 라벨 만을 인자로 갖는다. 단순한
+것들은 단지 플래그 레지스터의 하나의 플래그 값만 보고 분기를 할 지 안할 지 결정
+한다. 표 ~\ref{tab:SimpBran} 은 이러한 명령들을 정리했다. 
+(PF 는 \emph{패리티 플래그(parity flag)} \index{레지스터!플래그!PF} 로 결과값의
+하위 8 비트의 수의 홀짝성을 나타낸다.) 
+
+다음 의사코드 (pseudo code, 알고리즘을 이해하기 쉽게 프로그래밍 문법으로 
+표현한 것) 는:
+
+\begin{Verbatim}
+if ( EAX == 0 )
+  EBX = 1;
+else
+  EBX = 2;
+\end{Verbatim}
+어셈블리로 아래와 같이 쓰일 수 있다.
+
+\begin{AsmCodeListing}[frame=none]
+      cmp    eax, 0            ; 플래그를 세팅한다 (eax - 0 = 0 이면 ZF 가 세트)
+      jz     thenblock         ; ZF 가 세트되면 thenblock 분기한다. 
+      mov    ebx, 2            ; if 문의 else 부분 
+      jmp    next              ; if 문의 then 부분. 그냥 분기한다
+thenblock:
+      mov    ebx, 1            ; if 문의 then 부분. 
+next:
+\end{AsmCodeListing}
+
+다른 명령들의 경우 표 ~\ref{tab:SimpBran} 에 있는 조건 분기를 사용하기에는
+너무 어렵다. 이를 설명하기 위해 아래 의사 코드를 보자
+
+\begin{Verbatim}
+if ( EAX >= 5 )
+  EBX = 1;
+else
+  EBX = 2;
+\end{Verbatim}
+만약 EAX 가 5 이상이라면, ZF 는 세트 되거나 언세트 되고 SF 는 OF 와 같을 것이다.
+아래는 이를 확인하는 어셈블리 코드 이다. (이 때, EAX 가 부호 있는 정수라고 
+생각하자) 
+
+\begin{AsmCodeListing}[frame=none]
+      cmp    eax, 5
+      js     signon            ; SF 가 1 이면 signon 으로 분기
+      jo     elseblock         ; OF = 1, SF = 0 면 elseblock 으로 분기
+      jmp    thenblock         ; SF = 0, OF = 0 이면 thenblock 으로 분기
+      signon:
+      jo     thenblock         ; SF = 1, OF = 1 이면 thenblock 으로 분기 
+elseblock:
+      mov    ebx, 2
+      jmp    next
+thenblock:
+      mov    ebx, 1
+next:
+\end{AsmCodeListing}
+
+\begin{table}
+\center
+\begin{tabular}{|ll|ll|}
+\hline
+\multicolumn{2}{|c|}{\textbf{부호 있음}} & \multicolumn{2}{c|}{\textbf{부호 없음}} \\
+\hline
+JE & {\code vleft = vright} 이면 분기 & JE &{\code vleft = vright} 이면 분기 \\
+JNE & {\code vleft $\neq$ vright} 이면 분기 & JNE & {\code vleft $\neq$ vright} 이면 분기 \\
+JL, JNGE & {\code vleft < vright} 이면 분기 & JB, JNAE & {\code vleft < vright} 이면 분기 \\
+JLE, JNG & {\code vleft $\leq$ vright}이면 분기 & JBE, JNA & {\code vleft $\leq$ vright} 이면 분기 \\
+JG, JNLE & {\code vleft > vright} 이면 분기 & JA, JNBE & {\code vleft > vright} 이면 분기 \\
+JGE, JNL & {\code vleft $\geq$ vright} 이면 분기 & JAE, JNB & {\code vleft $\geq$ vright} 이면 분기 \\
+\hline
+\end{tabular}
+\caption{부호 있는/없는 경우의 비교 명령들\label{tab:CompBran} \index{JE} \index{JNE}
+         \index{JL} \index{JNGE} \index{JLE} \index{JNG} \index{JG} \index{JNLE} \index{JGE}
+         \index{JNL}}
+\end{table}
+
+위의 코드들은 매우 난해하다. 다행이도, 80x86 은 위와 같은 작업들을 훨씬 \emph{쉽게}
+할 수 있도록 여러 종류의 분기 명령들을 더 지원한다. 이들은 각각 부호 있는/없는 경우
+가 각각 나뉘어 있다. 표 ~\ref{tab:CompBran} 에 이 명령들이 잘 나타나 있다. 같다/다르다
+분기 명령은 (JE, JNE) 는 부호가 있는/없는 정수에 모두 동일하다. (사실, JE 와 JNE 는 JZ 와
+JNZ 와 각각 동일하다) 각각의 다른 분기 명령들은 2 개의 동의어를 갖고 있다. 예를 들어서 
+JL (미만이면 분기, jump less than) 과 JNGE(같거나 초과가 아니면 분기, jump not greater than
+or equal to) 이다. 이들은 모두 동일한 명령들인데 왜냐하면
+\[x < y \Longrightarrow \mathbf{not} (x \geq y) \] 
+부호 없는 정수의 분기 명령의 경우 \emph{초과}를 A(above), \emph{미만}을 B(below) 로
+대응 시켰고 부호 있는 정수의 분기 명령의 경우 G 와 L 에 대응시켰다. 
+
+위 새로운 분기 명령들을 이용하여 위의 의사 코드는 다음과 같이 좀더 쉽게 어셈블리어로
+바뀔 수 있다. 
+
+\begin{AsmCodeListing}[frame=none]
+      cmp    eax, 5
+      jge    thenblock
+      mov    ebx, 2
+      jmp    next
+thenblock:
+      mov    ebx, 1
+next:
+\end{AsmCodeListing}
+\index{조건 분기|)}
+
+\subsection{루프 명령}
+
+80x86 은 \emph{for} 과 같은 명령을 위해 몇가지 명령들을 지원한다. 이 명령들은 
+한 개의 인자만 가지며 이는 코드 라벨 이다. 
+
+\begin{description}
+\item[LOOP] 
+\index{LOOP}
+ECX 의 값을 감소시키고, ECX $\neq$ 0 이면 라벨로 분기한다. 
+
+\item[LOOPE, LOOPZ]
+\index{LOOPE} \index{LOOPZ}
+ECX 의 값을 감소시키고 (플래그 레지스터의 값은 바뀌지 않는다) 만일 
+                    ECX $\neq$ 0 이고 ZF = 1 이면 분기한다. 
+\item[LOOPNE, LOOPNZ]
+\index{LOOPNE} \index{LOOPNZ}
+ECX 의 값을 감소시키고 (플래그 레지스터의 값은 바뀌지 않는다) 만일 ECX $\neq$ 0 
+                      이고 ZF = 0, 이면 분기한다. 
+\end{description}
+
+아래 두 개의 루프들은 순차적인 검색 루프에 매우 효과적이다. 아래는 그 의사 코드이다.
+
+\begin{lstlisting}[stepnumber=0]{}
+sum = 0;
+for( i=10; i >0; i-- )
+  sum += i;
+\end{lstlisting}
+\noindent 어셈블리로 다음과 같이 바뀐다:
+\begin{AsmCodeListing}[frame=none]
+      mov    eax, 0          ; eax 는 합
+      mov    ecx, 10         ; ecx 는 i
+loop_start:
+      add    eax, ecx
+      loop   loop_start
+\end{AsmCodeListing}
+
+\section{보통의 제어 구조를 번역하기}
+
+이 부분에서는 고급 언어의 제어 구조가 어셈블리 언어로 어떻게 바뀌는지 살펴 볼 
+것이다. 
+
+\subsection{If 문\index{if 문|(}}
+아래는 의사 코드는 : 
+\begin{lstlisting}[stepnumber=0]{}
+if ( condition )
+  then_block;
+else
+  else_block;
+\end{lstlisting}
+\noindent 와 같이 바뀐다 : 
+\begin{AsmCodeListing}[frame=none]
+      ; code to set FLAGS
+      jxx    else_block    ; xx 를 적절히 선택하여 조건이 거짓이면 분기하게 한다. 
+      ; then block을 위한 부분
+      jmp    endif
+else_block:
+      ; else block 을 위한 부분 
+endif:
+\end{AsmCodeListing}
+
+만약 else 가 없다면 {\code else\_block} 분기는 {\code endif} 로의 분기로 바뀔 수 있다. 
+\begin{AsmCodeListing}[frame=none]
+      ; code to set FLAGS
+      jxx    endif          ; xx 를 적절히 선택하여 조건이 거짓이면 분기하게 한다. 
+      ; then block 을 위한 부분
+endif:
+\end{AsmCodeListing}
+\index{if 문|)}
+
+\subsection{While 루프 \index{while 루프|(}}
+\emph{while} 루프는 조건을 상단에서 검사하는 루프이다 : 
+\begin{lstlisting}[stepnumber=0]{}
+while( condition ) {
+  body of loop;
+}
+\end{lstlisting}
+\noindent 이는 어셈블리어로 다음과 같이 바뀐다:
+\begin{AsmCodeListing}[frame=none]
+while:
+      ; code to set FLAGS based on condition
+      jxx    endwhile       ; xx 를 적절히 선택해 거짓이면 분기하게 함
+      ; body of loop
+      jmp    while
+endwhile:
+\end{AsmCodeListing}
+\index{while 루프|)}
+
+\subsection{Do while 루프 \index{do while 루프|(}}
+\emph{do while} 루프는 조건을 하단에서 검사한다 :
+
+\begin{lstlisting}[stepnumber=0]{}
+do {
+  body of loop;
+} while( condition );
+\end{lstlisting}
+\noindent 이는 어셈블리어로 다음과 같이 바뀐다:
+\begin{AsmCodeListing}[frame=none]
+do:
+      ; body of loop
+      ; 조건에 따라 플래그 레지스터를 세트한다. 
+      jxx    do          ; xx 를 적절히 선택해 거짓이면 분기하게 함
+\end{AsmCodeListing}
+\index{do while 루프|)}
+
+\begin{figure}[t]
+\begin{lstlisting}[frame=tlrb,escapeinside=~~]{}
+  unsigned guess;   /*~현재 소수라 추측되는 것~ */
+  unsigned factor;  /* ~guess 의 가능한 소인수~ */
+  unsigned limit;   /* ~이 값까지 소수를 찾는다~ */
+
+  printf("Find primes up to: ");
+  scanf("%u", &limit);
+  printf("2\n");    /* ~처음 두 소수를 특별한 경우로~*/
+  printf("3\n");    /* ~취급한다~    */
+  guess = 5;        /*~guess 의 초기값~*/
+  while ( guess <= limit ) {
+    /* ~guess 의 소인수를 살펴본다~*/
+    factor = 3;
+    while ( factor*factor < guess &&
+            guess % factor != 0 )
+     factor += 2;
+    if ( guess % factor != 0 )
+      printf("%d\n", guess);
+    guess += 2;    /*~홀수만 살펴본다~*/
+  }
+\end{lstlisting}
+\caption{}\label{fig:primec}
+\end{figure}
+
+\section{예제: 소수 찾는 프로그램}
+이 부분에서는 소수를 찾는 프로그램에 대해 살펴 볼 것이다. 소수는 
+1 과 자기 자신만을 약수로 갖는 수 임을 기억해라. 이 소수를 찾는 
+공식은 알려져 있지 않다. 이 프로그램이 사용하는 기본적인 방법은 
+특정한 값 이하의 모든 홀수 들의 소인수를 찾는 것이다 \footnote{2 는
+유일한 짝수 소수 이다} 만약 어떤 홀수의 소인수가 없다면 그 홀수는
+소수가 된다. 그림 ~\ref{fig:primec} 은 위 내용을 C 로 쓴 기본적인 
+알고리즘을 나타낸다. 
+
+여기 어셈블리어 버전이 있다:
+\index{prime.asm|(}
+\begin{AsmCodeListing}[label=prime.asm]
+%include "asm_io.inc"
+segment .data
+Message         db      "Find primes up to: ", 0
+
+segment .bss
+Limit           resd    1               ; 최대 이 수 까지 소수를 찾는다. 
+Guess           resd    1               ; 현재 소수라 추측되고 있는 것
+
+segment .text
+        global  _asm_main
+_asm_main:
+        enter   0,0               ; 셋업 루틴
+        pusha
+
+        mov     eax, Message
+        call    print_string
+        call    read_int             ; scanf("%u", & limit );
+        mov     [Limit], eax
+
+        mov     eax, 2               ; printf("2\n");
+        call    print_int
+        call    print_nl
+        mov     eax, 3               ; printf("3\n");
+        call    print_int
+        call    print_nl
+
+        mov     dword [Guess], 5     ; Guess = 5;
+while_limit:                         ; while ( Guess <= Limit )
+        mov     eax,[Guess]
+        cmp     eax, [Limit]
+        jnbe    end_while_limit      ; 숫자들이 부호 없는 정수이므로 jnbe 이용 
+
+        mov     ebx, 3               ; ebx 은 factor = 3;
+while_factor:
+        mov     eax,ebx
+        mul     eax                  ; edx:eax = eax*eax
+        jo      end_while_factor     ; 위 계산서 오버플로우 발생시 점프.  
+        cmp     eax, [Guess]
+        jnb     end_while_factor     ; if !(factor*factor < guess)
+        mov     eax,[Guess]
+        mov     edx,0
+        div     ebx                  ; edx = edx:eax % ebx
+        cmp     edx, 0
+        je      end_while_factor     ; if !(guess % factor != 0)
+
+        add     ebx,2                ; factor += 2;
+        jmp     while_factor
+end_while_factor:
+        je      end_if               ; if !(guess % factor != 0)
+        mov     eax,[Guess]          ; printf("%u\n")
+        call    print_int
+        call    print_nl
+end_if:
+        add     dword [Guess], 2     ; guess += 2
+        jmp     while_limit
+end_while_limit:
+
+        popa
+        mov     eax, 0            ; return back to C
+        leave                     
+        ret
+\end{AsmCodeListing}
+\index{prime.asm|)}

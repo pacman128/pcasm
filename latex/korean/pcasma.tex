@@ -1,0 +1,305 @@
+﻿%appendix
+\chapter{80x86 명령어 모음}
+\section{비-부동 소수점 명령들}
+
+여기서는 인텔 80x86 계열 CPU 들의 비-부동 소수점 명령들에 대한 정보와
+사용 형식들에 대해 설명하고자 한다. 
+
+명령들의 사용 형식을 나타내기 위해 아래와 같은 약어들을 이용했다.
+\begin{center}
+\begin{tabular}{|l|l|}
+\hline
+R   & 범용 레지스터 \\
+R8  & 8 비트 레지스터 \\
+R16 & 16 비트 레지스터 \\
+R32 & 32 비트 레지스터 \\
+SR  & 세그먼트 레지스터 \\
+M   & 메모리 \\
+M8  & 바이트 \\
+M16 & 워드 \\
+M32 & 더블워드 \\
+I   & 즉시 데이터 \\
+\hline
+\end{tabular}
+\end{center}
+이 약어들은 여러 개의 피연산자를 가지는 명령들을 위해 조합되어 사용될 수 있다.
+예를 들어, \emph{R, R} 라 한다면 이 명령이 두 개의 레지스터를 피연산자로
+갖는 다는 것이다. 두 개의 피연산자를 가지는 많은 수의 명령들은 동일한 피연산자를
+가질 수 있다. \emph{O2} 는 다음과 같은 피연산자를 표현하는데 사용한다: \emph{R,R R,M R,I M,R M,I}.
+만일 8 비트 레지스터 혹은 메모리가 피연산자로 사용될 수 있다면 \emph{R/M8} 과 같이 나타낸다. 
+
+아래의 표는 또한 각 명령에 따라 플래그 레지스터들의 비트들이 어떻게 영향을 받는지
+보여주고 있다. 만일 특정한 칸이 빈 칸 이라면, 이에 대응하는 비트는 영향을 받지 않는다는
+것이다. 만일 비트가 특정한 값으로만 바뀐다면 1 또는 0 을 나타내었다.
+만일 명령의 피연산자에 의해 비트의 값이 결정된다면 \emph{C} 라고
+나타낸다. 만일 비트가 특정한 규칙 없이 바뀐다면 \emph{?} 로 나타낸다. 또한, 방향 플래그의
+값을 바꾸는 명령은 {\code CLD} 와 {\code STD} 밖에 없기 때문에 표에는 나타내지 않았다.
+
+\begin{longtable}{||l|p{1.5in}|p{0.75in}|c|c|c|c|c|c||}
+\hline \hline
+\multicolumn{1}{||c}{} & 
+   \multicolumn{1}{c}{} &
+   \multicolumn{1}{c}{} &
+  \multicolumn{6}{c||}{\textbf{플래그}} \\ \cline{4-9}
+\multicolumn{1}{||c}{\textbf{이름}} & 
+   \multicolumn{1}{c}{\textbf{설명}} &
+   \multicolumn{1}{c}{\textbf{형식}} &
+   \multicolumn{1}{c}{\textbf{O}} &
+   \multicolumn{1}{c}{\textbf{S}} &
+   \multicolumn{1}{c}{\textbf{Z}} &
+   \multicolumn{1}{c}{\textbf{A}} &
+   \multicolumn{1}{c}{\textbf{P}} &
+   \multicolumn{1}{c||}{\textbf{C}} \\ \hline \endhead
+\hline \hline \endfoot
+%                                              O   S   Z   A   P   C
+{\code ADC} & 캐리와 더한다 & O2            & C & C & C & C & C & C \\
+{\code ADD} & 정수를 더한다  & O2            & C & C & C & C & C & C \\
+{\code AND} & And 비트 연산 & O2            & 0 & C & C & ? & C & 0 \\
+{\code BSWAP} & 바이트를 스왑(swap) & R32           &   &   &   &   &   &  \\
+{\code CALL} & 루틴을 호출 & R M I         &   &   &   &   &   &   \\
+{\code CBW} & 바이트를 워드로 변환 &         &   &   &   &   &   & \\
+{\code CDQ} & 더블워드를 쿼드워드로 변환 &       &   &   &   &   &   & \\
+{\code CLC} & 캐리 초기화 &                  &   &   &   &   &   & 0 \\
+{\code CLD} & 방향 플래그 초기화 &         &   &   &   &   &   & \\
+{\code CMC} & 캐리에 보수 &             &   &   &   &   &   & C \\
+{\code CMP} & 정수를 비교 & O2          & C & C & C & C & C & C \\
+{\code CMPSB} & 바이트를 비교 &              & C & C & C & C & C & C \\
+{\code CMPSW} & 워드를 비교 &              & C & C & C & C & C & C \\
+{\code CMPSD} & 더블워드를 비교 &             & C & C & C & C & C & C \\
+{\code CWD} & 워드를 더블워드로 변환 후 DX:AX 에 저장 & &   &   &   &   &   & \\
+{\code CWDE} & 워드를 더블워드로 변환 후 EAX 에 저장& &   &   &   &   &   & \\
+{\code DEC} &정수를 감소 & R M        & C & C & C & C & C & \\
+{\code DIV} & 부호 없는 나눗셈 & R M          & ? & ? & ? & ? & ? & ? \\
+{\code ENTER} & 스택 프레임을 만듦 & I,0       &   &   &   &   &   & \\
+{\code IDIV} & 부호 있는 나눗셈 & R M           & ? & ? & ? & ? & ? & ? \\
+{\code IMUL} & 부호 있는 곱셈 & R M R16,R/M16 R32,R/M32 R16,I R32,I 
+                                       {\small R16,R/M16,I R32,R/M32,I}
+                                             & C & ? & ? & ? & ? & C \\
+{\code INC} & 정수를 증가 & R M        & C & C & C & C & C & \\
+{\code INT} & 인터럽트 발생 & I         &   &   &   &   &   & \\
+{\code JA } & 초과 시 분기 & I                 &   &   &   &   &   & \\
+{\code JAE } & 이상이면 분기 & I       &   &   &   &   &   & \\
+{\code JB } & 미만 시 분기 & I                 &   &   &   &   &   & \\
+{\code JBE } & 이하 시 분기 & I      &   &   &   &   &   & \\
+{\code JC } & 캐리 있으면 분기 & I                 &   &   &   &   &   & \\
+{\code JCXZ } & CX = 0 이면 분기& I           &   &   &   &   &   & \\
+{\code JE } & 같으면 분기& I                 &   &   &   &   &   & \\
+{\code JG } & 초과 시 분기 & I               &   &   &   &   &   & \\
+{\code JGE } & 이상 시 분기 & I     &   &   &   &   &   & \\
+{\code JL } & 미만 시 분기 & I                  &   &   &   &   &   & \\
+{\code JLE } & 이하 시 분기 & I        &   &   &   &   &   & \\
+{\code JMP } & 무조건 분기 & R M I    &   &   &   &   &   & \\
+{\code JNA } & 초과 아니면 분기 & I            &   &   &   &   &   & \\
+{\code JNAE } & 미만이면 분기 & I   &   &   &   &   &   & \\
+{\code JNB } & 미만 아니면 분기 & I            &   &   &   &   &   & \\
+{\code JNBE } & 초과면 분기 & I  &   &   &   &   &   & \\
+{\code JNC } & 캐리 없으면 분기 & I             &   &   &   &   &   & \\
+{\code JNE } & 같지 않으면 분기 & I            &   &   &   &   &   & \\
+{\code JNG } & 초과 아니면 분기 & I          &   &   &   &   &   & \\
+{\code JNGE } & 미만이면 분기 & I&   &   &   &   &   & \\
+{\code JNL } & 미만 아니면 분기 & I             &   &   &   &   &   & \\
+{\code JNLE } & 초과면 분기 & I   &   &   &   &   &   & \\
+{\code JNO } & 오버 플로우 없으면 분기 & I          &   &   &   &   &   & \\
+{\code JNS } & 부호 없으면 분기 & I              &   &   &   &   &   & \\
+{\code JNZ } & 0 이 아니면 분기 & I             &   &   &   &   &   & \\
+{\code JO } & 오버 플로우 시 분기 & I              &   &   &   &   &   & \\
+{\code JPE } & 짝수 패리티 시 분기 & I          &   &   &   &   &   & \\
+{\code JPO } & 홀수 패리티 시 분기 & I           &   &   &   &   &   & \\
+{\code JS } & 부호 있으면 분기 & I                  &   &   &   &   &   & \\
+{\code JZ } & 0 이면 분기 & I                  &   &   &   &   &   & \\
+{\code LAHF} & AH 에 플래그 레지스터 저장 &          &   &   &   &   &   & \\
+{\code LEA} & 주소 값을 계산 & R32,M &   &   &   &   &   & \\
+{\code LEAVE} & 스택 프레임을 떠남. &          &   &   &   &   &   & \\
+{\code LODSB} & 바이트를 불러옴 &                  &   &   &   &   &   & \\
+{\code LODSW} & 워드를 불러옴 &                  &   &   &   &   &   & \\
+{\code LODSD} & 더블워드를 불러옴 &                 &   &   &   &   &   & \\
+{\code LOOP}  & 루프      & I               &   &   &   &   &   & \\
+{\code LOOPE/LOOPZ} & 같다면 루프 & I     &   &   &   &   &   & \\
+{\code LOOPNE/LOOPNZ} & 다르면 루프 & I  &   &   &   &   &   & \\
+{\code MOV} & 데이타를 이동 & O2 \mbox{SR,R/M16} R/M16,SR
+                                             &   &   &   &   &   & \\
+{\code MOVSB} & 바이트를 이동 &                  &   &   &   &   &   & \\
+{\code MOVSW} & 워드를 이동 &                  &   &   &   &   &   & \\
+{\code MOVSD} & 더블워드를 이동 &                 &   &   &   &   &   & \\
+{\code MOVSX} & 부호 있는 것을 이동 & R16,R/M8 R32,R/M8 R32,R/M16
+                                             &   &   &   &   &   & \\
+{\code MOVZX} & 부호 없는 것을 이동 & R16,R/M8 R32,R/M8 R32,R/M16
+                                             &   &   &   &   &   & \\
+{\code MUL} & 부호 없는 곱셈 & R M        & C & ? & ? & ? & ? & C \\
+{\code NEG} & 음을 취함 & R M                   & C & C & C & C & C & C \\
+{\code NOP} & 명령 없음 &                 &   &   &   &   &   & \\
+{\code NOT} & 1 의 보수를 취함& R M           &   &   &   &   &   & \\
+{\code OR} & OR 연산   & O2              & 0 & C & C & ? & C & 0 \\
+{\code POP} & 스택에서 팝 & R/M16 R/M32   &   &   &   &   &   & \\
+{\code POPA} & 전체를 팝 &                     &   &   &   &   &   & \\
+{\code POPF} & 플래그 레지스터를 팝 &                   & C & C & C & C & C & C \\
+{\code PUSH} & 스택에 푸시 & R/M16 R/M32 I &   &   &   &   &   & \\
+{\code PUSHA} & 전체를 푸시 &                   &   &   &   &   &   & \\
+{\code PUSHF} & 플래그 레지스터를 푸시 &                 &   &   &   &   &   & \\
+{\code RCL} & 캐리와 함께 왼쪽 회전 & R/M,I R/M,CL
+                                             & C &   &   &   &   & C \\
+{\code RCR} & 캐리와 함께 오른쪽 회전 & R/M,I R/M,CL
+                                             & C &   &   &   &   & C \\
+{\code REP} & 반복 &                       &   &   &   &   &   & \\
+{\code REPE/REPZ} & 같다면 반복 &        &   &   &   &   &   & \\
+{\code REPNE/REPNZ} & 다르면 반복 &  &   &   &   &   &   & \\
+{\code RET} & 리턴 &                       &   &   &   &   &   & \\
+{\code ROL} & 왼쪽으로 회전 & R/M,I R/M,CL     & C &   &   &   &   & C \\
+{\code ROR} & 오른쪽으로 회전 & R/M,I R/M,CL    & C &   &   &   &   & C \\
+{\code SAHF} & AH 를 플래그 레지스터에 복사 &        &   & C & C & C & C & C \\
+{\code SAL} & 왼쪽으로 쉬프트 & R/M,I R/M, CL &   &   &   &   &   & C \\
+{\code SBB}  & 받아 내림과 함께 뺄셈 & O2     & C & C & C & C & C & C \\
+{\code SCASB} & 바이트를 찾기 &              & C & C & C & C & C & C \\
+{\code SCASW} & 워드를 찾기 &              & C & C & C & C & C & C \\
+{\code SCASD} & 더블워드를 찾기 &             & C & C & C & C & C & C \\
+{\code SETA } & 초과 시 세트 & R/M8                 &   &   &   &   &   & \\
+{\code SETAE } & 이상 시 세트 & R/M8       &   &   &   &   &   & \\
+{\code SETB } & 미만 시 세트 & R/M8                 &   &   &   &   &   & \\
+{\code SETBE } & 이하 시 세트  & R/M8      &   &   &   &   &   & \\
+{\code SETC } & 캐리를 세트 & R/M8                 &   &   &   &   &   & \\
+{\code SETE } & 같으면 세트 & R/M8                 &   &   &   &   &   & \\
+{\code SETG } & 초과 시 세트 & R/M8               &   &   &   &   &   & \\
+{\code SETGE } & 이상 시 세트 & R/M8     &   &   &   &   &   & \\
+{\code SETL } & 미만 시 세트 & R/M8                  &   &   &   &   &   & \\
+{\code SETLE } & 이하 시 세트 & R/M8        &   &   &   &   &   & \\
+{\code SETNA } & 초과가 아니면 세트 & R/M8            &   &   &   &   &   & \\
+{\code SETNAE } & 미만이면 세트& R/M8   &   &   &   &   &   & \\
+{\code SETNB } & 미만이 아니면 세트 & R/M8            &   &   &   &   &   & \\
+{\code SETNBE } & 초과면 세트 & R/M8  &   &   &   &   &   & \\
+{\code SETNC } & 캐리가 없으면 세트 & R/M8             &   &   &   &   &   & \\
+{\code SETNE } & 같지 않으면 세트 & R/M8            &   &   &   &   &   & \\
+{\code SETNG } & 초과가 아니면 세트 & R/M8          &   &   &   &   &   & \\
+{\code SETNGE } & 미만이면 세트 & R/M8&   &   &   &   &   & \\
+{\code SETNL } & 미만이 아니면 세트 & R/M8             &   &   &   &   &   & \\
+{\code SETNLE } & 초과면 세트 & R/M8   &   &   &   &   &   & \\
+{\code SETNO } & 오버 플로우 없으면 세트 & R/M8          &   &   &   &   &   & \\
+{\code SETNS } & 부호가 없으면 세트 & R/M8              &   &   &   &   &   & \\
+{\code SETNZ } & 0 이 아니면 세트 & R/M8             &   &   &   &   &   & \\
+{\code SETO } & 오버 플로우면 세트 & R/M8              &   &   &   &   &   & \\
+{\code SETPE } & 짝수 패리티면 세트 & R/M8          &   &   &   &   &   & \\
+{\code SETPO } & 홀수 패리티면 세트 & R/M8           &   &   &   &   &   & \\
+{\code SETS } & 부호가 있으면 세트 & R/M8                  &   &   &   &   &   & \\
+{\code SETZ } & 0 이면 세트& R/M8                  &   &   &   &   &   & \\
+
+{\code SAR} & 오른쪽으로 산술 쉬프트 & R/M,I R/M, CL 
+                                             &   &   &   &   &   & C \\
+{\code SHR} & 오른쪽으로 논리 쉬프트 & R/M,I R/M, CL 
+                                             &   &   &   &   &   & C \\
+{\code SHL} & 왼쪽으로 논리 쉬프트 & R/M,I R/M, CL 
+                                             &   &   &   &   &   & C \\
+{\code STC} & 캐리 플래그를 세트 &                    &   &   &   &   &   & 1 \\
+{\code STD} & 방향 플래그를 세트 &           &   &   &   &   &   & \\
+{\code STOSB} & 바이트를 저장 &                 &   &   &   &   &   & \\
+{\code STOSW} & 워드를 저장 &                 &   &   &   &   &   & \\
+{\code STOSD} & 더블워드를 저장 &                &   &   &   &   &   & \\
+{\code SUB} & 뺄셈 & O2                  & C & C & C & C & C & C\\
+{\code TEST} & 논리 비교 & R/M,R R/M,I & 0 & C & C & ? & C & 0\\
+{\code XCHG} & 서로 교환 & R/M,R R,R/M        &   &   &   &   &   & \\
+{\code XOR} & XOR 비트 연산 & O2            & 0 & C & C & ? & C & 0 \\
+
+\end{longtable}
+
+\newpage
+\section{부동 소수점 명령들}
+
+\renewcommand{\thefootnote}{\fnsymbol{footnote}} 여기에서는
+80x86 수치 부프로세서 명령들에 대해 살펴 보겠다. 아래 표에서는 명령에 대해
+간단하게 설명한다. 공간을 절약하기 위해 명령이 스택을 팝하는지에 대해서는
+설명에 포함시키지 않았다.
+
+명령에 대해 무슨 피연산자가 사용될 수 있는지 알려주기 위해 아래와 같은
+약어를 사용하였다. 
+
+\begin{center}
+\begin{tabular}{|l|l|}
+\hline
+ST\emph{n} & 부프로세서 레지스터 \\
+F          & 메모리 상의 단일 정밀도 수 \\
+D          & 메모리 상의 2배 정밀도 수 \\
+E          & 메모리 상의 확장 정밀도 수 \\
+I16        & 메모리 상의 정수 워드 \\
+I32        & 메모리 상의 정수 더블워드 \\
+I64        & 메모리 상의 정수 쿼드워드 \\
+\hline
+\end{tabular}
+\end{center}
+
+별표(\footnotemark[1])로 표기된 명령들은 펜티엄 프로 이상의 프로세서들에서만
+지원된다. 
+
+\begin{longtable}{||l|l|l||}
+\hline \hline
+\multicolumn{1}{||c}{\textbf{명령}} & 
+  \multicolumn{1}{c}{\textbf{설명}} &
+\multicolumn{1}{c||}{\textbf{형식}} \\
+\hline
+\endhead
+\hline \hline \endfoot
+{\code FABS} & $\mathtt{ST0} = |\mathtt{ST0}|$ & \\
+{\code FADD \emph{src}} & {\code ST0 += \emph{src}} & ST\emph{n} F D \\
+{\code FADD \emph{dest}, ST0} & {\code \emph{dest} += STO} & ST\emph{n} \\
+{\code FADDP \emph{dest}[,ST0]} & {\code \emph{dest} += ST0} & ST\emph{n} \\
+{\code FCHS} & $\mathtt{ST0} = - \mathtt{ST0}$ & \\
+{\code FCOM \emph{src}} & {\code ST0} 와 {\code \emph{src}} 를 비교 &
+ST\emph{n} F D \\
+{\code FCOMP \emph{src}} & {\code ST0} 와 {\code \emph{src}} 를 비교&
+ST\emph{n} F D \\
+{\code FCOMPP \emph{src}} & {\code ST0} 와 {\code ST1} 을 비교 & \\
+{\code FCOMI\footnotemark[1] \emph{src}} & 비교 후 결과를 플래그 레지스터에 저장
+& ST\emph{n} \\
+{\code FCOMIP\footnotemark[1] \emph{src}} & 비교 후 결과를 플래그 레지스터에 저장  
+& ST\emph{n} \\
+{\code FDIV \emph{src}} & {\code ST0 /= \emph{src}} & ST\emph{n} F D \\
+{\code FDIV \emph{dest}, ST0} & {\code \emph{dest} /= STO} & ST\emph{n} \\
+{\code FDIVP \emph{dest}[,ST0]} & {\code \emph{dest} /= ST0} & ST\emph{n} \\
+{\code FDIVR \emph{src}} & {\code ST0 = \emph{src}/ST0} & ST\emph{n} F D \\
+{\code FDIVR \emph{dest}, ST0} & {\code \emph{dest} = ST0/\emph{dest}} 
+& ST\emph{n} \\
+{\code FDIVRP \emph{dest}[,ST0]} & {\code \emph{dest} = ST0/\emph{dest}} 
+& ST\emph{n} \\
+{\code FFREE \emph{dest}} & 비었다고 표시 & ST\emph{n} \\
+{\code FIADD \emph{src}} & {\code ST0 += \emph{src}} & I16 I32 \\
+{\code FICOM \emph{src}} & {\code ST0} 와 {\code \emph{src}} 를 비교 &
+I16 I32 \\
+{\code FICOMP \emph{src}} & {\code ST0} 와 {\code \emph{src}} 를 비교 &
+I16 I32 \\
+{\code FIDIV \emph{src}} & {\code STO /= \emph{src}} & I16 I32 \\
+{\code FIDIVR \emph{src}} & {\code STO = \emph{src}/ST0} & I16 I32 \\
+{\code FILD \emph{src}} & \emph{src} 를 스택에 푸시 & I16 I32 I64 \\
+{\code FIMUL \emph{src}} & {\code ST0 *= \emph{src}} & I16 I32 \\
+{\code FINIT} & 부프로세서를 초기화 & \\
+{\code FIST \emph{dest}} & {\code ST0} 저장 & I16 I32 \\
+{\code FISTP \emph{dest}} & {\code ST0} 저장 & I16 I32 I64\\
+{\code FISUB \emph{src}} & {\code ST0 -= \emph{src}} & I16 I32 \\
+{\code FISUBR \emph{src}} & {\code ST0 = \emph{src} - ST0} & I16 I32 \\
+{\code FLD \emph{src}} &  \emph{src} 를 스택에 푸시 & ST\emph{n} F D E \\
+{\code FLD1} & 1.0 을 스택에 푸시& \\
+{\code FLDCW \emph{src}} & 제어 워드 레지스터를 불러옴 & I16 \\
+{\code FLDPI} &  $\pi$ 를 스택에 푸시& \\
+{\code FLDZ} & 0.0 을 스택에 푸시 & \\
+{\code FMUL \emph{src}} & {\code ST0 *= \emph{src}} & ST\emph{n} F D \\
+{\code FMUL \emph{dest}, ST0} & {\code \emph{dest} *= STO} & ST\emph{n} \\
+{\code FMULP \emph{dest}[,ST0]} & {\code \emph{dest} *= ST0} & ST\emph{n} \\
+{\code FRNDINT} & {\code ST0} 를 반올림& \\
+{\code FSCALE} & $\mathtt{ST0} = \mathtt{ST0} \times 2^{\lfloor \mathtt{ST1} \rfloor}$ & \\
+{\code FSQRT} & $\mathtt{ST0} = \sqrt{\mathtt{STO}}$ & \\
+{\code FST \emph{dest}} & {\code ST0} 저장 & ST\emph{n} F D \\
+{\code FSTP \emph{dest}} & {\code ST0} 저장 & ST\emph{n} F D E \\
+{\code FSTCW \emph{dest}} & 제어 워드 레지스터를 저장 & I16 \\
+{\code FSTSW \emph{dest}} & 상태 워드 레지스터를 저장 & I16 AX \\
+{\code FSUB \emph{src}} & {\code ST0 -= \emph{src}} & ST\emph{n} F D \\
+{\code FSUB \emph{dest}, ST0} & {\code \emph{dest} -= STO} & ST\emph{n} \\
+{\code FSUBP \emph{dest}[,ST0]} & {\code \emph{dest} -= ST0} & ST\emph{n} \\
+{\code FSUBR \emph{src}} & {\code ST0 = \emph{src}-ST0} & ST\emph{n} F D \\
+{\code FSUBR \emph{dest}, ST0} & {\code \emph{dest} = ST0-\emph{dest}} 
+& ST\emph{n} \\
+{\code FSUBP \emph{dest}[,ST0]} & {\code \emph{dest} = ST0-\emph{dest}} 
+& ST\emph{n} \\
+{\code FTST} & {\code ST0} 를 0.0 과 비교 & \\
+{\code FXCH \emph{dest}} & {\code ST0} 와{\code \emph{dest}} 의 값을 교환
+& ST\emph{n} \\
+\end{longtable}
+
+\renewcommand{\thefootnote}{\arabic{footnote}}
+
+

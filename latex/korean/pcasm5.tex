@@ -1,0 +1,1048 @@
+﻿% -*-latex-*-
+\chapter{배열}
+\index{배열|(}
+\section{소개}
+
+\emph{배열(array)}은 메모리 상의 연속된 데이터들의 목록이라 볼 수 있다. 
+배열의 개개의 원소들은 같은 형이며, 메모리 상에서 같은 크기의
+바이트를 사용해야 한다. 따라서 이러한 특징 때문에 배열에서의 번째 수(index)를 통해 원소에
+효율적인 접근이 가능하다. 특정한 원소의 주소는 다음 세 가지 사실을 통해 계산 될 수 있다. 
+
+\begin{itemize}
+\item 배열의 첫 번째 원소의 주소
+\item 원소의 바이트 크기
+\item 원소의 번째 수
+\end{itemize}
+
+배열의 첫 번째 원소의 인덱스를 0 으로 생각하면 매우 편리하다 (C 에서 처럼). 
+첫 번째 원소의 위치를 다른 값으로도 정의할 수 있지만 이는 계산을 불편하게 한다. 
+
+\subsection{배열 정의하기}\index{배열!정의|(}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+segment .data
+; 1,2,... 10 까지 10 개의 더블워드들로 구성된 배열을 정의
+a1           dd   1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+; 10 개의 0 으로 워드 들로 구성된 배열 정의 
+a2           dw   0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+; TIMES 를 이용하여 위와 같은 작업 한다. 
+a3           times 10 dw 0
+; 200 개의 0 과 100 개의 1 로 구성된 바이트 배열 정의
+a4           times 200 db 0
+             times 100 db 1
+
+segment .bss
+; 10 개의 원소를 가지는 초기화 안된 배열 정의
+a5           resd  10
+; 100 개의 원소를 가지는 초기화 안된 배열 정의
+a6           resw  100
+\end{AsmCodeListing}
+\caption{배열 정의하기\label{fig:DataArrays}}
+\end{figure}
+
+\subsubsection{데이타{\code (data)}와 {\code bss} 세그먼트에서 배열 정의하기}\index{배열!정의!정적}
+
+값들이 초기화 된 배열을 데이타{\code (data)} 세그먼트에 정의하기 위해선 {\code db}, 
+{\code dw}, \emph{등등} 의 지시어를 사용하면 된다. \index{지시어!D\emph{X}} NASM 은 또한
+{\code TIMES} \index{지시어!TIMES} 라는 유용한 지시어를 제공하는데 이를 통해 같은 문장을 
+손으로 여러번 쓰는 번거러움 없이도 반복 할 수 있다. 
+
+그림~\ref{fig:DataArrays} 은 이러한 것들의 몇 가지 예를 보여주고 있다.
+
+{\code bss} 세그먼트에 값들이 초기화 되지 않은 배열을 정의하기 위해선, {\code resb}, 
+{\code resw}, \emph{등등} 의 지시어를 이용하면 된다.  \index{지시어!RES\emph{X}}
+이러한 지시어들은 얼마 만큼의 메모리를 지정할지 알려주는 피연산자가 있다. 그림
+~\ref{fig:DataArrays} 는 또한 이러한 형식의 정의의 예를 보여준다. 
+
+\begin{figure}[t]
+\centering
+\begin{tabular}{l|c|ll|c|}
+\cline{2-2} \cline{5-5}
+EBP - 1  & char    & \hspace{2em} &           & \\
+\cline{2-2}
+         & 사용안됨  &              &           & \\
+\cline{2-2}
+EBP - 8  & 더블워드 1 &              &           & \\
+\cline{2-2}
+EBP - 12 & 더블워드 2 &              &           & 워드 \\
+\cline{2-2}
+         &         &              &           & 배열\\
+         &         &              &           & \\
+         & 워드    &              &           & \\
+         & 배열   &              & EBP - 100 & \\
+\cline{5-5}
+         &         &              & EBP - 104 & 더블워드 1 \\
+\cline{5-5}
+         &         &              & EBP - 108 & 더블워드 2 \\
+\cline{5-5}
+         &         &              & EBP - 109 & char \\
+\cline{5-5}
+EBP - 112 &        &              &           & 사용안됨 \\
+\cline{2-2} \cline{5-5}
+\end{tabular}
+\caption{스택에서의 배열 \label{fig:StackLayouts}}
+\end{figure}
+
+\subsubsection{배열을 스택에서의 지역 변수로 정의하기}\index{배열!정의!지역 변수}
+
+스택에 직접적으로 지역 배열 변수를 정의할 방법은 없다. 이전 처럼 우리는 \emph{모든} 지역 변수들에
+의해 필요한 메모리 바이트 수 (배열 포함)을 계산하여 ESP 로 부터 빼야 한다. (직접적으로 빼거나, 
+{\code ENTER} 명령을 이용할 수 있다) 예를 들어 함수가, 1 개의 char 변수, 2 개의 더블워드 정수,
+그리고 1 개의 50 개의 원소를 가지는 워드 배열을 필요로 하다면, 이는 총 $1 + 2 \times 4 + 50 \times 2 =
+109$ 바이트를 필요로 하게 된다. 그러나, ESP 에서 빼지는 더블워드 값은 반드시 4 의 배수 (위 경우 112) 여야
+한다. 왜냐하면 ESP 를 항상 더블워드 경계(Double word boundary)에 놓이게 해야 하기 때문이다. 우리는 109 바이트에 배열을 두 가지
+방법으로 배열 할 수 있다. 그림 ~\ref{fig:StackLayouts} 는 그 방법들을 보여준다. 
+첫 번째 배열 방법은 더블워드가 더블워드 경계에 오도록 사용되지 않은 부분을 배열해 메모리 접근을
+향상 시켰다. 
+
+\index{배열!정의|)}
+
+\subsection{배열의 원소에 접근하기}\index{배열!접근|(}
+
+C 에서와는 달리 어셈블리에서는 {\code []} 연산자가 없다. 배열의 원소에 접근하기 위해서는
+원소의 주소가 계산되어야만 한다. 예를 들어 아래와 같은 두 개의 배열을 생각하자. 
+
+\begin{AsmCodeListing}[frame=none, numbers=none]
+array1       db     5, 4, 3, 2, 1     ; 바이트 배열
+array2       dw     5, 4, 3, 2, 1     ; 워드 배열
+\end{AsmCodeListing}
+아래는 위 배열들을 사용하는 몇 가지 예 들이다. 
+
+\begin{AsmCodeListing}[frame=none]
+      mov    al, [array1]             ; al = array1[0]
+      mov    al, [array1 + 1]         ; al = array1[1]
+      mov    [array1 + 3], al         ; array1[3] = al
+      mov    ax, [array2]             ; ax = array2[0]
+      mov    ax, [array2 + 2]         ; ax = array2[1] (array2[2] 가 아님!)
+      mov    [array2 + 6], ax         ; array2[3] = ax
+      mov    ax, [array2 + 1]         ; ax = ??
+\end{AsmCodeListing}
+~5 행에서 워드 배열의 두 번째 원소 (원소 1) 에 접근하였다. 세 번째 원소 (원소 2)
+가 아니다. 왜냐하면, 워드는 2 바이트를 차지하기 때문에 워드 배열의 다음 원소를
+지정하기 위해선 1 이 아닌 2 바이트 앞으로 가야만 한다. ~7 행은 첫 번째 원소의 1 바이트와
+두 번째 원소의 1 바이트를 읽어 들일 것이다. C 에선, 컴파일러는 포인터의 형을 보고 
+얼마 만큼의 바이트를 앞으로 가야 할 지 계산을 하기 때문에 프로그래머가 직접 계산 할 필요가 없다.
+그러나 어셈블리에선 이 모든 것을 프로그래머가 고려 해야 한다. 
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single,commandchars=\\\{\}]
+      mov    ebx, array1           ; ebx =  array1 의 주소
+      mov    dx, 0                 ; dx 에 합이 저장된다. 
+      mov    ah, 0                 ; ?
+      mov    ecx, 5
+lp:
+      mov    al, [ebx]             ; al = *ebx
+      add    dx, ax                ; dx += ax (al 가 아님!) \label{line:SumArray1}
+      inc    ebx                   ; bx++
+      loop   lp
+\end{AsmCodeListing}
+\caption{배열의 원소들의 합 구하기 (버전 1)\label{fig:SumArray1}}
+\end{figure}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single,commandchars=\\\{\}]
+      mov    ebx, array1           ; ebx = array1 의 주소
+      mov    dx, 0                 ; dx 에 합이 저장
+      mov    ecx, 5
+lp:
+\textit{      add    dl, [ebx]             ; dl += *ebx}
+\textit{      jnc    next                  ; 캐리가 없다면 next 로 분기}
+\textit{      inc    dh                    ; dh 1 증가}
+\textit{next:}
+      inc    ebx                   ; bx++
+      loop   lp
+\end{AsmCodeListing}
+\caption{배열의 원소들의 합 구하기(버전 2)\label{fig:SumArray2}}
+\end{figure}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single,commandchars=\\\{\}]
+      mov    ebx, array1           ; ebx = array1 의 주소
+      mov    dx, 0                 ; dx 에 합이 저장
+      mov    ecx, 5
+lp:
+\textit{      add    dl, [ebx]             ; dl += *ebx}
+\textit{      adc    dh, 0                 ; dh += 캐리 플래그 + 0}
+      inc    ebx                   ; bx++
+      loop   lp
+\end{AsmCodeListing}
+\caption{배열의 원소들의 합 구하기 (버전 3)\label{fig:SumArray3}}
+\end{figure}
+
+그림 ~\ref{fig:SumArray1} 은 {\code array1} 의 원소들을 모두 더하는
+코드를 보여준다. ~~\ref{line:SumArray1} 행에서 AX 는 DX 에 더해진다. 
+왜 AL 이 아니냐면, 먼저 {\code ADD} 명령의 두 개의 피연산자의 크기는
+동일해야 한다. 두 번째로는 합이 1 바이트에 들어가기엔 너무 커지는 경우가 많다. 
+그러나 DX 를 이용하여 최대 65,535 까지의 합을 저장할 수 있다. 그러나, AH 
+또한 더해지기 때문에 AH 를 ~3 행에서 0 으로 세트하였다.
+\footnote{AH 를 0 으로 세팅하는 것은 AL 이 부호 없는 수라고 암묵적으로
+생각하는 것이다. 만일 부호가 있다면 ~6 과 7 행에 {\code CBW}
+명령을 넣어야 한다.}
+
+그림 ~\ref{fig:SumArray2} 와 \ref{fig:SumArray3} 은 합을 구하는 또다른 두 가지 
+방법들을 보여준다. 이탈릭체로 표시된 행은 그림 ~\ref{fig:SumArray1} 의 
+~6 과 7행을 대체한 것이다. 
+
+\subsection{좀더 향상된 간접 주소 지정}\index{간접 주소 지정!배열|(}
+
+놀랍지 않게도, 배열에선 간접 주소 지정이 종종 이용된다. 가장 널리 쓰이는
+형태로는:
+
+\begin{center}
+{\code [ \emph{base reg} + \emph{factor}*\emph{index reg} + 
+      \emph{constant}]}
+\end{center}
+이는
+\begin{description}
+\item[베이스 레지스터(base reg)] 는 EAX, EBX, ECX, EDX, EBP, ESP, ESI
+                EDI 중 하나 이다.
+\item[인수(factor)]는 1, 2, 4 or 8 중 하나 이다. (1 이면 생략된다)
+\item[인덱스 레지스터(index reg)] 는 EAX, EBX, ECX, EDX, EBP, ESI, EDI 중 하나이다.
+                 (ESP 가 없음을 유의해라)
+\item[상수(constant)] 는 32 비트 상수이다. 이 상수는 라벨 혹은 
+                라벨 식(label expression)이 될 수 있다.
+\end{description}
+
+\subsection{예제}
+
+아래는 함수에 배열을 인자로 전달하는 예제 이다. 이는 {\code array1c.c} 프로그램을
+(아래에 나열됨) 드라이버로 사용한다. {\code driver.c} 가 아니다. \index{array1.asm|(}
+
+\begin{AsmCodeListing}[label=array1.asm]
+%define ARRAY_SIZE 100
+%define NEW_LINE 10
+
+segment .data
+FirstMsg        db   "First 10 elements of array", 0
+Prompt          db   "Enter index of element to display: ", 0
+SecondMsg       db   "Element %d is %d", NEW_LINE, 0
+ThirdMsg        db   "Elements 20 through 29 of array", 0
+InputFormat     db   "%d", 0
+
+segment .bss
+array           resd ARRAY_SIZE
+
+segment .text
+        extern  _puts, _printf, _scanf, _dump_line
+        global  _asm_main
+_asm_main:
+        enter   4,0		; EBP - 4 에 위치한 지역 더블워드 변수 
+        push    ebx
+        push    esi
+
+; 배열을 100, 99, 98, 97, ... 로 정의
+
+        mov     ecx, ARRAY_SIZE
+        mov     ebx, array
+init_loop:
+        mov     [ebx], ecx
+        add     ebx, 4
+        loop    init_loop
+
+        push    dword FirstMsg         ; FirstMsg 를 출력
+        call    _puts
+        pop     ecx
+
+        push    dword 10
+        push    dword array
+        call    _print_array           ; 배열의 첫 10 개 원소를 출력
+        add     esp, 8
+
+; prompt user for element index
+Prompt_loop:
+        push    dword Prompt
+        call    _printf
+        pop     ecx
+
+        lea     eax, [ebp-4]      ; eax = 지역 더블워드의 주소
+        push    eax
+        push    dword InputFormat
+        call    _scanf
+        add     esp, 8
+        cmp     eax, 1               ; eax = scanf 의 리턴값
+        je      InputOK
+
+        call    _dump_line  ; 나머지 행을 덤프 한 후 재시작 한다.
+        jmp     Prompt_loop          ; 입력값이 올바르지 않다면 분기
+
+InputOK:
+        mov     esi, [ebp-4]
+        push    dword [array + 4*esi]
+        push    esi
+        push    dword SecondMsg      ; 원소의 값을 출력
+        call    _printf
+        add     esp, 12
+
+        push    dword ThirdMsg       ; 원소 20-29 의 값을 출력
+        call    _puts
+        pop     ecx
+
+        push    dword 10
+        push    dword array + 20*4     ; array[20] 의 주소
+        call    _print_array
+        add     esp, 8
+
+        pop     esi
+        pop     ebx
+        mov     eax, 0            ; C 로 리턴
+        leave                     
+        ret
+
+;
+; _print_array 루틴
+; C 호출 가능한 루틴으로, 더블워드 배열의 원소들을 부호 있는 정수로 
+; 출력한다. 
+; C 원형:
+; void print_array( const int * a, int n);
+; 인자:
+;   a - 출력할 배열에 대한 포인터(스택의 ebp+8 에 위치)
+;   n - 출력할 정수의 개수 (스택의 ebp+12 에 위치)
+
+segment .data
+OutputFormat    db   "%-5d %5d", NEW_LINE, 0
+
+segment .text
+        global  _print_array
+_print_array:
+        enter   0,0
+        push    esi
+        push    ebx
+
+        xor     esi, esi                  ; esi = 0
+        mov     ecx, [ebp+12]             ; ecx = n
+        mov     ebx, [ebp+8]              ; ebx = 배열의 주소
+print_loop:
+        push    ecx                       ; printf 는 ecx 의 값을 바꾼다!
+
+        push    dword [ebx + 4*esi]       ; array[esi] 를 푸시
+        push    esi
+        push    dword OutputFormat
+        call    _printf
+        add     esp, 12                   ; 인자를 제거 (ecx 만 남긴다!)
+
+        inc     esi
+        pop     ecx
+        loop    print_loop
+
+        pop     ebx
+        pop     esi
+        leave
+        ret
+\end{AsmCodeListing}
+
+\LabelLine{array1c.c}
+\begin{lstlisting}[escapeinside=~~]{}
+#include <stdio.h>
+
+int asm_main( void );
+void dump_line( void );
+
+int main()
+{
+  int ret_status;
+  ret_status = asm_main();
+  return ret_status;
+}
+
+/*
+ * ~함수 dump\_line~ 
+ * ~입력 버퍼로 부터 현재 행에 남은 모든 문자(char)를 덤프한다.~ 
+ */
+void dump_line()
+{
+  int ch;
+
+  while( (ch = getchar()) != EOF && ch != '\n')
+    /* null body*/ ;
+}
+\end{lstlisting}
+\LabelLine{array1c.c}
+\index{array1.asm|)}
+\index{간접 주소 지정!배열|)}
+\index{배열!접근|)}
+
+\subsubsection{다시보는 {\code LEA} 명령어 \index{LEA|(}}
+
+{\code LEA} 명령은 주소 계산 뿐만이 아니라 다른 목적으로도 사용될 수 있다. 대표적으로
+빠른 계산을 위해서 이다. 아래와 같은 경우를 보자. 
+
+\begin{AsmCodeListing}[numbers=none,frame=none]
+      lea    ebx, [4*eax + eax]
+\end{AsmCodeListing}
+이는 효과적으로 $5 \times \mathtt{EAX}$ 를 EBX 에 저장한다. {\code LEA} 를 통해서
+{\code MUL}\index{MUL}을 이용하는 것 보다 훨씬 빠르고 쉽게 사용할 수 있다. 그러나, 
+우리는 대괄호 속에 들어가 있는 식이 \emph{반드시} 올바른 간접 주소 지정 형태여야 함을 명심해야 
+한다. 따라서, 위 명령을 통해 6 을 곱할 순 없다.
+
+\index{LEA|)}
+
+\subsection{다차원 배열\index{배열!다차원|(}}
+
+다차원 배열은 우리가 이전에 이야기 한 평범한 1 차원 배열과 크게 다를 바가 없다. 
+사실, 다차원 배열도 메모리 상에서는 1 차원 배열과 다를 바가 없다. 
+
+\subsubsection{2차원 배열}\index{배열!다차원!2 차원|(}
+가장 단순한 다차원 배열은 2 차원 배열이다. 2 차원 배열은 원소들을 평면 위에 격자
+형태로 그린다. 각각의 원소들은 두 개의 수를 이용하여 구별된다. 첫 번째 수는 원소가
+위치한 행을 나타내고, 두 번째 수는 원소가 위치한 열을 나타낸다. 
+
+아래와 같이 3 행 2 열의 배열을 생각하자
+
+\begin{lstlisting}[stepnumber=0]{}
+  int a[3][2];
+\end{lstlisting}
+
+C 컴파일러는 6 ($= 2 \times 3$) 개의 정수를 위한 공간을 할당하고, 각 원소들을
+아래와 같이 나타낸다. 
+
+\parbox{\textwidth}{
+\vspace{0.5em}
+\centering
+\begin{tabular}{||l|c|c|c|c|c|c||}
+\hline
+위치 & 0 & 1 & 2 & 3 & 4 & 5 \\
+\hline
+원소 & a[0][0] & a[0][1] & a[1][0] & a[1][1] & a[2][0] & a[2][1]  \\
+\hline
+\end{tabular}
+\vspace{0.5em}
+}
+\noindent 위 표가 시사하는 바는 {\code a[0][0]} 이라 나타낸 원소는 
+6 개의 원소를 가지는 1 차원 배열의 가장 처음의 원소 이다. {\code a[0][1]}
+은 그 옆에 위치하고 나머지도 주르륵 배열된다. 2 차원 배열의 각 행은
+메모리 상에 연속된 형태로 나타난다. 한 행의 마지막 원소 다음에는 그 다음
+행의 첫 번째 원소가 이어서 나타나게 된다. 이러한 형식을 배열의 \emph{행 기준(rowwise)} 표현이라
+하며, 이는 C/C++ 컴파일러가 배열을 표현하는 방법 이기도 하다. 
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[]
+   mov    eax, [ebp - 44]          ; ebp - 44 는 i 의 위치
+   sal    eax, 1                   ; i 에 2 를 곱한다. 
+   add    eax, [ebp - 48]          ; j 를 더한다. 
+   mov    eax, [ebp + 4*eax - 40]  ; ebp - 40 는 a[0][0] 의 주소 이다. 
+   mov    [ebp - 52], eax          ; 결과를 x 에 저장 (ebp - 52 에 위치)
+\end{AsmCodeListing}
+\caption{\lstinline|x = a[i][j]| 의 어셈블리 표현 \label{fig:aij}}
+\end{figure}
+
+컴파일러는 행 기준표현에서 {\code a[i][j]} 가 어디에 나타날 지 어떻게 결정할까?
+이는 {\code i} 와 {\code j} 로 이루어진 간단한 공식을 계산하면 결정할 수 있다. 위의 경우
+$2i + j$ 를 계산하면 된다. 왜 이것을 계산해야 되는지 이해하는 것은 간단하다. 
+왜냐하면 각 행은 2 개의 원소로 구성되어 있기 때문이다. $i$ 행의 첫 번째 원소는 $2i$ 위치에 된다.
+또한 $j$ 번째 열에 위치하게 되므로 결과적으로 원소의 위치는 $j$ 를 $2i$ 에 더하면
+알 수 있게 된다. 이를 통해 {\code N} 개의 열을 가지는 배열의 경우에 이 공식이 어떻게
+일반화 될 수 있는지를 유추할 수 있다. $N\times i + j$. 이 때 이 공식은 행의 개수에 상관이
+\emph{없음}을 주목하자. 
+
+예를 들어 \emph{gcc} 가 아래의 코드를 어떻게 컴파일 하는지 보자. (위에서 정의한
+{\code a} 배열을 이용하여):
+
+\begin{lstlisting}[stepnumber=0]{}
+  x = a[i][j];
+\end{lstlisting}
+
+그림 ~\ref{fig:aij} 는 이것이 어셈블리로 어떻게 나타났는지 보여준다.
+따라서 컴파일러는 코드를 아래와 같이 바꾼다. 
+\begin{lstlisting}[stepnumber=0]{}
+  x = *(&a[0][0] + 2*i + j);
+\end{lstlisting}
+그리고 사실, 프로그래머가 위와 같이 써도 같은 결과가 나타난다. 
+
+행 기준 표현법에는 딱히 놀랄 만한 점은 없다. 열 기준(columnwise) 표현도
+같은 방식으로 작동한다. 
+
+\parbox{\textwidth}{
+\vspace{0.5em}
+\centering
+\begin{tabular}{||l|c|c|c|c|c|c||}
+\hline
+위치 & 0 & 1 & 2 & 3 & 4 & 5 \\
+\hline
+원소 & a[0][0] & a[1][0] & a[2][0] & a[0][1] & a[1][1] & a[2][1]  \\
+\hline
+\end{tabular}
+\vspace{0.5em}
+}
+\noindent 
+
+열 기준 표현법에선 각 열이 연속적으로 저장된다. 원소 {\code [i][j]} 는
+$i+3j$ 에 저장된다. 다른 언어들 (FORTRAN 등) 은 이 열 기준 표현법을 
+이용한다. 이러한 사실을 아는 것은 다른 언어들과 함께 작업할 때 중요하다. 
+
+\index{배열!다차원!2 차원|)}
+
+\subsubsection{3 이상의 차원의 배열}
+
+2 보다 큰 크기의 차원을 갖는 배열들에 대해서도 같은 논리가 적용된다.
+예를 들어 3 차원 배열을 생각해 보면:
+
+\begin{lstlisting}[stepnumber=0]{}
+  int b[4][3][2];
+\end{lstlisting}
+
+이 배열은 아마 네 개의 {\code [3][2]} 배열이 연속적으로 메모리에 저장된 형태로
+나타나게 될 것이다. 아래 테이블은 배열이 어떻게 나타는지 보여준다.  
+
+\parbox{\textwidth}{
+\vspace{0.5em}
+\centering
+\begin{tabular}{||l|c|c|c|c|c|c||}
+\hline
+위치 & 0 & 1 & 2 & 3 & 4 & 5  \\
+\hline
+원소 & b[0][0][0] & b[0][0][1]  & b[0][1][0] & b[0][1][1] & b[0][2][0]
+&  b[0][2][1]  \\
+\hline
+\hline
+위치 & 6 & 7 & 8 & 9 & 10 & 11 \\
+\hline
+원소 & b[1][0][0] & b[1][0][1] & b[1][1][0] & b[1][1][1]  & b[1][2][0] 
+& b[1][2][1] \\
+\hline
+\end{tabular}
+\vspace{0.5em}
+}
+\noindent 
+{\code b[i][j][k]} 의 위치를 계산하는 공식은 $6i+2j+k$ 가 된다.
+6 은 {\code [3][2]} 배열의 크기로 의해 결정된다. 보통 {\code a[L][M][N]} 으로 정의된
+배열의 원소 {\code a[i][j][k]} 의 위치는 $M\times N\times i + N \times j + k$ 이 된다. 이 때,
+첫 번째 차원 ({\code L}) 이 공식에 나타나지 않음을 주목해라. 
+
+더 높은 차원의 배열들의 경우에도 마찬가지로 위와 같은 방법을 적용할 수 있다. 예를 들어
+$n$ 차원 배열이 $D_1$ 부터 $D_n$ 까지의 차원을 가진다고 할 때, $i_1$ 부터 $i_n$ 을 나타난
+원소의 위치는 다음과 같은 공식으로 계산된다:
+
+\begin{displaymath}
+D_2 \times D_3 \cdots \times D_n \times i_1 + D_3 \times D_4 \cdots \times D_n 
+\times i_2 + \cdots + D_n \times i_{n-1} + i_n
+\end{displaymath}
+
+또는 간단히 표현하여, 
+
+\begin{displaymath}
+\sum_{j=1}^{n} \: \left( \prod_{k=j+1}^{n} D_k \right) \: i_j
+\end{displaymath}
+\MarginNote{이는 여러분들이 저자가 물리를 전공했다고 이야기 할 수 있는 이유이다.}
+
+첫 번째 차원 $D_1$ 은 공식에서 나타나지 않는다. 
+
+열 기준 표현에서는 일반화된 공식은 아래와 같이 나타난다. 
+
+\begin{displaymath}
+i_1 + D_1 \times i_2 + \cdots + D_1 \times D_2 \times \cdots \times D_{n-2} 
+\times i_{n-1} + D_1 \times D_2 \times \cdots \times D_{n-1} \times i_n
+\end{displaymath}
+
+또는 간단히 표현하여
+
+\begin{displaymath}
+\sum_{j=1}^{n} \: \left( \prod_{k=1}^{j-1} D_k \right) \: i_j
+\end{displaymath}
+
+이 경우 마지막 차원인 $D_n$ 은 공식에서 나타나지 않는다. 
+
+\subsubsection{다차원 배열을 C 에서 인자로 전달하기}\index{배열!다차원!인자|(}
+
+다차원 배열의 행 기준 표현은 C 프로그래밍에서 직접적인 영향이 있다. 일 차원 배열의 경우
+원소가 메모리 상에 어디에 있는지 계산 할 때 배열의 크기는 필요하지 않다. 그러나 다차원 배열들의
+경우 이는 사실이 아니다. 이러한 배열들의 원소들에 접근하기 위해선 컴파일러는 첫 번째 차원을 제외한
+나머지 모든 차원들을 알아야만 한다. 이는 다차원 배열을 인자로 가지는 함수의 원형을 만들 때
+고려해야 할 부분이다. 아래의 코드는 컴파일 되지 않는다. 
+
+\begin{lstlisting}[stepnumber=0,escapeinside=~~]{}
+  void f( int a[ ][ ] );  /*~ 차원에 대한 정보가 없다~ */
+\end{lstlisting}
+
+그러나 아래의 코드는 컴파일 된다. 
+
+\begin{lstlisting}[stepnumber=0]{}
+  void f( int a[ ][2] );
+\end{lstlisting}
+
+또한 2 개의 열을 가지는 배열은 이 함수에 인자로 전달될 수 있다. 일차원의 크기는
+필요하지 않는다. \footnote{물론 필요하다면 크기를 지정할 수 는 있지만, 컴파일러에
+의해 무시된다.}
+
+아래와 같은 함수의 원형과 혼돈하면 안된다. 
+
+\begin{lstlisting}[stepnumber=0]{}
+  void f( int * a[ ] );
+\end{lstlisting}
+
+이는 정수 포인터들에 대한 일차원 배열을 정의한다 (이는 이차원 배열 처럼 행동하는
+배열의 배열들을 만드는데 사용할 수 있다.).
+
+좀 더 높은 차원의 배열들의 경우 나머지 차원들이 반드시 필요하나 첫 번째 차원만 예외적으로
+써줄 필요가 없다. 예를 들어, 4 차원 배열 인자는 아래와 같다. 
+
+\begin{lstlisting}[stepnumber=0]{}
+  void f( int a[ ][4][3][2] );
+\end{lstlisting}
+\index{배열!다차원!인자|)}
+\index{배열!다차원|)}
+
+\section{배열/문자열 명령}
+\index{문자열 명령|(} 
+
+80x86 계열의 프로세서들은 배열들에게만 적용되는 몇 가지 명령들을
+지원한다. 이러한 명령들은 \emph{문자열 명령(string instruction)} 이라 부른다.
+이들은 인덱스 레지스터(ESI, EDI) 를 사용하여 작업을 실행한 후, 자동적으로 
+하나 또는 인덱스 레지스터 모두의 값을 1 증가 시키거나 감소시킨다. 
+플래그 레지스터의 \emph{방향 플래그}(Direction Flag, DF) \index{레지스터!플래그!DF} 는
+이 인덱스 레지스터의 값이 증가 되야 할 지 감소되야 할 지 결정한다. 이 방향 플래그의
+값을 수정하는 명령은 두 개가 있다. 
+
+\begin{description}
+\item[CLD] \index{CLD} 는 방향 플래그를 0 으로 한다. 이 상태에선 인덱스 레지스터들이
+           증가된다.
+\item[STD] \index{STD} 는 방향 플래그를 1 로 한다. 이 상태에선 인덱스 레지스터들이 
+            감소된다.
+\end{description}
+
+80x86 프로그래밍시 방향 플래그를 올바른 상태에 세팅해 놓지 않는 경우가 \emph{매우 자주}
+발생한다. 이는 코드가 대부분의 경우에 작동되나 (방향 플래그가 올바른 상태에 있을 때)
+가끔씩 프로그램이 올바르게 작동되지 않는 경우가 발생하여 버그를 찾아내기 힘들게 한다.
+
+\begin{figure}[t]
+\centering
+{\code
+\begin{tabular}{|lp{1.5in}|lp{1.5in}|}
+\hline
+LODSB & AL = [DS:ESI]\newline ESI = ESI $\pm$ 1 & 
+STOSB & [ES:EDI] = AL\newline EDI = EDI $\pm$ 1 \\
+\hline
+LODSW & AX = [DS:ESI]\newline ESI = ESI $\pm$ 2 & 
+STOSW & [ES:EDI] = AX\newline EDI = EDI $\pm$ 2 \\
+\hline
+LODSD & EAX = [DS:ESI]\newline ESI = ESI $\pm$ 4 & 
+STOSD & [ES:EDI] = EAX\newline EDI = EDI $\pm$ 4 \\
+\hline
+\end{tabular}
+}
+\caption{문자열 읽기 쓰기 명령\label{fig:rwString}
+         \index{LODSB} \index{STOSB} \index{LODSW} \index{LODSD} \index{STOSD}}
+\end{figure}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+segment .data
+array1  dd  1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+
+segment .bss
+array2  resd 10
+
+segment .text
+      cld                   ; 이 부분을 잊지 말것!
+      mov    esi, array1
+      mov    edi, array2
+      mov    ecx, 10
+lp:
+      lodsd
+      stosd
+      loop  lp
+\end{AsmCodeListing}
+\caption{결과를 불러오고 저장한다.\label{fig:lodEx}}
+\end{figure}
+
+\subsection{메모리에 쓰고 읽기}
+
+단순한 문자열 명령은 메모리에 쓰거나 읽거나, 아니면 둘다 수행한다. 이는 
+바이트나 워드, 더블워드를 메모리에 쓰고 읽을 수 있다. 그림
+~\ref{fig:rwString} 은 이러한 명령을 수행하는 짧은 의사 코드가 나와있다. 
+이 코드에 몇 가지 주목할 부분들이 있다. 먼저 ESI 는 읽기에 사용되고, EDI 는
+쓰기에 사용된다. 이는 SI 가 \emph{소스 인덱스(Source Index)}, DI 가 \emph{
+데스티네이션 인덱스(Destination Index)} 의 약자로 사용되어있음을 상기하면 편하다. 
+\index{레지스터!ESI} \index{레지스터!EDI} 또한, 레지스터가 가지는 데이터는
+고정되어 있다. (이는 AL, AX, EAX 중 하나) 마지막으로 저장 명령은 어떠한 세그먼트에
+쓰기를 할지에 대해 DS 가 아닌 ES 에 의해 결정된다는 사실이다. 보호 모드 프로그래밍에서
+이는 큰 문제가 아니다. 왜냐하면 오직 한 개의 데이타 세그먼트가 있고, ES 는 반드시 
+이를 참조하기 위해 자동적으로 초기화 되어야 하기 때문이다. (DS 와 같이) 그러나, 
+실제 모드 프로그래밍에선 올바른 세그먼트 셀렉터 값
+\footnote{또다른 골치 아픈 문제로는 하나의 {\code MOV} 명령을 이용하여
+DS 레지스터의 값을 ES 레지스터에 직접적으로 대입할 수 없기 때문이다. 그 대신에
+DS 의 값은 범용 레지스터 (AX 등)에 대입된 후, 그 값을 다시 ES 에 대입해야만
+한다. 따라서 두 번의 {\code MOV} 연산이 필요하다. }
+으로 ES 를 초기화 하는 것이 \emph{매우} 중요하다. \index{레지스터!세그먼트}
+그림 ~\ref{fig:lodEx} 는 이러한 명령을 사용하여 배열을 다른 것에 복사하는 예를 
+보여준다. 
+
+\begin{figure}[t]
+\centering
+{\code
+\begin{tabular}{|lp{2.5in}|}
+\hline
+MOVSB & byte [ES:EDI] = byte [DS:ESI] \newline ESI = ESI $\pm$ 1 \newline
+        EDI = EDI $\pm$ 1 \\
+\hline
+MOVSW & word [ES:EDI] = word [DS:ESI] \newline ESI = ESI $\pm$ 2 \newline
+        EDI = EDI $\pm$ 2 \\
+\hline
+MOVSD & dword [ES:EDI] = dword [DS:ESI] \newline ESI = ESI $\pm$ 4 \newline
+        EDI = EDI $\pm$ 4 \\
+\hline
+\end{tabular}
+}
+\caption{메모리 이동 문자열 명령\label{fig:movString} \index{MOVSB}
+         \index{MOVSW} \index{MOVSD}}
+\end{figure}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+segment .bss
+array  resd 10
+
+segment .text
+      cld                   ; 이를 잊지 마세요!
+      mov    edi, array
+      mov    ecx, 10
+      xor    eax, eax
+      rep stosd
+\end{AsmCodeListing}
+\caption{배열의 모든 원소를 0 으로 하는 예제\label{fig:zeroArrayEx}}
+\end{figure}
+
+{\code LODSx} 명령와 {\code STOSx} 명령을 같이 (그림 ~\ref{fig:lodEx}
+의 ~13 과 14 행에서와 같이) 이용하는 경우는 매우 흔하다. 사실상, 이는 
+한 번의 {\code MOVSx} 문자열 명령을 통해 실행될 수 있다. 그림 ~\ref{fig:movString}은
+이러한 명령들이 실행하는 작업들을 설명한다. 그림 ~\ref{fig:lodEx} 의 ~13 과 14 행은
+같은 작업을 하는 단일 {\code MOVSD} 명령으로 바뀔 수 도 있다. 유일한 차이점은
+EAX 레지스터가 루프 전체에서 사용되느냐 사용되지 않느냐 이다. 
+
+\subsection{{\protect\code REP} 명령 접두어}\index{REP|(}
+
+80x86 계열은 특별한 명령 접두어 
+\footnote{명령 접두어는 명령이 아니다, 이는 문자열 명령 앞에 붙는
+특별한 바이트로, 명령의 작업을 바꾸어 주는 역할을 한다. 다른 접두어들의
+경우 메모리 접근에 대한 세그먼트 기본 설정들을 변경하는데 사용할 수 있다. }
+{\code REP} 를 이용하여, 문자열 명령 위에 사용될 수 있다. 이 접두어는 CPU 로 하여금
+특정한 횟수 동안 아래의 문자열 명령을 반복하게 한다. ECX 레지스터는 반복 횟수를
+세는데 사용된다 ({\code LOOP} 명령에서 처럼). {\code REP} 접두어를 이용하여 그림
+~\ref{fig:lodEx} (~12 에서 15 행) 의 루프를 아래와 같이 하나의 문장으로 바꿀 수 있다.
+
+\begin{AsmCodeListing}[frame=none, numbers=none]
+      rep movsd
+\end{AsmCodeListing}
+
+그림 ~\ref{fig:zeroArrayEx} 는 배열의 원소들을 모두 0 으로 바꾸는 또 다른 예제를 보여준다.
+
+\index{REP|)}
+
+\begin{figure}[t]
+\centering
+{\code
+\begin{tabular}{|lp{3.5in}|}
+\hline
+CMPSB & 바이트 [DS:ESI] 와 바이트 [ES:EDI] 를 비교 \newline ESI = ESI $\pm$ 1 
+        \newline EDI = EDI $\pm$ 1 \\
+\hline
+CMPSW & 워드 [DS:ESI] 와 워드 [ES:EDI] 를 비교 \newline ESI = ESI $\pm$ 2 
+        \newline EDI = EDI $\pm$ 2 \\
+\hline
+CMPSD & 더블워드 [DS:ESI] 와 더블워드 [ES:EDI] 를 비교 \newline ESI = ESI $\pm$ 4 
+        \newline EDI = EDI $\pm$ 4 \\
+\hline
+SCASB & AL 과 [ES:EDI] 를 비교 \newline EDI $\pm$ 1 \\
+\hline
+SCASW & AX 와 [ES:EDI] 를 비교 \newline EDI $\pm$ 2 \\
+\hline
+SCASD & AX 와 [ES:EDI] 를 비교 \newline EDI $\pm$ 4 \\
+\hline
+\end{tabular}
+}
+\caption{문자열 비교 명령들\label{fig:cmpString}
+         \index{CMPSB} \index{CMPSW} \index{CMPSD} \index{SCASB}
+         \index{SCASW} \index{SCASD}}
+\end{figure}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single,commandchars=\\\{\}]
+segment .bss
+array        resd 100
+
+segment .text
+      cld
+      mov    edi, array    ; 배열의 시작에 대한 포인터
+      mov    ecx, 100      ; 원소의 수 
+      mov    eax, 12       ; 검색할 수 
+lp:
+      scasd    \label{line:scasdSrchStrEx}
+      je     found
+      loop   lp
+ ; 찾지 못할 경우 수행할 코드
+      jmp    onward
+found:
+      sub    edi, 4         ; edi 는 이제 배열의 12 를 가리킨다. \label{line:subSrchStrEx}
+ ; code to perform if found
+onward:
+\end{AsmCodeListing}
+\caption{검사 프로그램\label{fig:srchStrEx}}
+\end{figure}
+
+\subsection{비교 문자열 명령}
+
+그림 ~\ref{fig:cmpString} 은 메모리와 다른 메모리 혹은 레지스터와 비교하는
+몇 가지 새로운 문자열 명령들을 보여준다. 이들은 배열을 비교하거나 검색하는데
+유용하게 사용할 수 있다. 이 명령들은 플래그 레지스터를 {\code CMP} 명령과 같이
+세트할 수 있다. {\code CMPSx} \index{CMPSB} \index{CMPSW} \index{CMPSD} 
+명령들은 대응되는 메모리와 비교를 수행하고 {\code SCASx} \index{SCASB}
+\index{SCASW} \index{SCASD} 는 특정한 값을 메모리에서 검색한다. 
+
+그림 ~\ref{fig:srchStrEx} 는 더블워드 배열에서 12 를 검색하는 짧은 코드르 보여준다.
+~\ref{line:scasdSrchStrEx} 행에서의 {\code SCASD} 명령은 찾고자 하는 값이 찾아졌을 때에도
+EDI 에 4 를 더한다. 따라서, 따라서 배열에서 12 가 보관된 주소를 구하고자 한다면 
+~\ref{line:subSrchStrEx} 행에서 수행한 것처럼 EDI 에서 4 를 빼야 한다. 
+
+\begin{figure}[t]
+\centering
+\begin{tabular}{|l|p{4in}|}
+\hline
+{\code REPE}, {\code REPZ} & Z 플래그가 세트 되어 있을 동안이나, 최대 ECX 만큼
+                             시행할 때 까지 명령을 반복한다.  \\
+\hline
+{\code REPNE}, {\code REPNZ} & Z 플래그가 클리어 되어 있을 동안이나, 최대 ECX 만큼 
+                             시행할 때 까지 명령을 반복한다.  \\
+\hline
+\end{tabular}
+\caption{{\code REPx} 명령 접두어\label{fig:repx} \index{REPE} 
+          \index{REPNE}}
+\end{figure}
+
+\begin{figure}
+\begin{AsmCodeListing}[frame=single,commandchars=\\\{\}]
+segment .text
+      cld
+      mov    esi, block1        ; 첫 번째 블록의 주소
+      mov    edi, block2        ; 두 번째 블록의 주소 
+      mov    ecx, size          ; 바이트로 나타낸 블록의 크기 
+      repe   cmpsb              ; Z 플래그가 세트 될 동안 반복
+      je     equal              ; Z 가 세트 된다면 두 블록은 같다. \label{line:cmpBlocksEx}
+   ; 두 블록이 같지 않다면 수행할 문장
+      jmp    onward
+equal:
+   ; 두 블록이 같다면 수행할 문장
+onward:
+\end{AsmCodeListing}
+\caption{메모리 블록을 비교하기\label{fig:cmpBlocksEx}}
+\end{figure}
+
+\subsection{{\protect\code REPx} 명령 접두어}
+
+{\code REP}- 처럼 문자열 비교 명령들과 함께 사용될 수 있는 명령 접두어들은
+몇 가지 더 있다. 그림 ~\ref{fig:repx} 는 두 개의 새로운 접두어와 이들의 역할을 나타냈다. 
+{\code REPE} \index{REPE} 와 {\code REPZ} 는 단순히 동의어 관계 이다. 
+({\code REPNE}\index{REPNE} 와 {\code REPNZ} 의 관계도 마찬가지) 만일 반복된 문자열
+비교 명령이 비교 결과 때문에 멈췄을 경우에도 인덱스 레지스터 혹은 레지스터들은 증가되고,
+ECX 는 감소된다. 그러나 플래그 레지스터는 반복이 종료되었을 때의 상태를 유지하고
+있다. \MarginNote{왜 반복되는 비교 문장 뒤에 ECX 의 값이 0 인지 확인하는 문장을 넣지 않았을까? }
+따라서, Z 플래그를 이용하여 반복된 비교 명령이 비교 결과 때문에, 혹은 ECX 가 0 이되서 종료되었는지 
+구분할 수 있게 된다. 
+
+그림 ~\ref{fig:cmpBlocksEx} 는 두 메모리 블록의 값이 같은지 확인하는 예제 코드 이다. 
+\ref{line:cmpBlocksEx} 행에서의 {\code JE} 는 이전의 명령에서 결과를 확인하는데 사용된다.
+만일 반복된 비교 명령이 두 개의 서로 다른 바이트들을 찾았기 때문에 비교 명령이 중단되었으면 
+Z 플래그는 계속 클리어 되어 있을 것이고 분기는 일어나지 않는다. 그러나 ECX 가 0 이 되었기에 
+비교가 중단되었다면 Z 플래그는 세트 되어 있으므로, {\code equal} 라벨로 분기하게 될 것이다. 
+
+\subsection{예제}
+
+이 단원은 문자열 관련 작업들을 수행하는 몇 가지 함수들을 다룬다. 
+이들은 모두 어셈블리로 작성되어있으며 이 함수들은 대표적인 C 라이브러리 함수들과 동일한 작업을 한다. 
+
+\index{memory.asm|(}
+\begin{AsmCodeListing}[label=memory.asm]
+global _asm_copy, _asm_find, _asm_strlen, _asm_strcpy
+
+segment .text
+; _asm_copy 함수
+; 메모리 블록을 복사한다. 
+; C원형
+; void asm_copy( void * dest, const void * src, unsigned sz);
+; 인자:
+;   dest - 복사 될 것이 저장될 버퍼를 가리키는 포인터
+;   src  - 복사 될 버퍼를 가리키는 포인터
+;   sz   - 복사 할 바이트 수
+
+; 다음으로 몇 가지 유용한 심볼들을 정의하였다. 
+
+%define dest [ebp+8]
+%define src  [ebp+12]
+%define sz   [ebp+16]
+_asm_copy:
+        enter   0, 0
+        push    esi
+        push    edi
+
+        mov     esi, src        ; esi = 복사 될 버퍼의 주소 
+        mov     edi, dest       ; edi = 복사 된 것이 저장될 버퍼의 주소
+        mov     ecx, sz         ; ecx =  복사 할 바이트 수
+
+        cld                     ; 방향 플래그를 초기화
+        rep     movsb           ; movsb 를 ECX 만큼 반복
+
+        pop     edi
+        pop     esi
+        leave
+        ret
+
+
+; _asm_find 함수
+; 메모리에서 특정한 바이트를 검색한다. 
+; void * asm_find( const void * src, char target, unsigned sz);
+; 인자:
+;   src    - 검색할 버퍼를 가리키는 포인터
+;   target - 검색할 바이트 값
+;   sz     - 버퍼의 바이트 크기
+; 리턴값:
+;   만일 target 을 찾았다면 버퍼에서의 첫 번째 target 을 가리키는 포인터가
+;   리턴된다.
+;   그렇지 않으면 NULL 이 리턴된다.
+; 참고: target 은 바이트 값이지만 스택에 더블워드의 형태로 푸시된다.
+;      따라서 바이트 값은 하위 8 비트에 저장된다. 
+; 
+%define src    [ebp+8]
+%define target [ebp+12]
+%define sz     [ebp+16]
+
+_asm_find:
+        enter   0,0
+        push    edi
+
+        mov     eax, target     ; al 은 검색할 바이트 값을 보관
+        mov     edi, src
+        mov     ecx, sz
+        cld
+
+        repne   scasb           ; ECX == 0 혹은 [ES:EDI] == AL 때 까지 검색
+
+        je      found_it        ; 제로 플래그가 세트되었다면 검색에 성공
+        mov     eax, 0          ; 찾지 못했다면 NULL 포인터를 리턴
+        jmp     short quit
+found_it:
+        mov     eax, edi          
+        dec     eax              ;  찾았다면 (DI - 1) 을 리턴
+quit:
+        pop     edi
+        leave
+        ret
+
+
+; _asm_strlen 함수
+; 문자열의 크기를 리턴
+; unsigned asm_strlen( const char * );
+; 인자:
+;   src - 문자열을 가리키는 포인터
+; 리턴값:
+;   문자열 에서의 char 의 수 (마지막 0 은 세지 않는다) (EAX 로 리턴)
+
+%define src [ebp + 8]
+_asm_strlen:
+        enter   0,0
+        push    edi
+
+        mov     edi, src        ; edi = 문자열을 가리키는 포인터
+        mov     ecx, 0FFFFFFFFh ; ECX 값으로 가능한 가장 큰 값
+        xor     al,al           ; al = 0
+        cld
+
+        repnz   scasb           ; 종료 0 을 찾는다. 
+
+;
+; repnz 은 한 단계 더 실행되기 때문에, 그 길이는 FFFFFFFE - ECX,
+; 가 아닌 FFFFFFFF - ECX 이다. 
+;
+        mov     eax,0FFFFFFFEh
+        sub     eax, ecx        ; 길이 = 0FFFFFFFEh - ecx
+
+        pop     edi
+        leave
+        ret
+
+; _asm_strcpy 함수
+; 문자열을 복사한다.
+; void asm_strcpy( char * dest, const char * src);
+; 인자:
+;   dest - 복사 된 결과를 저장할 문자열을 가리키는 포인터
+;   src  - 복사 할 문자열을 가리키는 포인터 
+; 
+%define dest [ebp + 8]
+%define src  [ebp + 12]
+_asm_strcpy:
+        enter   0,0
+        push    esi
+        push    edi
+
+        mov     edi, dest
+        mov     esi, src
+        cld
+cpy_loop:
+        lodsb                   ; AL 을 불러오고 & si 증가
+        stosb                   ; AL 을 저장하고 & di 증가
+        or      al, al          ; 조건 플래그를 세트 한다.
+        jnz     cpy_loop        ; 만일 종료 0 을 지나지 않닸다면, 계속 진행
+
+        pop     edi
+        pop     esi
+        leave
+        ret
+\end{AsmCodeListing}
+
+\LabelLine{memex.c}
+\begin{lstlisting}[escapeinside=~~]{}
+#include <stdio.h>
+
+#define STR_SIZE 30
+/* prototypes */
+
+void asm_copy( void *, const void *, unsigned ) __attribute__((cdecl));
+void * asm_find( const void *, 
+                 char target, unsigned ) __attribute__((cdecl));
+unsigned asm_strlen( const char * ) __attribute__((cdecl));
+void asm_strcpy( char *, const char * ) __attribute__((cdecl));
+
+int main()
+{
+  char st1[STR_SIZE] = "test string";
+  char st2[STR_SIZE];
+  char * st;
+  char   ch;
+
+  asm_copy(st2, st1, STR_SIZE);   /* ~문자열의 30 문자를 복사 ~*/
+  printf("%s\n", st2);
+
+  printf("Enter a char: ");  /* ~ 문자열의 바이트를 찾는다. ~*/
+  scanf("%c%*[^\n]", &ch);
+  st = asm_find(st2, ch, STR_SIZE);
+  if ( st )
+    printf("Found it: %s\n", st);
+  else
+    printf("Not found\n");
+
+  st1[0] = 0;
+  printf("Enter string:");
+  scanf("%s", st1);
+  printf("len = %u\n", asm_strlen(st1));
+
+  asm_strcpy( st2, st1);     /* ~문자열의 의미 있는 데이터를 복사 ~*/
+  printf("%s\n", st2 );
+
+  return 0;
+}
+\end{lstlisting}
+\LabelLine{memex.c}
+\index{memory.asm|)}
+\index{문자열 명령|)}
+\index{배열|)}
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,904 @@
+﻿% -*-latex-*-
+\chapter{비트 연산}
+\section{쉬프트 연산\index{비트 연산!쉬프트|(}}
+
+어셈블리 언어는 프로그래머가 데이터의 개개의 비트를 바꿀 수 있게 해준다.
+이 중 가장 흔한 비트 연산은 바로 \emph{쉬프트(shift)} 연산 이다. 쉬프트 연산
+은 데이터의 비트의 위치를 옮겨준다. 쉬프트는 왼쪽(\emph{i.e} 최상위비트 
+쪽으로) 이나 오른쪽(최하위비트 쪽으로) 일어 날 수 있다. 
+
+\subsection{논리 쉬프트\index{비트 연산!쉬프트!논리 쉬프트|(}}
+
+논리 쉬프트는 쉬프트 중 가장 단순한 형태이다. 이는 매우 단순하게 쉬프트
+연산을 한다. 그림 ~\ref{fig:logshifts} 는 단일 바이트의 쉬프트 연산을 보여
+준다. 
+
+\begin{figure}[h]
+\centering
+\begin{tabular}{l|c|c|c|c|c|c|c|c|}
+\cline{2-9}
+원래 값     & 1 & 1 & 1 & 0 & 1 & 0 & 1 & 0 \\
+\cline{2-9}
+왼쪽 쉬프트  & 1 & 1 & 0 & 1 & 0 & 1 & 0 & 0 \\
+\cline{2-9}
+오른쪽 쉬프트 & 0 & 1 & 1 & 1 & 0 & 1 & 0 & 1 \\
+\cline{2-9}
+\end{tabular}
+\caption{논리 쉬프트 \label{fig:logshifts}}
+\end{figure}
+
+한가지 주목할 점은 새롭게 나오는 비트는 언제나 0 이라는 사실이다. {\code SHL}
+\index{SHL} 과 {\code SHR} \index{SHR} 명령은 각각 왼쪽, 오른쪽 쉬프트 연산
+을 수행한다. 이 명령들을 통해 몇 자리든지 쉬프트 할 수 있게 된다. 쉬프트 할 
+자리수는 상수이거나, {\code CL} 레지스터에 저장된 값이여야 한다. 데이터로 부터
+쉬프트 된 마지막 비트는 캐리 플래그에 저장된다. 아래는 예제 코드이다. 
+
+\begin{AsmCodeListing}[frame=none]
+      mov    ax, 0C123H
+      shl    ax, 1           ; 1 비트 왼쪽으로 쉬프트,   ax = 8246H, CF = 1
+      shr    ax, 1           ; 1 비트 오른쪽으로 쉬프트,  ax = 4123H, CF = 0
+      shr    ax, 1           ; 1 비트 오른쪽으로 쉬프트,  ax = 2091H, CF = 1
+      mov    ax, 0C123H
+      shl    ax, 2           ; 2 비트 왼쪽으로 쉬프트,  ax = 048CH, CF = 1
+      mov    cl, 3
+      shr    ax, cl          ; 3 비트 오른쪽으로 쉬프트, ax = 0091H, CF = 1
+\end{AsmCodeListing}
+
+\subsection{쉬프트의 이용}
+
+쉬프트 연산은 빠른 곱셈과 나눗셈 연산에 가장 많이 사용된다. 십진 체계에서는
+10 의 멱수를 곱하거나 나누는 것이 매우 단순했다. 단지 숫자들만 쉬프트 해주면
+되기 때문이다. 이는 이진수에서 2 의 멱수의 경우도 마찬가지 이다. 예를 들어서 
+이진수 $1011_2$ (십진수로 11) 에 2 를 곱하는 것은 단지 왼쪽으로 한 자리 쉬프트
+하여 $10110_2$ (십진수로 22) 를 얻는 것과 같다. 또한 2 로 나눈 것의 몫도 또한 
+오른쪽으로 쉬프트 한 결과 이다. 2 로 나누기 위해선 한 자리 오른쪽으로 쉬프트
+하면 된다; 4 ($2^2$)로 나누기 위해선, 두 자리를 오른쪽으로 쉬프트; 8 ($2^3$)
+로 나누기 귀해선 3 자리를 오른쪽으로 쉬프트 하면 된다. 쉬프트 연산은 {\code MUL}
+\index{MUL} 나 {\code DIV} \index{DIV} 명령에 비해 \emph{매우} 빠르다. 
+
+사실, 부호 없는 정수들에서만 곱셈과 나눗셈을 위해 쉬프트 연산이 사용될 수 있다. 
+부호가 있는 정수들에게선 적용되지 않는다. 예를 들어서 2 바이트 FFFF ($-1$) 를
+생각해 보면 오른쪽으로 한 번 쉬프트 되면 그 결과는 7FFF 로 $+32,767$ 이 된다. 
+따라서 부호 있는 값에선 다른 형태의 쉬프트 연산이 사용되어야 한다. 
+  
+\index{비트 연산!쉬프트!논리 쉬프트|)}
+
+\subsection{산술 쉬프트}\index{비트 연산!쉬프트!산술 쉬프트|(}
+
+이 쉬프트들은 부호 있는 정수에 2 의 멱수의 곱셈과 나눗셈을 빠르게 수행하게 
+위해서 만들어 졌다. 이들은 부호 비트가 올바르게 설정되어 있다고 생각한다. 
+
+\begin{description}
+\item[SAL] \index{SAL} 산술 왼쪽 쉬프트 - 이는 {\code SHL} 와 동일하다. 
+           이는 {\code SHL} 과 정확히 같은 기계어 코드로 번역된다. 부호 비트가 
+           쉬프트 연산에 의해 바뀌지 않는 이상, 결과값은 정확하다. 
+\item[SAR] \index{SAR} 산술 오른쪽 쉬프트 - 이 새로운 명령은 피연산자의 부호
+           비트(\emph{i.e.} 최상위비트) 를 쉬프트 하지 않는다. 다른 비트들은
+           보통의 비트 연산들 처럼 오른쪽으로 쉬프트 되며 왼쪽에서 추가되는 새 
+           비트들은 이전의 부호 비트들과 값이 같다. (즉, 부호 비트가 1 이였다면 
+           새롭게 추가되는 비트들도 1 이 된다) 따라서, 바이트가 이 연산에 따라 
+           쉬프트 된다면 하위 7 비트 들만 쉬프트 되는 것이다. 다른 쉬프트 연산들
+           처럼 마지막으로 쉬프트 되는 비트는 캐리 플래그에 저장된다. 
+\end{description}
+
+\begin{AsmCodeListing}[frame=none]
+      mov    ax, 0C123H
+      sal    ax, 1           ; ax = 8246H, CF = 1
+      sal    ax, 1           ; ax = 048CH, CF = 1
+      sar    ax, 2           ; ax = 0123H, CF = 0
+\end{AsmCodeListing}
+\index{비트 연산!쉬프트!산술 쉬프트|)}
+
+\subsection{회전 쉬프트}\index{비트 연산!쉬프트!회전 쉬프트|(}
+
+회전 쉬프트는 논리 쉬프트 처럼 작동하지만 다른 점은 쉬프트를 통해 사라진 
+끄트머리의 데이터가 새롭게 추가되는 데이터와 같다는 점이다. 따라서, 데이터는 
+하나의 순환 고리로 볼 수 있다. 두 개의 가장 단순한 회전 쉬프트 명령
+으로는 {\code ROL} \index{ROL} 과 {\code ROR} \index{ROR} 이 있으며 이는 
+각각 왼쪽과 오른쪽 회전을 가리킨다. 다른 쉬프트 연산들 처럼 이 명령은
+마지막으로 쉬프트된 비트를 캐리 플래그에 저장한다. 
+
+\begin{AsmCodeListing}[frame=none]
+      mov    ax, 0C123H
+      rol    ax, 1           ; ax = 8247H, CF = 1
+      rol    ax, 1           ; ax = 048FH, CF = 1
+      rol    ax, 1           ; ax = 091EH, CF = 0
+      ror    ax, 2           ; ax = 8247H, CF = 1
+      ror    ax, 1           ; ax = C123H, CF = 1
+\end{AsmCodeListing}
+
+데이터의 비트들과 함께 캐리 플래그의 값을 회전시키는 명령들도 있는데, 이는 {\code
+RCL} \index{RCL} 과 {\code RCR} \index{RCR} 이다. 예를 들어서 {\code AX} 레지스터가
+이 명령을 통해 회전 된다면 {\code AX} 와 캐리 플래그와 함께 총 17 비트가
+회전되게 된다. 
+\begin{AsmCodeListing}[frame=none]
+      mov    ax, 0C123H
+      clc                    ; clear the carry flag (CF = 0)
+      rcl    ax, 1           ; ax = 8246H, CF = 1
+      rcl    ax, 1           ; ax = 048DH, CF = 1
+      rcl    ax, 1           ; ax = 091BH, CF = 0
+      rcr    ax, 2           ; ax = 8246H, CF = 1
+      rcr    ax, 1           ; ax = C123H, CF = 0
+\end{AsmCodeListing}
+\index{비트 연산!쉬프트!회전|)}
+
+\subsection{간단한 프로그램}\label{sect:AddBitsExample}
+
+아래는 EAX 레지스터에 얼마나 많은 수의 비트들이 켜져 있는지 (\emph{i.e.}~1 인지)
+세는 소스 이다. 
+%TODO: show how the ADC instruction could be used to remove the jnc
+\begin{AsmCodeListing}
+      mov    bl, 0           ; bl 에 켜진 비트들의 수를 보관
+      mov    ecx, 32         ; ecx 는 루프 카운터
+count_loop:
+      shl    eax, 1          ; 쉬프트 된 비트는 캐리 플래그에 들어감. 
+      jnc    skip_inc        ; 만일 CF == 0 면 skip_inc 로 분기
+      inc    bl
+skip_inc:
+      loop   count_loop
+\end{AsmCodeListing}
+위의 코드는 원래 {\code EAX} 에 저장되어 있던 값을 파괴시킨다. ({\code EAX} 는 
+루프 끝에선 0 이 되어 버린다) 만약 {\code EAX} 의 값을 저장하고 싶으면 ~4 행을
+{\code rol eax, 1} 로 바꾸어 주면 된다. 
+
+\index{비트 연산!쉬프트|)}
+
+\section{불리언 비트 연산}
+
+4 개의 중요한 불리언(Boolean) 연산자가 있는데 : \emph{AND}, \emph{OR}, \emph{XOR}, 
+\emph{NOT} 이다. \emph{진리표}에는 이들의 가능한 모든 피연산자들에 대한 연산 
+수행 시 나타나는 결과값을 정리해놓았다. 
+
+\subsection{\emph{AND} 연산 \index{비트 연산!AND}}
+
+\begin{table}[t]
+\centering
+\begin{tabular}{|c|c|c|}
+\hline
+\emph{X} & \emph{Y} & \emph{X} AND \emph{Y} \\
+\hline \hline
+0 & 0 & 0 \\
+0 & 1 & 0 \\
+1 & 0 & 0 \\
+1 & 1 & 1 \\
+\hline
+\end{tabular}
+\caption{AND 연산 \label{tab:and} \index{AND}}
+\end{table}
+
+오직 두 비트의 값이 1 일 때 에만 \emph{AND} 연산의 결과값이 1 이 된다. 나머지 경우에는
+모두 표 ~\ref{tab:and} 의 진리표에 잘 나와있듯이 0 이 된다. 
+
+\begin{figure}[t]
+\centering
+\begin{tabular}{rcccccccc}
+    & 1 & 0 & 1 & 0 & 1 & 0 & 1 & 0 \\
+AND & 1 & 1 & 0 & 0 & 1 & 0 & 0 & 1 \\
+\hline
+    & 1 & 0 & 0 & 0 & 1 & 0 & 0 & 0
+\end{tabular}
+\caption{바이트에 AND 연산 취하기 \label{fig:and}}
+\end{figure}
+
+프로세서는 이러한 연산들을 데이터의 각 비트에 대해 일일히 적용 시킨다. 예를
+들어서 {\code AL} 과 {\code BL} 의 값에 \emph{AND} 연산을 취했을 때, 
+기본적인 \emph{AND} 연산은 두 개의 레지스터의 각각 대응되는 8 쌍의 비트들에 
+대해 각각 적용된다. 이는 그림 ~\ref{fig:and} 에 잘 나타나 있다. 아래는 예제
+코드 이다. 
+
+\begin{AsmCodeListing}[frame=none]
+      mov    ax, 0C123H
+      and    ax, 82F6H          ; ax = 8022H
+\end{AsmCodeListing}
+
+\subsection{\emph{OR} 연산}\index{비트 연산!OR}
+
+\begin{table}[t]
+\centering
+\begin{tabular}{|c|c|c|}
+\hline
+\emph{X} & \emph{Y} & \emph{X} OR \emph{Y} \\
+\hline \hline
+0 & 0 & 0 \\
+0 & 1 & 1 \\
+1 & 0 & 1 \\
+1 & 1 & 1 \\
+\hline
+\end{tabular}
+\caption{OR 연산 \label{tab:or} \index{OR}}
+\end{table}
+
+두 비트가 모두 0 일 때 에만 포함적(inclusive) \emph{OR} 연산
+\footnote{(역자 주) 이는 우리가 보통 OR 연산이라 부르는 것이다}
+의 결과가 0 이 된다. 나머지 경우는
+모두 결과가 1 이 되며 이는 진리표 ~\ref{tab:or} 에 잘 나타나 있다. 아래는 예제 
+코드 이다 :
+
+\begin{AsmCodeListing}[frame=none]
+      mov    ax, 0C123H
+      or     ax, 0E831H          ; ax = E933H
+\end{AsmCodeListing}
+
+\subsection{\emph{XOR} 연산 \index{비트 연산!XOR}}
+
+\begin{table}
+\centering
+\begin{tabular}{|c|c|c|}
+\hline
+\emph{X} & \emph{Y} & \emph{X} XOR \emph{Y} \\
+\hline \hline
+0 & 0 & 0 \\
+0 & 1 & 1 \\
+1 & 0 & 1 \\
+1 & 1 & 0 \\
+\hline
+\end{tabular}
+\caption{XOR 연산 \label{tab:xor}\index{XOR}}
+\end{table}
+
+두 비트가 같을 때 에만 배타적 \emph{OR} 의 연산 결과가 0 이 된다. 두 비트가 
+다르면 연산의 결과는 1 이 되며 이는 진리표 ~\ref{tab:xor} 에 잘 나타나 있다. 
+아래는 예제 코드 이다:
+
+\begin{AsmCodeListing}[frame=none]
+      mov    ax, 0C123H
+      xor    ax, 0E831H          ; ax = 2912H
+\end{AsmCodeListing}
+
+\subsection{\emph{NOT} 연산}\index{비트 연산!NOT}
+
+\begin{table}[t]
+\centering
+\begin{tabular}{|c|c|}
+\hline
+\emph{X} & NOT \emph{X} \\
+\hline \hline
+0 & 1 \\
+1 & 0 \\
+\hline
+\end{tabular}
+\caption{NOT 연산 \label{tab:not}\index{NOT}}
+\end{table}
+
+\emph{NOT} 연산은 \emph{단항(unary)} 연산 이다. (\emph{i.e} 이는 오직 한 개의
+피연산자에 대해 연산한다. \emph{AND} 연산 같이 두 개의 피연산자를 가지는 연산
+이 아니다) 어떠한 비트의 \emph{NOT} 연산을 하게 되면 그 비트의 정반대 되는 값
+이 되며 이는 진리표 ~\ref{tab:not} 에 잘 나타나 있다. 아래는 예제 코드 이다:
+
+\begin{AsmCodeListing}[frame=none]
+      mov    ax, 0C123H
+      not    ax                 ; ax = 3EDCH
+\end{AsmCodeListing}
+
+\emph{NOT} 연산이 1 의 보수를 찾는 다는 것을 주목해라. 다른 비트 연산(Bitwise operation)
+들과는 달리 {\code NOT} 명령은 {\code FLAGS} 레지스터의 어떠한 값도 바꾸지 않는다. 
+
+\subsection{{\protect\code TEST} 명령}\index{TEST}
+
+{\code TEST} 명령은 \emph{AND} 연산을 수행하지만 결과는 보관하지 않는다. 이는 오직 
+연산 결과의 따라 {\code FLAGS} 레지스터의 값 만을 바꿀 뿐이다. (이는 {\code CMP} 명령
+이 뺄셈을 수행하지만 오직 {\code FLAGS} 레지스터의 값 만을 바꾸었던 것과 일맥상통 하다) 
+예를 들어, 연산의 결과가 0 이라면 {\code ZF} 가 세트 된다. 
+
+\begin{table}
+\begin{tabular}{lp{3in}}
+\emph{i} 번째 비트를 켠다 & $2^i$ 와 \emph{OR} 연산을 한다. (이는 
+                              \emph{i} 번째 비트 만 켜진(1 인) 이진수 이다.) \\
+\emph{i} 번째 비트를 끈다 & 오직 \emph{i} 번째 비트만 꺼진(0 인) 이진수
+                              와 \emph{AND} 연산을 한다. 이러한 피연산자를 
+                  	      \emph{마스크(mask)} 라고 부른다.\\
+\emph{i} 번째 비트에 보수 취하기 & $2^i$ 와 \emph{XOR} 연산을 한다. 
+\end{tabular}
+\caption{불리언 연산의 사용 \label{tab:bool}}
+\end{table}
+
+\subsection{비트 연산의 사용\index{비트 연산!어셈블리|(}}
+비트 연산은 개개의 값을 다른 비트에는 전혀 영향을 주지 않고도 수정하는 경우에
+매우 편리하다. 표 ~\ref{tab:bool} 에는 이러한 연산들의 3 가지 자주 쓰이는 경우
+를 보여주고 있다. 아래는 위 아이디어를 적용한 예제 코드 이다. 
+
+\begin{AsmCodeListing}[frame=none]
+      mov    ax, 0C123H
+      or     ax, 8           ; 3 번째 비트를 킨다,   ax = C12BH
+      and    ax, 0FFDFH      ; 5 번째 비트를 끈다,  ax = C10BH
+      xor    ax, 8000H       ; 31 비트를 반전,   ax = 410BH
+      or     ax, 0F00H       ; 니블을 킨다,  ax = 4F0BH
+      and    ax, 0FFF0H      ; 니블을 끈다, ax = 4F00H
+      xor    ax, 0F00FH      ; 니블을 반전,  ax = BF0FH
+      xor    ax, 0FFFFH      ; 1의 보수,  ax = 40F0H
+\end{AsmCodeListing}
+
+\emph{AND} 연산은 2 의 멱수로 나눈 나머지를 찾는데 사용할 수 있다. $2^i$
+로 나눈 수의 나머지를 찾기 위해선 값이 $2^i - 1$ 인 마스크와 \emph{AND} 연산을
+하면 된다. 이 마스크는 $i-1$ 번째 비트 까지 모두 1 이다. 이 마스크에 나머지가 저장
+된다. \emph{AND} 연산의 결과는 이러한 비트들을 저장하고 나머지는 모두 0 이 되게
+한다. 아래는 100 을 16 으로 나눈 나머지와 몫을 저장하는 코드 이다. 
+
+\begin{AsmCodeListing}[frame=none]
+      mov    eax, 100        ; 100 = 64H
+      mov    ebx, 0000000FH  ; mask = 16 - 1 = 15 or F
+      and    ebx, eax        ; ebx = remainder = 4
+      shr    eax, 4          ; eax = quotient of eax/2^4 = 6
+\end{AsmCodeListing}
+{\code CL} 레지스터를 이용하여 데이터의 임의의 비트를 수정하는 것이 가능하다.
+아래의 코드는 {\code EAX} 의 임의의 비트를 세트 (1 로 만듦) 하는 코드 이다.
+{\code BH} 에 세트가 될 비트의 위치가 저장되어 있다. 
+
+\begin{AsmCodeListing}[frame=none]
+      mov    cl, bh          ; OR 연산을 할 수를 만듦
+      mov    ebx, 1
+      shl    ebx, cl         ; CL 번 쉬프트
+      or     eax, ebx        ; 비트를 세트
+\end{AsmCodeListing}
+
+비트를 오프(off, 0 으로 만듦) 하는 일은 조금 더 복잡하다. 
+\begin{AsmCodeListing}[frame=none]
+      mov    cl, bh          ;AND 연산을 할 수를 만듦
+      mov    ebx, 1
+      shl    ebx, cl         ; cl 번 쉬프트
+      not    ebx             ; 비트 반전
+      and    eax, ebx        ; 비트를 끔 
+\end{AsmCodeListing}
+임의의 비트를 반전시키는 코드는 여러분의 몫으로 남기겠다. 
+
+80x86 프로그램에서 아래와 같은 난해한 명령을 보는 일이 종종 있다:
+
+\begin{AsmCodeListing}[frame=none,numbers=none]
+      xor    eax, eax         ; eax = 0
+\end{AsmCodeListing}
+어떠한 수가 자기 자신과 \emph{XOR} 연산을 하면 0 이 된다. 이 명령은 
+동일한 {\code MOV} 명령 보다 기계어 코드 크기가 작기 때문에 자주 사
+용된다. 
+
+\index{비트 연산!어셈블리|)}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}
+      mov    bl, 0           ; bl 은 값이 1 인 비트의 수를 갖는다. 
+      mov    ecx, 32         ; ecx 는 루프 카운터 이다. 
+count_loop:
+      shl    eax, 1          ; 캐리플래그에 비트를 쉬프트 
+      adc    bl, 0           ; bl 에 캐리 플래그를 더한다. 
+      loop   count_loop
+\end{AsmCodeListing}
+\caption{{\code ADC} 를 이용해 비트세기\label{fig:countBitsAdc}}
+\end{figure}
+
+\section{조건 분기 명령을 피하기}
+\index{분기 예측|(} 
+현대의 프로세서들은 코드를 빠르게 실행하기 위해 여러가지 복잡한 방법
+들을 사용한다. 가장 흔한 방법으로는 \emph{추론적 실행(speculative execution)}
+\index{추론적 실행} 이다. 이 기술은 CPU 의 병렬 처리 기술을 이용하여 여러개의 
+명령들을 동시에 실행한다. 그런데 조건 분기 명령에는 이 방법을 적용할 수 없다. 
+왜냐하면 대다수의 경우 프로세서는 분기를 할지 안할지 알 수 없기 때문이다. 만약
+분기를 하게 되면 분기를 안할 때와 다른 명령들을 실행하게 된다. 프로세서는 
+분기를 할지 안할 지 예측을 하려고 노력한다. 만약 예측이 틀리다면 프로세서는
+쓸데 없는 코드를 실행하는데 시간을 빼앗기게 된다. 
+
+\index{분기 예측|)}
+
+위 문제를 피하는 방법으로는 조건 분기 명령을 되도록 사용하지 않는 것이다.
+그림 ~\ref{sect:AddBitsExample}의 예제 코드는 어떻게 조건 분기 명령 사용 회수
+를 줄이는지 잘 나타내고 있다. 이전의 예제에서는 EAX 레지스터의 켜진 비트
+들의 수를 세었다. 이는 {\code INC} 명령을 중단하기 위해 조건 분기 명령을 
+사용했다. 그림 ~\ref{fig:countBitsAdc} 는 {\code ADC}\index{ADC} 명령을 사용해
+캐리 플래그에 직접적으로 더해 분기를 사용하지 않는 방법을 보여주고 있다. 
+
+{\code SET\emph{xx}}\index{SET\emph{xx}} 명령은 특정한 경우에서 분기를 
+이용하지 않을 수 있는 방법을 제공한다. 이 명령들은 플래그 레지스터의 상태에 따라 
+바이트 레지스터나 메모리의 값을 0 또는 1 로 바꾸어 준다. {\code SET} 다음에
+오는 문자들은 조건 분기 명령에서의 것들과 같다. 만약 {\code SET\emph{xx}}
+의 조건이 참이라면 그 결과는 1, 거짓이면 0 이 저장된다. 예를 들어 
+
+\begin{AsmCodeListing}[frame=none,numbers=none]
+      setz   al        ; Z 플래그가 세트 되었으면 1, 아니면 0 이 al 에 저장
+\end{AsmCodeListing}
+이 명령들을 이용하여 여러분은 분기를 사용하지 않고도 값들을 계산하는 놀라운
+방법들을 만들 수 있을 것이다. 
+
+예를 들어서 두 값들 중 최대값을 찾는 프로그램을 만든다고 하자. 이 문제를
+해결하는 간단한 방법으로는 {\code CMP} 와 조건 분기 명령을 사용해 어떠한
+값이 더 큰지 결정하는 것이다. 하지만 아래의 코드는 어떻게 조건 분기 명령을
+사용하지 않고도 최대값을 찾을 수 있는지 보여준다. 
+
+\begin{AsmCodeListing}
+; file: max.asm
+%include "asm_io.inc"
+segment .data
+
+message1 db "Enter a number: ",0
+message2 db "Enter another number: ", 0
+message3 db "The larger number is: ", 0
+
+segment .bss
+
+input1  resd    1        ; 첫 번째 숫자 입력
+segment .text
+        global  _asm_main
+_asm_main:
+        enter   0,0               ; 셋업 루틴
+        pusha
+
+        mov     eax, message1     ; 첫 번째 메세지 출력
+        call    print_string
+        call    read_int          ; 첫 번째 수 입력 
+        mov     [input1], eax
+
+        mov     eax, message2     ; 두 번째 메세지 출력
+        call    print_string
+        call    read_int          ; eax 에 두 번째 수 입력
+
+        xor     ebx, ebx          ; ebx = 0
+        cmp     eax, [input1]     ; 두 번째와 첫 번째 숫자를 비교
+        setg    bl                ; ebx = (input2 > input1) ?          1 : 0
+        neg     ebx               ; ebx = (input2 > input1) ? 0xFFFFFFFF : 0
+        mov     ecx, ebx          ; ecx = (input2 > input1) ? 0xFFFFFFFF : 0
+        and     ecx, eax          ; ecx = (input2 > input1) ?     input2 : 0
+        not     ebx               ; ebx = (input2 > input1) ?          0 : 0xFFFFFFFF
+        and     ebx, [input1]     ; ebx = (input2 > input1) ?          0 : input1
+        or      ecx, ebx          ; ecx = (input2 > input1) ?     input2 : input1
+
+        mov     eax, message3     ; 결과를 출력
+        call    print_string
+        mov     eax, ecx
+        call    print_int
+        call    print_nl
+
+        popa
+        mov     eax, 0            ; C 로 리턴
+        leave                     
+        ret
+\end{AsmCodeListing}
+
+위 코드에서 최대값을 올바르게 선택하기 위해 비트 마스크를 이용할 수 있다는 사실을 이용했다. 
+~30 행에서 사용된 {\code SETG}\index{SETG} 명령은 두 번째 입력값이
+최대값이면 1, 아니면 0 으로 BL 레지스터를 설정한다. 이는 우리가 원하던
+비트 마스크가 아니다. 따라서 올바른 비트 마스크를 만들기 위해 ~31 행에서
+EBX 레지스터 전체에 {\code NEG}\index{NEG} 명령을 사용하였다. (이전의 EBX
+레지스터의 값은 0 이 되었음을 주목해라) 만약 EBX 가 0 이라면 아무것도 하지 
+않는다. 그러나 EBX 가 1 이라면 그 결과는 -1의 2의 보수, 즉 0xFFFFFFFF 가 된다. 이는 
+우리가 필요했던 비트 마스크 이다. 코드의 나머지 부분은 비트 마스크를 이용하여 
+입력값의 정확한 최대값을 계산하게 된다. 
+
+다른 방법으로는 {\code DEC} 문장을 이용하는 것이다. 위 코드에선 
+{\code NEG} 를 {\code DEC} 로 바꾸어도 그 결과는 0 이나 0xFFFFFFFF 가 된다.
+하지만 {\code NEG} 명령을 사용할 때와 달리 경우가 뒤바뀐다. 
+
+\section{C 에서 비트값 바꾸기\index{비트 연산!C|(}}
+
+\subsection{C 에서의 비트 연산자}
+
+일부 고급 언어들과는 달리 C 는 비트 연산을 위한 연산자들을 지원한다. 
+\emph{AND} 연산은 이진 {\code \&} 연산자 \footnote{이 연산자는
+{\code \&{} \&} 와 단항 {\code \&} 연산자와는 다르다!} 로 나타난다.
+\emph{OR} 연산은 이진 {\code \textbar} 연산자로 나타난다. \emph{XOR} 연산
+은 이진 {\code \textasciicircum} 연산자로 나타난다. 그리고 \emph{NOT} 연산
+은 단항 {\code \textasciitilde} 연산자로 나타난다.
+
+C 에서의 쉬프트 연산은 {\code <<} 와 {\code >>} 이진 연산자가
+수행한다. {\code <<} 연산자는 왼쪽 쉬프트, {\code >>} 연산자는
+오른쪽 쉬프트를 수행한다. 이들은 2 개의 피연산자를 갖는다. 왼쪽의 피연산자는
+쉬프트 할 값이고 오른쪽의 피연산자는 쉬프트 할 비트 수를 나타낸다. 만약
+부호 없는 형식의 값을 쉬프트한다면 논리 쉬프트가 이루어진다. 만약 부호
+있는 형식(예를 들면 {\code int}) 의 쉬프트를 하면 산술 쉬프트가 이루어
+진다. 아래는 이러한 연산자들을 이용한 예제 코드 이다. 
+
+\begin{lstlisting}[escapeinside=~~]{}
+short int s;          /* ~ short int 가 16비트라고 생각 ~ */
+short unsigned u;
+s = -1;               /* s = 0xFFFF (~2의 보수~) */
+u = 100;              /* u = 0x0064 */
+u = u | 0x0100;       /* u = 0x0164 */
+s = s & 0xFFF0;       /* s = 0xFFF0 */
+s = s ^ u;            /* s = 0xFE94 */
+u = u << 3;           /* u = 0x0B20 (~논리 쉬프트~) */
+s = s >> 2;           /* s = 0xFFA5 (~산술 쉬프트~) */
+\end{lstlisting}
+
+\subsection{C 에서 비트 연산자 사용하기}
+
+C 에서 사용되는 비트 연산자들은 어셈블리에서 사용되는 경우와 동일하게
+사용할 수 있다. 이를 통해 빠른 곱셈과 나눗셈을 수행하고 개개의 비트를 
+조작할 수 있다. 사실, 똑똑한 C 컴파일러들은 {\code x*=2} 와 같은 문장
+에선 쉬프트 연산을 자동적으로 사용한다. 
+
+\begin{table}
+\centering
+\begin{tabular}{|c|l|}
+\hline
+매크로 & \multicolumn{1}{c|}{의미} \\
+\hline \hline
+{\code S\_IRUSR} & 유저가 읽기 가능 \\
+{\code S\_IWUSR} & 유저가 쓰기 가능 \\
+{\code S\_IXUSR} & 유저가 실행 가능 \\
+\hline
+{\code S\_IRGRP} & 그룹이 읽기 가능 \\
+{\code S\_IWGRP} & 그룹이 쓰기 가능 \\
+{\code S\_IXGRP} & 그룹이 실행 가능 \\
+\hline
+{\code S\_IROTH} & 아더(other) 읽기 가능 \\
+{\code S\_IWOTH} & 아더가 쓰기 가능 \\
+{\code S\_IXOTH} & 아더가 실행 가능 \\
+\hline
+\end{tabular}
+\caption{POSIX 파일 실행 권한 명령들 \label{tab:posix}}
+\end{table}
+
+많은 수의 운영체제 API\footnote{응용 프로그램 프로그래밍 인터
+페이스(Application Programming Interface)} 들은 (예를 들어서
+\emph{POSIX}\footnote{이식 가능 운영체제 인터페이스
+(Portable Operating System Interface for Computer Environment)
+의 준말로, UNIX 를 기반으로 IEEE 에 의해 개발됨} 와 Win32 가 대표
+적이다.) 들은 비트로 데이타가 인코드(encode)된 피연산자를 사용하는 함수
+를 사용한다. 예를 들어서 POSIX 시스템에서 파일 시스템 접근 권한에는
+3 가지 유형의 유저들이 있다: \emph{유저(user)} (정확히 말하자면
+\emph{오너(owner)}), \emph{그룹(group)}, \emph{아더(others)}
+이다. 각각의 유형의 사용자들은 파일을 읽기, 쓰기, 실행 수 있는 권한을 가질 수 있다. 
+파일의 권한을 변경하기 위해선 C 프로그래머가 각각의 비트들을 
+수정할 수 있어야만 한다. POSIX 는 이를 돕기 위해 몇 가지의
+매크로를 정의했다 (표 ~\ref{tab:posix} 참조) {\code chmod} 함수
+는 파일의 권한을 설정하기 위해 사용된다. 이 함수는 두 개의 인자를
+가지는데, 하나는 권한을 설정할 파일의 이름 문자열이고, 또 하나는 
+어떻게 권한을 설정할 지에 대한 정수(Integer)값 \footnote{사실, 이 정수형은 
+int 형으로 typedef 에 의해 {\code mode\_t} 형으로 정의되어 있다} 이다. 
+예를 들어서 아래의 코드는 파일의 권한을 오너는 파일을 읽고 쓰기 가능, 
+그룹은 읽기 가능, 그리고 아더는 어떠한 접근도 불가하게 설정하는
+코드 이다. 
+
+\begin{lstlisting}[stepnumber=0]{}
+chmod("foo", S_IRUSR | S_IWUSR | S_IRGRP );
+\end{lstlisting}
+
+POSIX {\code stat} 함수는 현재 파일의 접근 권한 비트값을 알아내는데
+사용할 수 있다. {\code chmod} 함수와 함께 사용하면 다른 값들을 바꾸지 
+않고도 현재 파일의 권한들을 변경할 수 있다. 아래는 아더의 쓰기 권한을
+지우고, 오너에 읽기 권한을 추가하는 명령이다. 다른 권한들은 
+변경되지 않았다. 
+
+\begin{lstlisting}[escapeinside=~~]{}
+struct stat file_stats;    /* ~stat() 이 사용할 구조체 ~*/
+stat("foo", &file_stats);  /* ~파일 정보를 읽는다~
+                      ~file\_stats.st\_mode 에는 권한 비트가 들어간다. ~*/
+chmod("foo", (file_stats.st_mode & ~~S_IWOTH) | S_IRUSR);
+\end{lstlisting}
+\index{비트 연산!C|)}
+
+\section{빅, 리틀 엔디안 표현\index{엔디안|(}}
+
+~1 장에서 단일 바이트 이상의 데이터에 대한 빅, 리틀 엔디안
+표현에 대해 다루었었다. 그러나, 저자는 많은 사람들이 아직도
+이 개념에 대해 잘 이해하지 못하므로 이 단원에서 좀더 심화되게 다루고자
+한다. 
+
+여러분은 엔디안이 멀티바이트 데이타의 원소들의 개개의 바이트(비트가 \emph{아님})
+를 메모리에 저장하는 순서를 가리키는 말이라는 사실을 기억할 것이다. 빅 엔디안은
+직관적인 방법이다. 이는 최상위 바이트를 먼저 저장하고 그 순서로 쭉 저장한다. 다시말해,
+가장 \emph{높은} 자리의 비이트들이 먼저 저장된다. 리틀 엔디안은 바이트를 역순으로 
+(낮은 순서대로) 저장한다. x86 계열의 프로세서들은 리틀 엔디안 표현을 사용한다.
+
+예를 들어서 더블워드 $12345678_{16}$ 을 생각해 보자. 빅 엔디안 표현에선 바이트
+들은  12~34~56~78 순으로 저장된다. 하지만 리틀 엔디안 표현에선 바이트 들이
+78~56~34~12 순으로 저장된다. 
+
+아마 독자 여러분은 머리속에 다음과 같은 생각이 떠오를 것이다. 왜 칩 디자이너들이
+리틀 엔디안 표현을 사용할까? 사악한 인텔 엔지니어들이 프로그래머들을 혼란
+스럽게 하기 위해 그런 것이였을까? 아마 여러분은 CPU 가 메모리에 이러한 방식으로
+데이터를 저장하기 위해 부수적인 작업을 해야 한다고 생각한다. (또한 메모리에 
+서도 역순으로 읽어 들일 때도) 하지만, 그 답은 '아니오' 이다. 리틀 엔디안 표현을 
+사용할 때 에도 CPU 는 어떠한 부수적인 작업을 하지 않는다. 여러분은 CPU 가 단지
+비트값에만 작업하는 수 많은 전기 회로들로 구성되어 있다는 것일 명심해야 한다. 그리고
+비트(또한 바이트)들의 순서는 CPU 에서 정렬되어 있을 필요가 없다. 
+
+2 바이트 {\code AX} 레지스터를 생각해 보자. 이는 두 개의 바이트 레지스터 {\code AH}
+와 {\code AL} 로 나뉜다. CPU 에선 {\code AH} 와 {\code AL} 레지스터의 값들을
+지정하는 회로 들이 있다. CPU 에선 이 회로들이 특정한 순서로 놓여 있지 않다. 
+따라서, {\code AH} 를 위한 회로들은 {\code AL} 을 위한 회로들 앞에나 뒤에 놓여있다고
+말할 수 없다. {\code AX} 레지스터의 값을 메모리로 복사하는 {\code mov} 명령은 
+{\code AL} 의 값을 복사한 다음 {\code AH} 의 값을 복사 하지만 이 순서를 바꿔서 해도
+CPU 에선 아무런 상관이 없다. 
+
+\begin{figure}[t]
+\begin{lstlisting}[stepnumber=0,frame=tblr, escapeinside=~~]{}
+  unsigned short word = 0x1234;   /* ~sizeof(short) == 2 라 생각~ */
+  unsigned char * p = (unsigned char *) &word;
+
+  if ( p[0] == 0x12 )
+    printf("Big Endian Machine\n");
+  else
+    printf("Little Endian Machine\n");
+\end{lstlisting}
+\caption{무슨 엔디안인지 어떻게 결정할까? \label{fig:determineEndian}}
+\end{figure}
+
+같은 논리가 바이트의 개개의 비트들에도 적용이 된다. CPU 의 회로에선
+이 개개의 비트들이 특정한 순서로 놓여 있지는 않다. 그러나, 개개의 비트
+들이 CPU 나 메모리에서 주소 지정이 될 수 없기 때문에 우리는 CPU 내부
+적으로 어떠한 순서로 이들이 놓여있는지 알 방법(알 필요도) 이 없다. 
+
+그림 ~\ref{fig:determineEndian} 에선 CPU 가 무슨 엔디안 형식을 사용
+하는지 알 수 있다. \lstinline|p| 포인터는 \lstinline|word| 를 두 개의 
+원소를 가지는 문자 배열로 취급한다. 따라서  \lstinline|p[0]| 는 
+\lstinline|word|  의 메모리에 저장된 값의 첫 번째 바이트가 된다. 
+이는 CPU 가 어떤 엔디안 형식을 사용하는지에 따라 달라지게 된다. 
+
+\subsection{리틀 혹은 빅 엔디안인지 언제 신경 써야 하는가?}
+
+많은 경우 프로그래밍 시에 CPU 가 무슨 엔디안 형식을 사용하는지는 큰 
+상관이 없다. 그러나 바로 두 개의 서로 다른 컴퓨터 시스템에서 이진 데이터가 송신될 때
+이를 심각하게 고려해야 한다. 이렇게 송신되는 경우는 주로 특정한 형식의 물리 데이타
+미디어(예를 들어 디스크) 나 네트워크 이다. \MarginNote{UNICODE\index{UNICODE} 와 
+같은 멀티바이트 문자 세트의 출현에 따라 텍스트 데이터 에서 조차도 무슨 엔디안을 
+사용하는지 중요하게 되었다. UNICODE 는 두 엔디안 형식을 모두 지원하며 데이터를
+표현하는 엔디안이 무슨 형식이니 알아내는 메카니즘도 있다}. 아스키 데이터는 단일
+바이트 이므로 엔디안은 큰 문제가 아니다. 
+
+모든 TCP/IP 헤더들은 데이터를 빅 엔디안 형식(\emph{네트워크 바이트 순서(network byte order)} 
+라 부른다) 으로 정수들을 저장한다. TCP/IP\index{TCP/IP} 라이브러리는 C 
+로 하여금 엔디안 관련 문제들을 해결하기 위한 함수들을 지원한다. 
+예를 들어서 \lstinline|htonl()| 함수는 더블워드(혹은 long integer) 를 \emph{호스트(host)}
+의 엔디안 형식에서 \emph{네트워크(network)} 의 엔디안 형식으로 변환
+한다. \lstinline|ntohl()| 함수는 이와 정반대인 작업을 수행한다. \footnote{사실, 정수의 엔디안
+형식을 변환하는 일은 단순히 바이트 들을 역순으로 재배치 하는 것이다: 따라서, 빅에서 리틀
+엔디안 형식으로 바꾸는 작업은 리틀에서 빅 엔디안 형식으로 바꾸는 것과
+동일하다. 따라서 이 두 함수는 같은 작업을 한다.} 빅 엔디안 시스템에서, 두 함수는 
+두 함수들은 입력값을 변화시키지 않고 리턴한다. 이를 통해 프로그래머들은 
+네트워크 프로그램들을 엔디안의 형식에 상관하지 않고 어떠한 시스템에서도
+올바르게 동작할 수 있게 한다. 엔디안 형식과 네트워크 프로그래밍에 대한
+자세한 정보는 W. Richard Steven 의 놀라운 책인 \emph{UNIX Network Programming}
+을 읽어 보면 된다. 
+
+
+\begin{figure}[t]
+\begin{lstlisting}[frame=tlrb, escapeinside=~~]{}
+unsigned invert_endian( unsigned x )
+{
+  unsigned invert;
+  const unsigned char * xp = (const unsigned char *) &x;
+  unsigned char * ip = (unsigned char *) & invert;
+
+  ip[0] = xp[3];   /* ~개개의 바이트를 역으로 재배치~ */
+  ip[1] = xp[2];
+  ip[2] = xp[1];
+  ip[3] = xp[0];
+
+  return invert;   /*~뒤집어진 바이트를 리턴~*/
+}
+\end{lstlisting}
+\caption{\_엔디안 변환 함수\label{fig:invertEndian}\index{엔디안!엔디안 변환}}
+\end{figure}
+
+그림 ~\ref{fig:invertEndian} 은 더블워드의 엔디안 형식을 변환하는 C 함수를
+보여주고 있다. 486 프로세서는 32 비트 레지스터의 바이트를 역순으로
+재배치 하는 명령인 {\code BSWAP}\index{BSWAP} 를 추가하였다. 예를 들면
+
+\begin{AsmCodeListing}[frame=none,numbers=none]
+      bswap   edx          ; edx 의 바이트를 역으로 재배치
+\end{AsmCodeListing}
+이 명령은 16비트 레지스터에서는 사용될 수 없다. 그러나 {\code XCHG}
+\index{XCHG} 명령은 두 개의 8 비트 레지스터로 쪼개어 질 수 있는 
+16비트 레지스터의 바이트를 역순으로 재배치 할 수 있다. 예를 들면
+
+\begin{AsmCodeListing}[frame=none,numbers=none]
+      xchg    ah,al        ; ax 의 바이트를 역순으로 재배치
+\end{AsmCodeListing}
+\index{엔디안|)}
+
+\section{비트 수 세기\index{비트 수 세기|(}}
+
+이전에 더블워드에서 직관적인 방법으로 켜진 비트들의 수를 세는 프로그램
+을 만들었던 적이 있었다. 이 섹션에서는 덜 직관적이지만 이 장에서 논의된
+비트 연산을 이용하여 세는 방법에 대해 이야기 하고자 한다. 
+
+\begin{figure}[t]
+\begin{lstlisting}[frame=tblr]{}
+int count_bits( unsigned int data )
+{
+  int cnt = 0;
+
+  while( data != 0 ) {
+    data = data & (data - 1);
+    cnt++;
+  }
+  return cnt;
+}
+\end{lstlisting}
+\caption{비트 수 세기: 첫 번째 방법 \label{fig:meth1}}
+\end{figure}
+
+\subsection{첫 번째 방법}\index{비트 수 세기!첫 번째 방법|(}
+
+첫 번째 방법은 매우 단순하지만 명료하다. 그림 ~\ref{fig:meth1} 이 그 코드를 
+나타낸다. 
+
+이 방법은, 루프의 매 단계에서 {\code data} 의 한 개의 비트는 꺼진다.
+만일 데이터의 모든 비트들이 꺼진다면(\emph{i.e.} {\code data} 가 0 일 때)
+루프가 멈춘다. {\code data} 를 0 으로 만들기 위해 필요한 작업의 회수는
+{\code data} 에 들어 있는 켜진 비트들의 수와 동일하게 된다. 
+
+~6 행에서 {\code data} 의 한 개의 비트가 꺼진다. 왜 그럴까? 예를 들어 {\code data}
+값에서 오른쪽에서 부터 최초로 1 이 나타나는 지점을 생각하자. 정의에 따라, 그 1 이 
+나타나기 이전 비트들은 모두 0 이 된다. 그렇다면 {\code data - 1} 의 이진 표현은 어떻게
+될 까? 아까 최초로 1 이 나타나는 부분 부터 마지막 자리까지는 모두 이전
+데이터의 보수가 되고 나머지 부분은 그대로 일 것이다. 예를 들면 
+\\
+\begin{tabular}{lcl}
+{\code data}     & = & xxxxx10000 \\
+{\code data - 1} & = & xxxxx01111
+\end{tabular}\\
+
+이 때, x 들은 이전의 숫자와 동일하다. 만약 {\code data} 가 {\code data - 1}과 
+\emph{AND} 연산 하였다면 나머지 비트들은 바뀌지 않지만 오른쪽에서 처음으로
+나타났던 1 은 0 이 되어 있을 것이다. 
+
+\begin{figure}[t]
+\begin{lstlisting}[frame=tlrb, escapeinside=~~]{}
+static unsigned char byte_bit_count[256];  /* ~룩업 테이블~ */
+
+void initialize_count_bits()
+{
+  int cnt, i, data;
+
+  for( i = 0; i < 256; i++ ) {
+    cnt = 0;
+    data = i;
+    while( data != 0 ) {	/* ~ 첫 번째 방법 ~*/
+      data = data & (data - 1);
+      cnt++;
+    }
+    byte_bit_count[i] = cnt;
+  }
+}
+
+int count_bits( unsigned int data )
+{
+  const unsigned char * byte = ( unsigned char *) & data;
+
+  return byte_bit_count[byte[0]] + byte_bit_count[byte[1]] +
+         byte_bit_count[byte[2]] + byte_bit_count[byte[3]];
+}
+\end{lstlisting}
+\caption{두 번째 방법 \label{fig:meth2}}
+\end{figure}
+\index{비트 수 세기!첫 번째 방법|)}
+
+\subsection{두 번째 방법}\index{비트 수 세기!두 번째 방법|(}
+
+임의의 더블워드에서의 켜진 비트 수를 세는 방법으로 룩업 테이블(lookup table) 
+\footnote{(역자 주)참고로 룩업 테이블이란 컴퓨터의 계산 속도를 향상
+시키기 위하여 컴퓨터가 미리 계산 결과를 표로 정리해 놓은 것이다. 대표적으로
+sine 값을 계산하기 위한 룩업 테이블이 있다.} 을 이용하는 방법도 있다. 
+직관적으로 모든 더블워드들의 값 마다 켜진 비트 들의 수를 계산해 놓으면
+될 것 같다. 그러나, 이 방법엔 2 가지 문제점이 있다. 첫 째로, 대략 \emph{40억}
+개의 가능한 더블워드의 값이 존재한다. 이 말은, 그 룩업 테이블의 크기는
+매우 크고 이를 초기화 하는 작업도 매우 오래 걸릴 것이다. (사실상, 배열의
+크기가 40억이 넘어간다면 그냥 켜진 비트의 수를 계산하는 것 보다도 이를 
+초기화 하는 것이 시간이 훨씬 오래 걸린다) 
+
+좀더 현실 적인 방법으로는 모든 바이트 값들의 켜진 비트 수를 계산하여 배열
+에 저장해 놓는 것이다. 그리고 더블워드를 4 개의 바이트를 쪼개어서 각각의
+바이트를 배열에서 찾아 각 켜진 비트들의 합을 더한면 된다. 그림 ~\ref{fig:meth2}
+는 이 방법을 적용한 코드를 보여주고 있다. 
+
+{\code initialize\_count\_bits} 함수는 {\code count\_bits} 함수를 호출하기 전에
+반드시 호출되어야만 한다. 왜냐하면 이 함수는 전역 {\code byte\_bit\_count} 배열
+을 초기화 하기 때문이다. {\code count\_bits} 함수는 {\code data} 를 크기가
+더블워드인 변수로 보지 않고 4개의 바이트의 배열로 생각한다. {\code dword} 포인터
+는 이 4 바이트 배열의 포인터 역할을 한다. 따라서 {\code dword[0]} 은 {\code data}
+의 한 개의 바이트(하드웨어가 빅 엔디안이냐, 리틀 엔디안이냐의 따라서 이 바이트가
+최상위 바이트거나 최하위 바이트가 된다) 를 가리킨다. 당연하게도 여러분은
+아래와 같은 방법을 사용하여 
+
+\begin{lstlisting}[stepnumber=0]{}
+(data >> 24) & 0x000000FF
+\end{lstlisting}
+\noindent 최상위 바이트 값을 찾을 수 있고, 다른 바이트 들에게도 비슷한 방법을
+적용 할 수 있다. 그러나, 이러한 방법은 위 배열을 이용한 방법보다 속도가
+느리다. 
+
+마지막으로 볼 것은 {\code for} 루프를 통해 ~22 와 23 행의 수 들의 합을 손쉽게 계산할
+수 있다. 그러나 {\code for} 루프는 루프 상단에 인덱스의 초기화를 필요로 하고,루프 마다
+조건을 검사하고, 인덱스를 증가 시킬 것 이다. 하지만 위 처럼 그냥 4 개의 수를
+직접 더하면 훨신 빠르게 된다. 사실, 똑똑한 컴파일러는 {\code for} 루프를 이용한 
+형태를 위처럼 4 개의 합으로 변경해 줄 것이다. 이렇게 되풀이 되는 루프를 줄여주는
+것은 \emph{루프 언롤링(loop unrolling)} 이라는 컴파일러 최적화 기술이다. 
+
+\index{비트 수 세기!두 번째 방법|)}
+
+\subsection{세 번째 방법}\index{비트 수 세기!세 번째 방법|(}
+
+\begin{figure}[t]
+\begin{lstlisting}[frame=tlrb, escapeinside=~~]{}
+int count_bits(unsigned int x )
+{
+  static unsigned int mask[] = { 0x55555555,
+                                 0x33333333,
+                                 0x0F0F0F0F,
+                                 0x00FF00FF,
+                                 0x0000FFFF };
+  int i;
+  int shift;   /* ~오른쪽으로 쉬프트 연산 할 횟수 ~*/
+
+  for( i=0, shift=1; i < 5; i++, shift *= 2 )
+    x = (x & mask[i]) + ( (x >> shift) & mask[i] );
+  return x;
+}
+\end{lstlisting}
+\caption{세 번째 방법 \label{fig:method3}}
+\end{figure}
+
+이는 데이터의 켜진 비트수를 세는 또다른 놀라운 방법이다. 이 방법은 말그대로
+데이터의 1 들과 0 들을 더하게 된다. 이 합은 당연히 이 데이터의 1 의 개수와
+동일하게 된다. 예를 들어 {\code data} 변수에 들어있는 1 바이트 데이터의 1 
+의 개수를 센다고 하자. 첫 번째로 알의 명령을 수행하게 된다. 
+
+\begin{lstlisting}[stepnumber=0]{}
+data = (data & 0x55) + ((data >> 1) & 0x55);
+\end{lstlisting}
+
+위 작업은 무엇을 할까? 16진수 {\code 0x55} 는 이진수로 $01010101$
+로 나타낸다. 위 덧셈의 첫 번째 항에서, {\code data} 는 {\code 0x55}
+와 \emph{AND} 연산을 하게 되어 홀수번째 비트들만 남게 된다. 두 번째
+부분 {\code ((data >> 1) \& 0x55)} 는 먼저 짝수번째 비트들을 모두 홀수
+번째로 쉬프트 하고 다시 같은 마스크를 이용하여 홀수 번째 비트들만 남긴다.
+따라서, 첫 번째 부분은 {\code data} 의 홀수 번째 비트들을, 두 번째 부분은 
+짝수 번째 비트들을 가지게 된다. 이 두 개의 부분이 더해진다면 {\code data} 
+의 홀수 번째 비트들과 짝수 번째 비트들이 서로 더해진다. 예를 들어
+{\code data} 가 $10110011_2$ 였다면 \\
+
+\begin{tabular}{rcr|l|l|l|l|}
+\cline{4-7}
+{\code data \&} $01010101_2$          &    &   & 00 & 01 & 00 & 01 \\
++ {\code (data >> 1) \&} $01010101_2$ & or & + & 01 & 01 & 00 & 01 \\
+\cline{1-1} \cline{3-7}
+                                      &    &   & 01 & 10 & 00 & 10 \\
+\cline{4-7}
+\end{tabular}
+\\
+오른쪽에 나타난 덧셈은 실제로 더해지는 비트들을 보여준다. 바이트의 비트들은 
+사실상 4 개의 2 비트 부분으로 나뉘어서 4 개 각각이 독립적인 덧셈을 수행하는 것
+처럼 보인다. 2 비트 부분들의 합이 최대 2 이므로 오버 플로우가 일어나 다른 부분들
+의 덧셈의 결과를 엉망으로 만드는 경우는 발생하지 않는다. 
+
+당연하게도, 켜진 비트들의 총 수는 아직 계산되지 않았다. 그러나, 위와 같은 방법
+을 몇 번 적용하게 되면 켜진 비트들의 총 수를 계산할 수 있게 된다. 두 번째 단계는
+다음과 같다:
+
+\begin{lstlisting}[stepnumber=0]{}
+data = (data & 0x33) + ((data >> 2) & 0x33);
+\end{lstlisting}
+
+계속 적용하면, ({\code data} 는 이제 $01100010_2$ 이다) \\
+
+\begin{tabular}{rcr|l|l|}
+\cline{4-5}
+{\code data \&} $00110011_2$          &    &   & 0010 & 0010 \\
++ {\code (data >> 2) \&} $00110011_2$ & or & + & 0001 & 0000 \\
+\cline{1-1} \cline{3-5}
+                                      &    &   & 0011 & 0010 \\
+\cline{4-5}
+\end{tabular}\\
+
+이제, 2 개의 4 비트 부분들이 독립적으로 더해졌다. 
+
+다음 단계는 이 2 비트 합들을 더해서 결과를 얻는 것 이다. 
+
+\begin{lstlisting}[stepnumber=0]{}
+data = (data & 0x0F) + ((data >> 4) & 0x0F);
+\end{lstlisting} 
+
+{\code data} ($00110010_2$ 와 값이 같다) 를 이용한 결과는 \\
+\begin{tabular}{rcrl}
+{\code data \&} $00001111_2$          &    &   & 00000010 \\
++ {\code (data >> 4) \&} $00001111_2$ & or & + & 00000011 \\
+\cline{1-1} \cline{3-4}
+                                      &    &   & 00000101 \\
+\end{tabular}\\
+
+이제 {\code data} 는 5 이고 이는 정확한 결과 이다. 그림 ~\ref{fig:method3} 
+은 더블워드의 경우 어떻게 적용하는지 나타내고 있다. 이는 {\code for} 루프를 
+이용하여 합을 계산한다. 루프를 풀어 내면 좀 더 빠르게 수행할 것이다.
+그러나, 루프를 통해 데이터의 크기가 다른 경우에도 어떻게 적용하는지 
+보기 쉽다.  
+
+\index{비트 수 세기!세 번째 방법|)}
+\index{비트 수 세기|)}

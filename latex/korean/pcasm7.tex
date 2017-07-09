@@ -1,0 +1,1321 @@
+﻿% -*-latex-*-
+\chapter{구조체와 C++}
+
+\section{구조체\index{구조체|(}}
+
+\subsection{서론}
+
+C 에서 사용되는 구조체는 연관된 데이터를 하나의 변수에 보관하는 것이라
+말할 수 있다. 이는 몇 가지 장점이 있다. 
+
+\begin{enumerate}
+\item 구조체에 정의된 데이터가 연관되어 있음을 보임으로써 코드를 
+      명료하게 할 수 있다. 
+\item 이를 통해 함수로의 데이터 전달을 단순하게 할 수 있다. 여러 개의 변수를
+      독립적으로 전달하는 대신에 이를 이용해 하나의 단위만 전달 하면 된다.
+\item 이는 코드의 \emph{지역성(locality)}\index{지역성}\footnote{운영체제에 관련한 책의 가상 메모리 관리 단원을 살펴보라.} 을 향상시킨다.
+\end{enumerate}
+
+어셈블리의 관점에서 볼 때 구조체는 원소들의 크기가 \emph{제각각}인 배열로 볼 수 있다. 실제 배열의
+원소들의 크기는 언제나 같은 형이자, 같은 크기 여야 한다. 이를 통해 실제 배열에서는 배열의 시작 주소와
+원소의 크기, 원소의 번째 수 만 알면 원소의 주소를 계산할 수 있게 된다.
+
+그러나 구조체의 원소들은 동일한 크기를 가질 필요가 없다. (그리고 대부분 동일한 크기가 아니다)
+이 때문에 구조체의 각각의 원소들은 뚜렷이 지정되어 있어야 하고 수치적인 위치 대신에
+\emph{태그(tag)} (또는 이름)를 가진다. 
+
+어셈블리에서 구조체의 원소에 접근하는 것은 배열의 원소의 접근하는 것과 비슷하다. 원소에 접근하기
+위해서는 먼저 구조체의 시작 주소를 알아야 하고, 구조체의 시작 부분으로 부터의 각 원소의 \emph{상대 오프셋(relative offset)}을
+알아야 한다. 그러나, 배열의 경우 이 오프셋이 원소의 번째 수 만 알고도 계산될 수 있었지만, 구조체의 원소들은
+컴파일러에 의해 오프셋이 지정된다. 
+
+예를 들어 아래의 구조체를 보자. 
+
+\begin{lstlisting}[stepnumber=0, escapeinside=~~]{}
+struct S {
+  short int x;    /* ~2 바이트 정수~ */
+  int       y;    /* ~4 바이트 정수~ */
+  double    z;    /* ~8 바이트 float ~*/
+};
+\end{lstlisting}
+
+\begin{figure}
+\centering
+\begin{tabular}{r|c|}
+\multicolumn{1}{c}{오프셋} & \multicolumn{1}{c}{원소} \\
+\cline{2-2}
+0 & {\code x} \\
+\cline{2-2}
+2 & \\
+  & {\code y} \\
+\cline{2-2}
+6 & \\
+  & \\
+  & {\code z} \\
+  & \\
+\cline{2-2}
+\end{tabular}
+\caption{구조체 S \label{fig:structPic1}}
+\end{figure}
+
+그림 ~\ref{fig:structPic1} 은 {\code S} 형의 변수가 컴퓨터 메모리 상에 어떻게
+나타나는지 보여준다. ANSI C 표준에 따르면 메모리 상에 배열된 구조체의 원소들의 순서는
+{\code struct} 정의에서 나타난 순서와 동일해야 한다고 하였다. 또한 첫 번째 원소는 구조체의
+최상단에 위치해야 한다고 하였다. (\emph{i.e} 오프셋이 0 ) 이는 또한 {\code stddef.h} 헤더 파일에
+{\code offsetof()} 라는 매우 유용한 매크로를 정의하였는데 \index{구조체!offsetof()} 이 매크로는 
+구조체의 특정한 원소의 오프셋 값을 계산한 후 리턴한다. 이 매크로는 두 개의 인자를 가지는데 첫 번째는
+구조체의 이름이고 두 번째는 오프셋 값을 계산할 원소의 이름이다. 따라서 
+그림 ~\ref{fig:structPic1} 에서의 {\code offsetof(S,y)} 의 결과는 2 가 된다. 
+
+%TODO: talk about definition of offsetof() ??
+
+\subsection{메모리 배열하기}
+
+\begin{figure}
+\centering
+\begin{tabular}{r|c|}
+\multicolumn{1}{c}{오프셋} & \multicolumn{1}{c}{ 원소 } \\
+\cline{2-2}
+0 & {\code x} \\
+\cline{2-2}
+2 & \emph{사용되지 않음} \\
+\cline{2-2}
+4 & \\
+  & {\code y} \\
+\cline{2-2}
+8 & \\
+  & \\
+  & {\code z} \\
+  & \\
+\cline{2-2}
+\end{tabular}
+\caption{구조체 S \label{fig:structPic2}}
+
+\end{figure}
+\index{구조체!배열하기|(}
+
+\emph{gcc} 컴파일러를 사용시, {\code offsetof} 매크로를 이용하여
+{\code y} 의 오프셋을 구한다면 2 가 아닌 4 를 리턴하게 된다. 왜냐하면 
+\MarginNote{주소가 4 로 나누어 진다면 주소는 더블워드 경계에 놓여 있다는
+점을 상기해라 } \emph{gcc} (그리고 다수의 컴파일러 들이) 는 변수들을
+기본적으로 더블워드 경계에 놓기 때문이다. 32 비트 보호 모드에서 CPU 는 메모리 상의 데이타가 
+더블워드 경계에 놓여 있을 때 더 빨리 읽어들일 수 있다. 그림 ~\ref{fig:structPic2} 는 {\code S} 구조체가
+\emph{gcc} 를 사용했을 때 메모리 상에 어떻게 나타날지 보여준다. 컴파일러는 
+구조체에 사용되지 않는 2 바이트를 끼워 넣어서 {\code y} (그리고 {\code z} 도) 를 더블워드
+경계에 놓이게 하였다. 이는 {\code offsetof} 를 사용하여 오프셋을 계산하는 것이 
+정의된 구조체의 형태 만을 보고 값을 계산하는 것 보다 훨씬 좋은 것인지를 알 수 있다. 
+
+당연하게도 구조체가 오직 어셈블리에서만 사용된다면 프로그래머는 스스로 오프셋을
+지정할 수 있다. 그러나 어셈블리와 C 를 함께 사용한다면 어셈블리 코드와 C 코드의 구조체의 원소들의
+오프셋이 반드시 일치해야 한다. 한 가지 문제가 되는 점은 C 컴파일러 마다 원소에 대해 다른 오프셋 값을
+줄 수 있다는 것이다. 예를 들어 위에서 보았듯이 \emph{gcc} 컴파일러는 {\code S} 구조체를 그림
+~\ref{fig:structPic2} 와 같은 모습으로 만들지만, 볼랜드 사의 컴파일러는 구조체를 그림 ~\ref{fig:structPic1} 과
+같은 모습으로 만든다. C 컴파일러들은 데이터를 정렬하기 위해 여러가지 방법을 사용한다. 그러나
+ANSI C 표준은 그 어떤 방법도 구체화 하지 않았으므로 컴파일러들이 저마다 다른 방법들을 
+사용하게 되었다. 
+
+%Borland's compiler has a flag, {\code -a}, that can be
+%used to define the alignment used for all data. Compiling with {\code -a 4}
+%tells \emph{bcc} to use double word alignment. Microsoft's compiler 
+%provides a {\code \#pragma pack} directive that can be used to set
+%the alignment (consult Microsoft's documentation for details). Borland's
+%compiler also supports Microsoft's pragma 
+
+\emph{gcc} \index{컴파일러!gcc!\_\_attribute\_\_} 컴파일러는 데이터의 정렬 방법을 구체화 하기 위해
+유연하고도 복잡한 방법을 지원한다. 이 컴파일러에선 특별한 문법을 사용함으로써 어떠한 형이라도 데이터를
+정렬하는 방법을 지정할 수 있게 하였다. 예를 들어 아래의 행을 보면 
+
+\begin{lstlisting}[stepnumber=0]{}
+  typedef short int unaligned_int __attribute__((aligned(1)));
+\end{lstlisting}
+\noindent 이는 {\code unaligned\_int} 라는 새로운 형을 정의하는데
+이는 바이트 경계에 맞추어져 있다. ({\code \_\_attribute\_\_} 다음의 괄호들이 꼭 필요하다)
+{\code aligned} 인자 1 은 2 의 멱수들로 바뀔 수 있으며 이는 다른 정렬 조건을 나타낸다. 
+(2 는 워드 정렬, 4 는 더블워드 정렬 \emph{등등}) 만일 구조체의 {\code y} 원소가 
+{\code unaligned\_int} 형이라면 \emph{gcc} 는 {\code y} 를 오프셋 2 에 놓을 것이다. 그러나,
+{\code z} 는 오프셋 8 에 놓이게 되는데 왜냐하면 double 형들은 기본값이 더블워드 정렬이기 때문이다.
+물론 {\code z} 를 오프셋 6 에 놓이게 할 수 있도록 변경할 수 있다. 
+
+\begin{figure}[t]
+\begin{lstlisting}[frame=tlrb,stepnumber=0,escapeinside=~~]{}
+struct S {
+  short int x;    /* ~2 바이트 정수~ */
+  int       y;    /* ~4 바이트 정수~ */
+  double    z;    /* ~8 바이트 float ~*/
+} __attribute__((packed));
+\end{lstlisting}
+\caption{압축된 \emph{gcc} 에서의 구조체 사용 \label{fig:packedStruct}}\index{컴파일러!gcc!\_\_attribute\_\_}
+\end{figure}
+
+\emph{gcc} 컴파일러는 또한 구조체를 \emph{압축(pack)} 하는 것을 지원한다.
+이는 컴파일러로 하여금 구조체 생성시 최소한의 공간만을 사용하게 한다. 그림 ~\ref{fig:packedStruct} 는
+{\code S} 가 이 방법으로 어떻게 다시 쓰일 수 있는지 보여준다. 이러한 형태의 {\code S} 는 최소한의 바이트를
+사용하여, 이 경우 14 바이트를 사용한다. 
+
+마이크로소프트와 볼랜드 사의 컴파일러는 {\code \#pragma} 지시어를 통해 위와 동일한 작업을 
+할 수 있다. \index{컴파일러!마이크로소프트!pragma pack}
+\begin{lstlisting}[stepnumber=0]{}
+#pragma pack(1)
+\end{lstlisting}
+이 지시어는 컴파일러가 바이트 경계에 맞추어 구조체의 원소들을 압축하게 한다. (\emph{i.e} 
+추가적인 사용 없이) 1 은 2, 4, 8, 16 등으로 변경될 수 있는데 이는 각각 워드, 더블워드, 쿼드워드,
+패러그래프 경계에 맞추라는 뜻이다. 이 지시어는 다른 지시어의 의해 변경되기 전 까지 계속 효력을
+발휘한다. 이 때문에 이와 같은 지시어가 만이 사용되는 헤더 파일에서는 문제가 발생하기도 한다. 
+만일 이 헤더 파일이 다른 구조체를 포함한 헤더파일 보다 먼저 포함(include) 되었다면 이 구조체는
+기본값과 다른 방식으로 메모리 상에 배열 될 수 있다. 이와 같은 오류는 찾기가 매우 힘들다. 프로그램의
+각기 다른 모듈들이 구조체의 원소들을 각기 \emph{다른} 장소에 배열하게 된다. 
+
+\begin{figure}[t]
+\begin{lstlisting}[frame=tlrb,stepnumber=0,escapeinside=~~]{}
+#pragma pack(push)    /* ~이전 정렬 상태를 저장한다~*/
+#pragma pack(1)       /* ~바이트 기준 정렬로 정의~ */
+
+struct S {
+  short int x;    /* ~2 바이트 정수~ */
+  int       y;    /* ~4 바이트 정수~ */
+  double    z;    /* ~8 바이트 float ~*/
+};
+
+#pragma pack(pop)     /* ~이전의 정렬 상태를 복원한다~*/
+\end{lstlisting}
+\caption{마이크로소프트나 볼랜드 사의 압축된 구조체 \label{fig:msPacked}\index{컴파일러!마이크로소프트!pragma pack}}
+\end{figure}
+
+이와 같은 문제를 피하는 방법이 있다. 마이크로소프트와 볼랜드 사는 현재의
+정렬 방법을 저장한 후 나중에 복원할 수 있게 한다. 그림 ~\ref{fig:msPacked} 는 이를 
+나타낸다. 
+
+\index{구조체!배열하기|)}
+
+\subsection{비트필드\index{구조체!비트필드|(}}
+
+\begin{figure}[t]
+\begin{lstlisting}[frame=tlrb,stepnumber=0,escapeinside=~~]{}
+struct S {
+  unsigned f1 : 3;   /*~3 비트필드~ */
+  unsigned f2 : 10;  /*~10 비트필드~*/
+  unsigned f3 : 11;  /* ~11 비트필드~ */
+  unsigned f4 : 8;   /* ~8 비트필드~  */
+};
+\end{lstlisting}
+\caption{비트필드 예제 \label{fig:bitStruct}}
+\end{figure}
+
+비트필드는 구조체의 멤버들로 하여금 특정한 크기의 비트만 사용할 수 있게 한다.
+비트의 크기가 꼭 8 의 배수가 되야할 필요는 없다. 비트필드 멤버는 
+\lstinline|unsigned int| 나 \lstinline|int| 멤버에 콜론(:)와 비트 크기를 적음으로써 정의된다. 
+그림 ~\ref{fig:bitStruct} 는 이 예를 보여준다. 이는 32 비트 변수를 다음과 같은 부분으로
+나뉘어 정의한다. 
+
+\begin{center}
+\begin{tabular}{|c|c|c|c|}
+\multicolumn{1}{c}{8 비트} & \multicolumn{1}{c}{11 비트} 
+& \multicolumn{1}{c}{10 비트} & \multicolumn{1}{c}{3 비트} \\ \hline
+\hspace{2em} f4 \hspace{2em} & \hspace{3em} f3 \hspace{3em}
+& \hspace{3em} f2 \hspace{3em} & f1 \\
+\hline
+\end{tabular}
+\end{center}
+첫 번째 비트필드는 더블워드의 최하위 비트들을 가리킨다. 
+\footnote{사실 ANSI/ISO C 표준은 컴파일러로 하여금
+비트들이 어떻게 나열되는지는 정확히 정하지 않았다. 그러나 대부분의 C 컴파일러들 (\emph{gcc},
+\emph{마이크로소프트}, \emph{볼랜드} 사의 컴파일러) 들은 이와 같은 모습으로 배열한다.}
+
+그러나 우리가 이 비트들이 실제로 메모리 상에 어떻게 나타나는지 본다면 이 형식은 그리 간단한 것이
+아니다. 이 문제는 비트필드가 바이트 경계에 걸쳐 있을 때 나타난다. 왜냐하면 리틀 엔디안 형식에서
+바이트는 메모리에 거꾸로 저장되기 때문이다. 예를 들어 {\code S} 구조체의 비트필드는 메모리에
+아래와 같이 나타난다. 
+
+\begin{center}
+\begin{tabular}{|c|c||c|c||c||c|}
+\multicolumn{1}{c}{5 비트} & \multicolumn{1}{c}{3 비트} 
+& \multicolumn{1}{c}{3 비트} & \multicolumn{1}{c}{5 비트} 
+& \multicolumn{1}{c}{8 비트} & \multicolumn{1}{c}{8 비트} \\ \hline
+f2l & f1 &  f3l  & f2m & \hspace{1em} f3m \hspace{1em} 
+& \hspace{1.5em} f4 \hspace{1.5em} \\
+\hline
+\end{tabular}
+\end{center}
+\emph{f2l} 라벨은 \emph{f2} 비트필드의 하위 5 비트를 의미한다 (\emph{i.e} LSB) .
+\emph{f2m} 라벨은 \emph{f2} 비트필드의 상위 5 비트를 가리킨다. 수직선은 바이트 경계를
+표시한다. 만일 모든 바이트들을 거꾸로 배치한다면 \emph{f2} 와 \emph{f3} 의 조각들이
+올바른 위치에 합쳐질 것이다. 
+
+\begin{figure}[t]
+\centering
+\begin{tabular}{|c*{8}{|p{1.3em}}|}
+\hline
+바이트 $\backslash$ 비트 & 7 & 6 & 5 & 4 & 3 & 2 & 1 & 0 \\ \hline
+0 & \multicolumn{8}{c|}{연산 부호 (08h) } \\ \hline
+1 & \multicolumn{3}{c|}{논리 단위 \# } & \multicolumn{5}{c|}{논리 블록 주소의 최상위 비트} \\ \hline
+2 & \multicolumn{8}{c|}{논리 블록 주소의 중간} \\ \hline
+3 & \multicolumn{8}{c|}{논리 블록 주소의 최하위 바이트} \\ \hline
+4 & \multicolumn{8}{c|}{전달 크기} \\ \hline
+5 & \multicolumn{8}{c|}{제어} \\ \hline
+\end{tabular}
+\caption{SCSI 읽기 명령 형식\label{fig:scsi-read}}
+\end{figure}
+
+\begin{figure}[t]
+\begin{lstlisting}[frame=lrtb,escapeinside=~~]{}
+#define MS_OR_BORLAND (defined(__BORLANDC__) \
+                        || defined(_MSC_VER))
+
+#if MS_OR_BORLAND
+#  pragma pack(push)
+#  pragma pack(1)
+#endif
+
+struct SCSI_read_cmd {
+  unsigned opcode : 8;
+  unsigned lba_msb : 5;
+  unsigned logical_unit : 3;
+  unsigned lba_mid : 8;    /* ~중간 비트들~*/
+  unsigned lba_lsb : 8;
+  unsigned transfer_length : 8;
+  unsigned control : 8;
+}
+#if defined(__GNUC__)
+   __attribute__((packed))
+#endif
+;
+
+#if MS_OR_BORLAND
+#  pragma pack(pop)
+#endif
+\end{lstlisting}
+\caption{SCSI 읽기 명령 형식 구조체\label{fig:scsi-read-struct}\index{컴파일러!gcc!\_\_attribute\_\_}
+         \index{컴파일러!마이크로소프트!pragma pack}}
+\end{figure}
+
+메모리에서의 배열 형태는 데이터가 프로그램 바깥으로 전송되지 않는 한 중요하지 않다.
+(사실 이러한 경우는 비트필드를 다룰 때 잘 발생한다) 하드웨어 장치 인터페이스를 만들 때,
+홀수의 비트를 가지는 비트필드를 사용하는 경우가 잦은데 이는 비트필드를 사용하면 매우 유용하기 때문이다.
+
+\begin{figure}[t]
+\centering
+\begin{tabular}{|c||c||c||c||c|c||c|}
+\multicolumn{1}{c}{8 비트} & \multicolumn{1}{c}{8 bits} 
+& \multicolumn{1}{c}{8 비트} & \multicolumn{1}{c}{8 bits} 
+& \multicolumn{1}{c}{3 비트} & \multicolumn{1}{c}{5 bits} 
+& \multicolumn{1}{c}{8 비트} \\ \hline
+제어 & 전달크기 & lba\_lsb  & lba\_mid &  
+논리 단위  & lba\_msb & 연산 부호 \\
+\hline
+\end{tabular}
+\caption{{\code SCSI\_read\_cmd} 필드의 모습\label{fig:scsi-read-map}}
+\end{figure}
+\index{SCSI|(}
+그 예로는 SCSI \footnote{소형 컴퓨터 시스템 인터페이스 (Small Computer Systems Interface) 의 약어로
+하드 디스크 \emph{등등}의 장치에 대한 규격이다.} 를 들 수 있다. SCSI 장치에 직접적으로 읽기 명령을 내리는
+방법은 그림 ~\ref{fig:scsi-read} 에 나타난 형식 대로 6 바이트의 메세지를 장치에 전달하면 된다. 
+이를 비트 필들르 이용하여 표현하는데 어려움은 \emph{논리 블록 주소(logical block address)}에 있는데, 왜냐하면
+이것이 3 개의 다른 바이트에 걸쳐 있기 때문이다. 그림 ~\ref{fig:scsi-read} 에는 빅 엔디안 형식으로 저장된 데이터를
+볼 수 있다. 그림 ~\ref{fig:scsi-read-struct} 에는 모든 컴파일러에 대해서 사용 가능하게한 정의를 보여준다. 첫 2 행은 매크로를
+정의하는데 이는 마이크로소프트나 볼랜드 사의 컴파일러로 컴파일 될 때 참이 된다. 아마 혼동되는 부분은
+11 에서 14 행 까지 일 것이다. 먼저 우리는 \lstinline|lba_mid| 와 \lstinline|lba_lsb| 필드가 하나의 16 비트필드로
+정의되지 않고 따로 정의됬는지 의문을 가질 것이다. 이는 데이타가 빅 엔디안 순서로 되어 있기 때문이다. 16 비트 
+필드는 컴파일러에 의해 리틀 엔디안 순서로 저장될 것이다. 두 번째로 \lstinline|lba_msb| 와 \lstinline|logical_unit| 는 거꾸로
+된 것처럼 보인다. 그러나 이 경우엔 적용되지 않는다. 이들은 이 순서대로 집어너져야 한다. 그림 ~\ref{fig:scsi-read-map} 은
+48 비트필드가 메모리에 어떻게 표현되는지 보여준다. (바이트 경계는 두 개의 선으로 표현되었다.) 이것이 메모리에 리틀 엔디안 순서로 저장된다면
+비트들은 원하는 형식으로 배열될 것이다. (그림~\ref{fig:scsi-read}).
+
+\begin{figure}[t]
+\begin{lstlisting}[frame=lrtb,escapeinside=~~]{}
+struct SCSI_read_cmd {
+  unsigned char opcode;
+  unsigned char lba_msb : 5;  
+  unsigned char logical_unit : 3;
+  unsigned char lba_mid;    /*~중간 비트들~ */
+  unsigned char lba_lsb;
+  unsigned char transfer_length;
+  unsigned char control;
+}
+#if defined(__GNUC__)
+   __attribute__((packed))
+#endif
+;
+\end{lstlisting}
+\caption{다른 형태의 SCSI 읽기 명령 형식 구조체 \label{fig:scsi-read-struct2}
+         \index{컴파일러!gcc!\_\_attribute\_\_}\index{컴파일러!마이크로소프트!pragma pack}}
+\end{figure}
+
+일을 더 복잡하게 하는 것은, \lstinline|SCSI_read_cmd| 은 마이크로소프트 C 에서 완벽하게 작동하지 않는다는 점이다. 
+\lstinline|sizeof(SCSI_read_cmd)| 라는 식을 계산하였을 때, 마이크로소프트 C 에서는
+6 이 아닌 8 을 리턴한다. 왜냐하면 마이크로소프트 컴파일러는 비트를 메모리 나타낼 때
+비트필드의 형을 기준으로 나타내기 때문이다. 모든 비트필드들이 \lstinline|unsigned| 로
+정의되어 있으므로 컴파일러는 구조체 맨 마지막에 2 바이트를 덧붙여서 더블워드의 배수로
+만들어 준다. 이와 같은 현상은 모든 필드를 \lstinline|unsigned short| 로 정의해 줌으로써
+해결할 수 있다. 그렇게 한다면 마이크로소프트는 6 바이트가 2 바이트 워드의 정수배 이므로
+부수적인 바이트를 추가할 필요가 없어지게 된다. 
+\footnote{여러가지 다른 형의 비트필드를 사용하는 것은 매우 혼란스러운 .} 
+다른 컴파일러는 이와 같이 바꾸어도 정확하게 동작한다. 그림 ~\ref{fig:scsi-read-struct2} 는 
+3 개 컴파일러 모두에서 잘 작동하는 정의를 보여준다. \lstinline|unsigned char| 를 이용하여
+오직 두 개만 비트필드를 이용했다. 
+
+\index{SCSI|)}
+
+이전에 우리가 이야기 하였던 것이 혼란스러워도 걱정할 필요가 없다. 왜냐하면 정말로
+혼란스러운 내용이니까 말이다. 저자는 덜 혼란스럽기 위해서 비트필드를 사용하지 않고
+비트를 각각 다루기 위해서 비트 연산을 사용한다. 
+
+\index{구조체!비트필드|)}
+
+%TODO:discuss alignment issues and struct size issues
+
+\subsection{어셈블리에서 구조체 사용하기}
+
+위에서 이야기 하였듯이 어셈블리에서 구조체를 사용하는 것은 배열을 사용하는 것과
+비슷한다. 간단한 예로 구조체 {\code S} 의 원소 {\code y} 를 0 으로 만드는 루틴을
+어떻게 만들지 생각해 보자. 이 루틴의 원형은 아래과 같다. 
+
+\begin{lstlisting}[stepnumber=0]{}
+void zero_y( S * s_p );
+\end{lstlisting}
+\noindent 어셈블리 루틴은 
+\begin{AsmCodeListing}
+%define      y_offset  4
+_zero_y:
+      enter  0,0
+      mov    eax, [ebp + 8]      ; 스택에서 s_p(구조체 포인터) 를 불러온다
+      mov    dword [eax + y_offset], 0
+      leave
+      ret
+\end{AsmCodeListing}
+
+C 는 함수에게 구조체를 값으로 전달하는 것을 허용한다. 그러나 이는 좋지 않은 생각이다. 
+값으로 전달을 할 경우, 구조체의 모든 데이터들이 스택에 복사된 후 루틴에게 전달될 것이다.
+단순히 구조체를 가리키는 포인터를 전달하는 것이 더 효과적이라 할 수 있다. 
+
+C 는 또한 구조체 타입이 함수의 리턴값으로도 사용할 수 있게 한다. 하지만 명백히도, 구조체는
+{\code EAX} 레지스터에 저장되어 리턴될 수 없다. 이 상황을 여러 컴파일러들이 각기 다른 방법으로 해결 한다.
+가장 많이 쓰이는 방법은 컴파일러가 내부적으로 함수를 구조체를 가리키는 포인터를 인자로 갖게
+변경하는 것이다. 이 포인터는 루틴이 호출된 곳 밖에서 정의된 구조체에 반환값을 대입하는데 사용된다. 
+
+대부분의 어셈블러 (NASM 포함) 은 여러분의 어셈블리 코드에서 구조체를 정의하는 것을 지원하는
+자체적인 방법이 있다. 자세한 내용은 이에 관련한 문서들을 참조하여라. 
+% add section on structure return values for functions
+
+\index{구조체|)}
+
+\section{어셈블리와 C++\index{C++|(}}
+
+C++ 프로그래밍 언어는 C 언어의 확장이라 볼 수 있다. 어셈블리와 C 가 서로
+작업하는 방법 대부분이 C++ 에서도 동일하게 적용된다. 그러나, 몇 가지 규칙들은
+수정되야 한다. 또한, C++ 의 몇 가지 확장된 부분들은 어셈블리로 이해하기가 편하다. 
+이 단원은 독자 여러분이 C++ 의 기본적인 이해가 되어있다고 생각한다. 
+
+\subsection{오버로딩과 이름 맹글링(Name Mangling)\index{C++!name mangling|(}}
+\label{subsec:mangling}
+\begin{figure}
+\centering
+\begin{lstlisting}[frame=tlrb]{}
+#include <stdio.h>
+
+void f( int x )
+{
+  printf("%d\n", x);
+}
+
+void f( double x )
+{
+  printf("%g\n", x);
+}
+\end{lstlisting}
+\caption{두 개의 {\code f()} 함수 \label{fig:twof}}
+\end{figure}
+
+C++ 은 같은 이름으로 서로 다른 함수 (그리고 클래스 멤버 함수)를 정의하는 것을 허용한다.
+2 개 이상의 함수가 동일한 이름을 사용한다면, 이 함수들을 \emph{오버로드(overloaded)} 되었다
+라고 한다. 만일 이 두 함수들이 C 에서 같은 이름으로 정의되었다면 C 링커는 오류를 출력할 것이다. 왜냐하면
+링킹시 오브젝트 파일에서 동일한 심볼에 두 개의 정의를 찾을 것이기 때문이다. 예를 들어 그림 ~\ref{fig:twof} 의
+코드를 고려해 보자. 어셈블리에서 두 개의 {\code \_f} 라 이름 붙여진 라벨은 명백히 오류를 출력한다. 
+
+C++ 은 C 와 동일한 링킹 과정을 거치지만, 함수에 이름 붙여진 라벨을 \emph{이름 맹글링(name mangling)}이라는
+과정을 통해 오류를 피해갈 수 있다. 사실 C 도 이름 맹글링을 사용한다. C 에서 함수에 대한 라벨을 정의하기 위해서
+함수에 이름에 \_ 를 붙인다. 그러나 C 는 그림 ~\ref{fig:twof} 의 두 함수의 이름을 동일한 라벨로 변경해
+오류를 출력할 것이다. C++ 는 이름 맹글링시 조금 더 복잡한 방법을 사용하여 이 두 함수에 대한 서로 다른 라벨을
+만들어 준다. 예를 들어 그림 ~\ref{fig:twof} 의 첫 번째 함수는 DJGPP  에 의해 {\code \_f\_\_Fi} 라는 라벨을 가지고
+두 번째 함수는 {\code \_f\_\_Fd} 라는 라벨을 부여받게 된다. 이를 통해 링크 오류를 피해나갈 수 있다. 
+
+% check to make sure that DJGPP does still but an _ at beginning for C++
+
+불행히도 C++ 에서 라벨을 어떻게 만드는지에 대한 기준이 없기 때문에 각기 다른 컴파일러들이 자신들 만의 방법으로
+이름 맹글링을 한다. 예를 들어 볼랜드 C++ 은 그림 ~\ref{fig:twof} 의 두 함수에 대해 {\code @f\$qi} 와 {\code @f\$qd}
+라는 라벨을 부여하게 된다. 그러나 이러한 규칙들은 완전히 무작위적이지는 않다. 맹글링 된 이름은 함수의
+\emph{특징}을 나타낸다. 여기서 이 특징은 함수의 인자들의 배열 순서와 형에 의해 정해진다. 예를 들어 {\code int} 인자만을
+가지는 함수는 맹글링 된 이름 끝 부분에 \emph{i} 가 붙게 된다. (이는 볼랜드와 DJGPP 모두 동일) 또한 {\code double} 인자를
+가지는 함수는 끝에 \emph{d} 가 붙게 된다. 만일 아래와 같은 원형을 가지는 함수 {\code f} 가 있다면, 
+
+\begin{lstlisting}[stepnumber=0]{}
+  void f( int x, int y, double z);
+\end{lstlisting}
+\noindent DJGPP 는 이 함수의 이름을 {\code \_f\_\_Fiid} 로 맹글링 하고 볼랜드는 {\code @f\$qiid} 로 한다.
+
+함수의 리턴 형식은 함수의 특징에 포함되지 \emph{않으며}, 맹글링 된 이름에 나타나지도 않는다. 
+이를 통해 우리는 C++ 의 오버로딩 규칙에 대해 알 수 있다. 오직 고유의 특징을 가지는 함수많이 오버로드 될 수 있다.
+만일 C++ 에서 동일한 이름과 특징을 가지는 함수가 정의된다면, 이는 동일한 맹글링된 이름을 가지게 되므로
+링커 애러를 발생하게 된다. 기본적으로 C++ 함수들은 오버로드 되지 않아도 이름이 맹글링 된다. 왜냐하면
+컴파일러는 컴파일 시에 이 함수가 오버로드 됐는지 안됐는지 알 수 있는 방법이 없기 때문이다.  사실 함수의 이름을
+맹글링하는 방법과 비슷한 방법으로 전역변수의 이름을 맹글링한다. 따라서, 만일 어떤 파일에 특정한 형을 가지는
+전역 변수를 정의하였는데 다른 파일에서 다른 형으로 사용한다면 링커 오류가 발생하게 된다. 이러한 C++ 의 특징은 
+\emph{형이 안전한 링킹(typesafe linking)} 이라 불린다. \index{C++!형이 안전한 링킹} 이를 통해 일정하지 않은 원형에
+대한 오류까지도 잡아낼 수 있다. 이는 특정한 모듈에서의 함수의 정의가 다른 모듈에서의 원형과 일치하지 않을 때 발생한다. 
+C 에서는 이를 디버그 하기 매우 어렵다. 왜냐하면 C 는 이 오류를 잡아내지 못하기 때문이다. 프로그램은 오류없이 컴파일되고
+링크되지만 함수를 호출시 함수가 예상했던 값들과 다른 값들을 스택에 넣어 프로그램이 동작을 하지 못한다. 하지만 C++ 에서는
+이는 링커 오류를 발생해 미연에 이러한 일을 방지할 수 있다. 
+
+C++ 컴파일러가 함수 호출을 분석(parsing)할 때, 함수에 전달되는 인자들의 형을 살펴 보아서 일치하는 함수가 존재하는지
+살펴본다. \footnote{이 형은 정확히 일치할 필요가 없다. 컴파일러는 인자들을 형변환 것들도 고려해 보기 때문이다. 이 
+과정에 대한 규칙은 이 책의 범위를 훨씬 뛰어 넘는다. 자세한 내용은 C++ 책들을 참조해라.} 만일 일치하는 함수를 찾으면 
+컴파일러는 이름 맹글링 규칙을 사용하여 올바른 함수에 대한 {\code CALL} 명령을 수행한다. 
+
+각기 다른 컴파일러가 각기 다른 맹글링 규칙을 사용하므로 서로 다른 컴파일러에서 컴파일된 C++ 코드는 링크가
+되지 않을 수 있다. 이 사실은 우리가 미리 컴파일된 C++ 라이브러리를 사용할 때 중요하게 작용할 수 있다. 만일
+우리가 C++ 코드와 함께 사용될 수 있는 함수를 어셈블리에서 작성한다고 한다면 C++ 코드를 컴파일하는데 사용되는
+컴파일러를 보고 이름 맹글링 규칙을 적용시켜야 한다. (또는 아래에 나온 기술을 이용한다) 
+
+아마 눈치가 빠른 학생들은 그림 ~\ref{fig:twof} 의 코드가 예상했던 대로 작동하는 것인지 물어볼 것이다. C++ 는
+모든 함수의 이름을 맹글링하기에 {\code printf} 함수도 맹글링 되므로 컴파일러는 라벨 {\code \_printf} 에 올바른
+{\code CALL} 을 할 수 없다는 것이다. 이는 올바른 생각이다. {\code printf} 의 원형이 단순히 파일 상단에 놓여 있다면
+이와 같은 일이 발생할 것이다. 그 원형은:
+
+\begin{lstlisting}[stepnumber=0]{}
+  int printf( const char *, ...);
+\end{lstlisting}
+\noindent DJGPP 는 이를 {\code \_printf\_\_FPCce} 로 맹글링할 것이다.
+({\code F} 는 \emph{함수(function)}를, {\code P} 는 \emph{포인터(pointer)},
+{\code C} 는 \emph{상수(const)}, {\code c} 는 \emph{char}, {\code e} 는 \emph{생략(ellipsis)}
+을 각각 뜻한다) 이는 보통의 C 라이브러리의 {\code printf} 함수를 호출하지 않을 것이다!
+당연하게도 C++ 코드에서 C 함수를 호출하는 방법이 있다. 이는 매우 유용한데 왜냐하면 
+\emph{엄청난 수의} 유용한 C 코드들이 있기 때문이다. 게다가 C 코드를 호출하는 것을 할 수 있다면
+C++ 에서 또한 보통의 C 맹글링 규약을 이용한 어셈블리 코드도 호출할 수 있게 된다. 
+
+\index{C++!extern ""C""|(}
+C++ 에선 {\code extern} 키워드를 이용하여 특정한 함수와 전역변수에 C 맹글링 규칙을 적용할 수 있다. 
+C++ 용어로 이렇게 선언된 함수와 변수는 \emph{C 연계(C linkage)}를 사용한다고 말한다. 예를 들어, 
+{\code printf} 를 C 연계시키려면 아래와 같이 원형을 쓰면 된다.
+
+\begin{lstlisting}[language=C++,stepnumber=0]{}
+extern "C" int printf( const char *, ... );
+\end{lstlisting}
+\noindent 이 명령은 컴파일러로 하여금 이 함수에 대해 C++ 이름 맹글링을 
+적용하지 않으며, 그 대신에 C 규칙에 따라 맹글링을 하게 한다. 그러나, 
+위와 같이 정의된 {\code printf} 는 오버로드 되지 않는다. 이와 같은 방법을 통해 
+C++ 와 어셈블리가 손쉽게 소통할 수 있다. 함수를 C 연계를 사용하게 정의한 뒤, C 호출
+규약을 사용하는 것이다.
+
+편의를 위해, C++ 은 또한 여러개의 함수들과 전역 변수를 한꺼번에 연계시킬 수 있게 해준다.
+이는 중괄호를 사용하면 된다. 
+
+\begin{lstlisting}[stepnumber=0,language=C++,escapeinside=~~]{}
+extern "C" {
+  /* ~C 연계 전역 변수들과 함수 원형들~*/
+}
+\end{lstlisting}
+
+만일, 여러분이 C/C++ 컴파일러에서 모두 작동되는 ANSI C 헤더를 보게 된다면,
+헤더 파일 상단에 다음과 같은 코드가 있음을 알 수 있다.
+
+\begin{lstlisting}[stepnumber=0,language=C++]{}
+#ifdef __cplusplus
+extern "C" {
+#endif
+\end{lstlisting}
+\noindent 그리고 하단에 중괄호로 닫는 부분이 있음을 알 수 있다. 
+C++ 컴파일러들은 {\code \_\_cplusplus} 를 매크로 (\_ 가 \emph{두}
+개) 를 정의한다. 위 코드는 헤더파일이 C++ 에서 컴파일 될 경우 헤더파일
+전체를 {\code extern~"C"} 로 감싸고, C 에서 컴파일 된다면 어떠한 짓도 하지
+않는다. (이는 C 컴파일러를 {\code extern~"C"} 를 문법상의 오류로 
+처리하기 때문에 필요하다). 위와 같은 방법으로 C 와 C++ 모두에서
+돌아가는 어셈블리 루틴을 위한 헤더파일도 작성할 수 있다. 
+
+\index{C++!extern ""C""|)}
+\index{C++!이름 맹글링|)}
+
+\begin{figure}
+\begin{lstlisting}[language=C++,frame=tlrb,escapeinside=~~]{}
+void f( int & x )     // ~ \&는 레퍼런스 인자를 의미한다~
+{ x++; }
+
+int main()
+{
+  int y = 5;
+  f(y);    // ~y 에 대한 레퍼런스가 전달되었다. \& 가 없음을 유의!~
+  printf("%d\n", y);  // ~ 6 을 출력 ~
+  return 0;
+}
+\end{lstlisting}
+\caption{레퍼런스(Reference) 예제\label{fig:refex}}
+\end{figure}
+
+\subsection{레퍼런스\index{C++!레퍼런스|(}}
+
+\emph{레퍼런스(Reference)} 는 C++ 의 또다른 새 기능이다. 이는 함수의 인자들을
+포인터를 직접적으로 사용하지 않고도 전달될 수 있게 한다. 예를 들어 그림 ~\ref{fig:refex} 의
+코드를 고려해 보자. 사실, 레퍼런스 인자들은 정말로 단순하다. 이들은 정말 포인터 같다. 
+컴파일러는 단순히 이를 프로그래머에게 숨기는 것이다. (이는 파스칼 컴파일러가 {\code var} 인자들을
+포인터로 실행하는 것처럼) 컴파일러가 함수를 호출하는 ~7 행에서의 어셈블리 코드를 생성할 때,
+이는 {\code y} 의 \emph{주소}를 전달한다. 만일 {\code f} 를 어셈블리로 작성한다면 그것이
+함수의 원형이였던 것처럼 \footnote{물론, ~\ref{subsec:mangling} 에서 이야기 했던 것처럼 이름 맹글링을 피하기 위해
+C 연계로 작성해야 한다. }
+
+\begin{lstlisting}[stepnumber=0]{}
+  void f( int * xp);
+\end{lstlisting}
+
+레퍼런스는 단순히 편의를 위해서 만들어 졌는데, 특히 오버로딩 연산자에
+편리하다. 이는 C++ 의 또다른 기능으로 구조체나 클래스 형에 대한 평범한
+연산자에 의미를 부여하는 것이다. 예를 들어 더하기 ({\code +}) 기호는
+보통 문자열 객체를 합칠 때 사용한다. 따라서, 만일 {\code a} 와 {\code b} 가
+문자열이라면 {\code a~+~b} 는 문자열 {\code a} 와 {\code b} 가 합친
+결과가 리턴될 것이다. C++ 은 사실 이 작업을 하기 위해 함수를 호출한다. 
+(사실, 이러한 식들은 {\code operator~+(a,b)} 와 같은 함수를 이용해 나타낼 수 있다) 
+편의를 위해, 문자열 객체의 값을 전달하기 보단 주소를 전달하는 것이 좋을 것이다. 
+레퍼런스를 사용하지 않는다면 이는 {\code operator~+(\&a, \&b)} 로 가능하지만, 
+연산자 사용시 {\code \&a~+~\&b} 와 같이 나타내야 하는 불편함이 있다. 그러나
+레퍼런스를 이용하면 이를 단순히 {\code a~+~b} 만으로 가능하고, 자연스러워 보인다. 
+
+\index{C++!references|)}
+
+\subsection{인라인 함수 \index{C++!인라인 함수|(}}
+
+\emph{인라인 함수(Inline functions)} 는 C++ 의 또다른 기능이다.
+\footnote{C 컴파일러들은 종종 이 기능을 ANSI C 의 확장 형태로 지원한다} 
+인라인 함수들은 오류가 잦은, 인자를 갖는 전처리기 기반 매크로들을 대체하기
+위하여 만들어 졌다. C 에서 숫자를 제곱하는 메크로는 아래와 같이 생겼다. 
+
+\begin{lstlisting}[stepnumber=0]{}
+#define SQR(x) ((x)*(x))
+\end{lstlisting}
+\noindent 
+전처리기는 C 를 이해하지 못하고, 단순한 치환만을 하기 때문에 대부분의 경우에
+올바른 값을 얻기 위해서 소괄호로 묶어야 한다. 그러나, 이와 같이 함에도 불구하고
+{\code SQR(x++)} 와 같은 식에서는 올바른 값을 얻을 수 없다. 
+
+\begin{figure}
+\begin{lstlisting}[language=C++,frame=tlrb]{}
+inline int inline_f( int x ) 
+{ return x*x; }
+
+int f( int x ) 
+{ return x*x; }
+
+int main()
+{
+  int y, x = 5;
+  y = f(x);
+  y = inline_f(x);
+  return 0;
+}
+\end{lstlisting}
+\caption{인라인 예제 \label{fig:InlineFun}}
+\end{figure}
+
+매크로들은 단순한 함수의 호출에서 복잡한 함수 호출과정을 만드는 것을
+생략하기 위해 만들어진다. 서브프로그램에 관한 장에서 다루었듯이, 함수를
+호출하는 과정은 몇 개의 단계를 거친다. 매우 단순한 함수를 호출 할 때에는
+함수를 호출하는 과정이 함수를 실행하는 과정보다 더 오래 걸릴 수도 있다!
+인라인 함수는 보통의 함수를 작성하는 것과 매우 비슷하지만, 코드에서 이
+함수를 {\code CALL} 하는 명령은 이루어 지지 \emph{않는다}. 그 대신에, 
+인라인 함수의 호출에 관한 부분은 함수가 수행하는 코드로 대체된다. C++ 에선 
+함수의 정의 앞에 {\code inline} 키워드를 붙임으로써 이 함수를 인라인으로
+선언할 수 있다. 예를 들어 그림 ~\ref{fig:InlineFun} 에서 선언된 함수를
+살펴보자. ~10 행에서의 {\code f} 함수의 호출은 보통의 함수 호출을 수행한다.
+(어셈블리에서 {\code x} 가 {\code ebp-8} 에, {\code y} 가 {\code ebp-4} 에 있다고
+생각하자) 
+
+\begin{AsmCodeListing}
+      push   dword [ebp-8]
+      call   _f
+      pop    ecx
+      mov    [ebp-4], eax
+\end{AsmCodeListing}
+그러나 ~11 행에서 나타난 {\code inline\_f} 함수의 호출은 아래와 같다. 
+\begin{AsmCodeListing}
+      mov    eax, [ebp-8]
+      imul   eax, eax
+      mov    [ebp-4], eax
+\end{AsmCodeListing}
+
+위 경우 인라인시 두 가지 장점이 있다. 먼저, 인라인 함수는 더 빠르다. 어떠한 인자도
+스택에 푸시되지 않으며, 어떠한 스택 프레임도 생성되거나 파괴되지 않고, 어떠한 분기도
+이루어 지지 않는다. 두 번째로 인라인 함수는 코드를 적게 사용한다. 물론, 위 경우 이것이
+사실이였지만 모든 경우에서 사실인 것은 아니다. 
+
+인라인 함수의 가장 큰 단점은 인라인 코드는 링크가 되지 않기 때문에 인라인 함수의 코드는 
+이를 사용하는 \emph{모든} 파일에서 있어야 한다. 이전의 예제의 어셈블리 코드는 이를 보여준다.
+인라인이 아닌 함수를 호출하는데 필요한 정보는 오직 인자, 리턴 값의 형, 호출 규약과 함수에 대한
+라벨의 이름이다. 이 모든 정보는 함수의 원형에서 얻을 수 있다. 그러나, 인라인 함수는 함수의
+모든 코드에 대한 정보를 필요로 하다. 이 말은 인라인 함수의 \emph{어떠한} 부분이라도 바뀐다면
+이 함수를 사용하는 \emph{모든} 소스 파일들은 반드시 다시 컴파일 되야만 한다. 인라인이 아닌 함수들의
+경우 함수의 원형이 바뀌지 않는 한, 이 함수를 사용하는 파일들은 굳이 다시 컴파일이 될 필요가 없다. 
+이러한 이유 때문에 인라인 함수에 대한 코드는 보통 헤더파일에 위치한다. 이는 C  에서 실행 가능한 코드는
+\emph{절대로} 헤더파일에 위치하면 안된다라는 규칙과 상충된다. 
+
+\index{C++!인라인 함수|)}
+
+\begin{figure}[t]
+\begin{lstlisting}[language=C++,frame=tlrb,escapeinside=@@]{}
+class Simple {
+public:
+  Simple();                // @디폴트 생성자@ 
+  ~Simple();               // @소멸자@
+  int get_data() const;    // @멤버 함수들@
+  void set_data( int );
+private:
+  int data;                // @멤버 데이타@
+};
+
+Simple::Simple()
+{ data = 0; }
+
+Simple::~Simple()
+{ /*@아무 것도 안함@*/ }
+
+int Simple::get_data() const
+{ return data; }
+
+void Simple::set_data( int x )
+{ data = x; }
+\end{lstlisting}
+\caption{단순한 C++ 클래스 \label{fig:SimpleClass}}
+\end{figure}
+
+\subsection{클래스\index{C++!클래스|(}}
+
+C++ 클래스는 \emph{객체(object)}의 타입을 설명한다. C++ 에서 객체는 데이타 멤버와
+함수 맴버\footnote{보통 \emph{맴버 함수(member function)} 이라 부른다.}, 혹은 일반적으로 
+\emph{메서드(method)} \index{메서드} 를 포함할 수 있다. 다시말해, 이는 데이타와 함수가
+연관이 되어 있는 \emph{구조체} 이다. 그림 ~\ref{fig:SimpleClass}에 정의된 단순한 클래스를
+살펴보자. {\code Simple} 타입의 변수는 단순히 C 에서의 하나의 {\code int} 를 멤버로 가지는 
+\emph{구조체} 와 같다. 
+\MarginNote{사실 C++ 은 {\code this} 키워드를 이용하여 맴버 함수 내부에서
+객체를 가리키는 포인터에 접근한다.} 이 함수들은 구조체에 해당하는 메모리에 저장되지 \emph{않는다}.
+그러나 멤버 함수들은 다른 함수들과 다르다. 이 들은 \emph{숨겨진} 인자를 주고 받는다. 그 인자는
+멤버 함수가 작업하는 객체를 가리키는 포인터 이다. 
+
+\begin{figure}[t]
+\begin{lstlisting}[stepnumber=0]{}
+void set_data( Simple * object, int x )
+{
+  object->data = x;
+}
+\end{lstlisting}
+\caption{C 버전의 Simple::set\_data()\label{fig:SimpleCVer}}
+\end{figure}
+
+
+\begin{figure}[t]
+\begin{AsmCodeListing}
+_set_data__6Simplei:           ; 맹글링 된 이름 
+      push   ebp
+      mov    ebp, esp
+
+      mov    eax, [ebp + 8]   ; eax = 객체를 가리키는 포인터 (this)
+      mov    edx, [ebp + 12]  ; edx = 정수 인자 
+      mov    [eax], edx       ; 데이타는 오프셋 0 에 위치 
+
+      leave
+      ret
+\end{AsmCodeListing}
+\caption{Simple::set\_data( int ) 가 컴파일 된 모습 \label{fig:SimpleAsm}}
+\end{figure}
+
+예를 들어 그림 ~\ref{fig:SimpleClass} 의 {\code Simple} 클래스의 {\code set\_data} 메서드를
+보자. 이것이 C 에서 작성된다면 그림 ~\ref{fig:SimpleCVer} 과 같이 함수의 코드에서 작업하는
+객체에 대한 포인터를 인자로 받아들이는 함수가 될 것이다. \emph{DJGPP} 컴파일러 (그리고 
+\emph{gcc} 와 볼랜드 컴파일러들도 동일)에 {\code -S} 스위치를 사용하면 컴파일러가 코드와
+동일한 어셈블리 코드를 만들어 낸다. \emph{DJGPP} 와 \emph{gcc} 가 생성한 어셈블리 파일에는
+{\code .s} 확장자가 붙는데, 불행이도 NASM 과 MASM 문법과 다른 AT\&T 어셈블리를 사용한다. 
+\footnote{\emph{gcc} 컴파일러 시스템은 자체적인 어셈블러인 \emph{gas} \index{gas} 를 가지고 있다.
+\emph{gas} 어셈블러는 AT\&T 문법을 사용하므로 컴파일러에 의해 생성된 어셈블리 코드는 \emph{gas} 형식
+으로 되어 있다. 인터넷 상에서 INTEL 과 AT\&T 문법의 차이점을 서술한 페이지가 몇 개 있다. 
+또한 {\code a2i} 라는 이름의 무료 프로그램 ({http://www.multimania.com/placr/a2i.html}) 을 통해
+AT\&T 형식을 NASM 형식으로 변환할 수 있다.} (Borland 와 MS 컴파일러들은 {\code .asm} 확장자를 가지는
+MASM 문법의 어셈블리 파일을 만든다) 그림 ~\ref{fig:SimpleAsm} 은 \emph{DJGPP} 의 어셈블리 코드를
+NASM 문법으로 변환한 것이다. 문장의 의미를 파악하기 쉽게 하기 위해 일부 주석을 달았다. 가장
+첫 번째 행에서 {\code set\_data} 메서드에 클래스의 이름과 인자에 대한 정보를 맹글링한 것으로 이루어진
+라벨이 붙었음을 알 수 있다. 라벨에 클래스에 이름에 관한 정보도 포함된 이유는 다른 클래스가
+{\code set\_data} 라는 이름의 메서드를 가질 수 있기 때문이다. 또한 인자들에 관한 정보도 평범한 C++ 함수들
+처럼 오버로드 할 수 있도록 포함되었다. 그러나 이전과 같이 다른 컴파일러들은 이 정보를 다른 식으로
+맹글링 할 것이다. 
+
+그리고 ~2 와 3 행에서 우리에게 친숙한 부분이 나타난다. ~5 행에서 스택에 저장된 인자는 {\code EAX}로 저장된다.
+이는 {\code x} 인자가 \emph{아니다}. 대신에 이는 숨겨진 인자 \footnote{어셈블리에서는 숨겨지는 것이 \emph{없다}!}로
+작업하는 객체를 가리키는 포인터 이다. ~6 행에서, {\code x} 인자를 {\code EDX} 에 저장하고 ~7 행에서는 {\code EDX} 를 
+{\code EAX} 가 가리키는 더블워드에 저장한다. 이는 우리가 현재 작업하는 {\code Simple} 의 객체의 {\code data} 멤버 이다. 
+이 멤버는 클래스의 유일한 데이타로 {\code Simple} 의 오프셋 0 에 위치해 있다. 
+
+\begin{figure}[tp]
+\begin{lstlisting}[frame=tlrb,language=C++,escapeinside=@@]{}
+class Big_int {
+public:
+   /* 
+   * @인자@:
+   *   size           - @정수의 크기로, unsigned int 가 @
+   *                     @사용된 수로 나타낸다@
+   *   initial_value  - @Big\_int 가 보통의 unsigned int 였을 때 초기값@
+   */
+  explicit Big_int( size_t   size,
+                    unsigned initial_value = 0);
+  /*
+   * @인자@:
+   *   size           - @정수의 크기로, unsigned int 가@
+   *                     @사용된 수로 나타낸다@ 
+   *   initial_value  - @Big\_int 의 초기값의 16 진수의 문자열 형태@
+   */
+  Big_int( size_t       size,
+           const char * initial_value);
+
+  Big_int( const Big_int & big_int_to_copy);
+  ~Big_int();
+
+  // @Big\_int 의 크기를 반환(unsigned int 의 수로)@
+  size_t size() const;  
+
+  const Big_int & operator = ( const Big_int & big_int_to_copy);
+  friend Big_int operator + ( const Big_int & op1,
+                              const Big_int & op2 );
+  friend Big_int operator - ( const Big_int & op1,
+                              const Big_int & op2);
+  friend bool operator == ( const Big_int & op1,
+                            const Big_int & op2 );
+  friend bool operator < ( const Big_int & op1,
+                           const Big_int & op2);
+  friend ostream & operator << ( ostream &       os,
+                                 const Big_int & op );
+private:
+  size_t      size_;    // @부호 없는 배열의 크기@
+  unsigned *  number_;  //@값을 가지는 부호 없는 배열을 가리키는 포인터@
+};
+\end{lstlisting}
+\caption{Big\_int 클래스의 정의\label{fig:BigIntClass}}
+\end{figure}
+
+\begin{figure}[tp]
+\begin{lstlisting}[frame=tlrb,language=C++,escapeinside=~~]{}
+//~어셈블리 루틴의 원형~
+extern "C" {
+  int add_big_ints( Big_int &       res, 
+                    const Big_int & op1, 
+                    const Big_int & op2);
+  int sub_big_ints( Big_int &       res, 
+                    const Big_int & op1, 
+                    const Big_int & op2);
+}
+
+inline Big_int operator + ( const Big_int & op1, const Big_int & op2)
+{
+  Big_int result(op1.size());
+  int res = add_big_ints(result, op1, op2);
+  if (res == 1)
+    throw Big_int::Overflow();
+  if (res == 2)
+    throw Big_int::Size_mismatch();
+  return result;
+}
+
+inline Big_int operator - ( const Big_int & op1, const Big_int & op2)
+{
+  Big_int result(op1.size());
+  int res = sub_big_ints(result, op1, op2);
+  if (res == 1)
+    throw Big_int::Overflow();
+  if (res == 2)
+    throw Big_int::Size_mismatch();
+  return result;
+}
+\end{lstlisting}
+\caption{Big\_int 클래스 산술 연산 코드\label{fig:BigIntAdd}}
+\end{figure}
+
+\subsubsection{예제}
+\index{C++!Big\_int 예제|(}
+이 단원은 이 장의 내용을 바탕으로 임의의 크기의 부호가 없는 정수를
+나타낸는 C++ 클래스를 만든다. 정수의 크기가 임의로 정해지기 때문에 이는
+부호가 없는 정수(더블워드)들의 배열에 저장될 것이다. 이 배열은 동적 할당을
+이용하면 아무 크기로나 만들 수 있다. 더블워드는 역순으로 저장된다.
+\footnote{왜냐하면 덧셈 연산이 배열의 처음 부분 부터 진행되기 
+때문이다.} (\emph{i.e} 최하위 더블워드는 0 의 위치에 있다) 그림 ~\ref{fig:BigIntClass} 는
+{\code Big\_int} 클래스의 정의를 보여준다. 
+\footnote{이 예제의 완전한 코드에 대한 예제 소스 코드를 보라. 본문은 오직
+코드의 일부분만 이야기 할 것이다. } {\code Big\_int} 의 크기는 데이타를 저장하는데 사용되는 
+부호 없는 배열의 크기로 계산된다. 클래스의 {\code size\_} 데이타 멤버는 오프셋이 0 이고,
+{\code number\_} 멤버는 오프셋이 4 이다. 
+
+이 예제들을 단순화 하기 위해 같은 크기의 배열을 가지는 객체 인스턴스(instance) 만이 
+더해지거나 빼질 수 있다. 
+
+이 클래스는 3 개의 생성자를 가진다. 하나는 (~9 행) 보통의 부호 없는 정수를 이용하여
+클래스 인스턴스를 초기화 하는 것이고 다른 하나는 (~18 행) 16 진수의 값을 보관하는 문자열을 이용하여
+인스턴스를 초기화 한다. 마지막으로는 (~21 행) \emph{복사 생성자(copy constructor)} \index{C++!복사 생성자}
+이다. 
+
+여기에서는 덧셈과 뺄셈 연산자들이 어떻게 작동하는지에 대해 초점을 맞출 것인데,
+왜냐하면 여기서 어셈블리가 사용되기 때문이다. 그림 ~\ref{fig:BigIntAdd} 은 
+이 연산자들과 관계있는 헤더파일의 일부분을 보여주고 있다. 이는 어셈블리 루틴을
+호출하기 위해 연산자들이 어떻게 설정되어 있는지 보여준다. 서로 다른 컴파일러가 
+연산자 함수를 위해 다른 종류의 맹글링 규칙을 사용하기 때문에 인라인 연산자 함수들은
+C 연계 어셈블리 루틴을 호출하게 설정되어 있다. 이는 보통의 직접적인 호출과 속도가
+비슷하며, 다른 컴파일러에 의해 컴파일 되어도 잘 작동하게 할 수 있다. 이 기술은 또한
+어셈블리에서 예외를 던지는(throw) 상황을 막을 수 있다. 
+
+왜 여기에 어셈블리가 사용될까? 다중 정밀도 연산을 사용하기 위해, 캐리가 하나의
+더블워드로 부터 다음 더블워드로 전달되야 한다는 사실을 상기해라. C++ (그리고 C)는
+프로그래머로 하여금 CPU 의 캐리 플래스에 접근하는 것을 막고 있다. 이 덧셈을 수행하는
+유일한 방법은 C++ 이 독립적으로 캐리 플래그를 다시 계산한 뒤에 그 다음 더블워드에
+더하는 수 밖에 없다. 하지만 어셈블리에선 캐리 플래그에 마음대로 접근할 수 있으며,
+{\code ADC} 명령을 통해 자동적으로 캐리 플래그를 더할 수 있으므로 효과적이다. 
+
+너무 글이 길어지는 것을 막기 위해 오직 {\code add\_big\_ints} 어셈블리 루틴만
+여기에서 다룰 것이다. 아래는 이 루틴을 위한 코드 이다. ({\code big\_math.asm} 에서 가져옴)
+
+\begin{AsmCodeListing}[label=big\_math.asm]
+segment .text
+        global  add_big_ints, sub_big_ints
+%define size_offset 0
+%define number_offset 4
+
+%define EXIT_OK 0
+%define EXIT_OVERFLOW 1
+%define EXIT_SIZE_MISMATCH 2
+
+; 덧셈과 뺄셈 서브 루틴들을 위한 인자들
+%define res ebp+8
+%define op1 ebp+12
+%define op2 ebp+16
+
+add_big_ints:
+        push    ebp
+        mov     ebp, esp
+        push    ebx
+        push    esi
+        push    edi
+        ;
+        ; op1 을 가리키기 위해 esi 를 설정 
+        ; op2 를 가리키기 위한 edi 
+        ; res 를 가리키기 위한 ebx
+        mov     esi, [op1]
+        mov     edi, [op2]
+        mov     ebx, [res]
+        ;
+        ; 모든 Big_int 들이 같은 크기여야 함을 명심해라 
+        ;
+        mov     eax, [esi + size_offset]
+        cmp     eax, [edi + size_offset]
+        jne     sizes_not_equal                 ; op1.size_ != op2.size_
+        cmp     eax, [ebx + size_offset]
+        jne     sizes_not_equal                 ; op1.size_ != res.size_
+
+        mov     ecx, eax                        ; ecx = Big_int 의 크기
+        ;
+        ; 레지스터를 이에 대응하는 배열을 가리키게 맞춘다. 
+        ;      esi = op1.number_
+        ;      edi = op2.number_
+        ;      ebx = res.number_
+        ;
+        mov     ebx, [ebx + number_offset]
+        mov     esi, [esi + number_offset]
+        mov     edi, [edi + number_offset]
+        
+        clc                                     ; 캐리 플래그 초기화
+        xor     edx, edx                        ; edx = 0
+        ;
+        ; addition loop
+add_loop:
+        mov     eax, [edi+4*edx]
+        adc     eax, [esi+4*edx]
+        mov     [ebx + 4*edx], eax
+        inc     edx                             ; 캐리 플래그를 변경하지 말라 
+        loop    add_loop
+
+        jc      overflow
+ok_done:
+        xor     eax, eax                        ; 리턴값 = EXIT_OK
+        jmp     done
+overflow:
+        mov     eax, EXIT_OVERFLOW
+        jmp     done
+sizes_not_equal:
+        mov     eax, EXIT_SIZE_MISMATCH
+done:
+        pop     edi
+        pop     esi
+        pop     ebx
+        leave
+        ret
+\end{AsmCodeListing}
+
+위의 대부분의 코드는 독자 여러분이 이해하기에 쉽다. ~25 에서 27 행에서
+함수를 통해 인자로 전달된 {\code Big\_int} 객체를 가리키는 포인터가 저장된 레지스터를  
+저장한다. 레퍼런스는 단지 포인터에 불과하다는 것을 상기해라. ~31 에서 35 행은 세 객체
+배열들의 크기가 같은지 확인한다. (데이타 멤버에 접근하기 위해 {\code size\_} 의 오프셋이 
+포인터에 더해졌다.) ~44 에서 46 행에선 레지스터 값들을 조정하여, 
+객체 자기 자신이 아닌 각 객체의 배열을 가리키게 하였다.
+(여기서도 객체 포인터에 {\code number\_} 멤버의 오프셋이 더해졌다) 
+
+\begin{figure}[tp]
+\begin{lstlisting}[language=C++, frame=tlrb]{}
+#include "big_int.hpp"
+#include <iostream>
+using namespace std;
+
+int main()
+{
+  try {
+    Big_int b(5,"8000000000000a00b");
+    Big_int a(5,"80000000000010230");
+    Big_int c = a + b;
+    cout << a << " + " << b << " = " << c << endl;
+    for( int i=0; i < 2; i++ ) {
+      c = c + a;
+      cout << "c = " << c << endl;
+    }
+    cout << "c-1 = " << c - Big_int(5,1) << endl;
+    Big_int d(5, "12345678");
+    cout << "d = " << d << endl;
+    cout << "c == d " << (c == d) << endl;
+    cout << "c > d " << (c > d) << endl;
+  }
+  catch( const char * str ) {
+    cerr << "Caught: " << str << endl;
+  }
+  catch( Big_int::Overflow ) {
+    cerr << "Overflow" << endl;
+  }
+  catch( Big_int::Size_mismatch ) {
+    cerr << "Size mismatch" << endl;
+  }
+  return 0;
+}
+\end{lstlisting}
+\caption{{\code Big\_int} 의 단순한 사용 \label{fig:BigIntEx}}
+\end{figure}
+
+~52 에서 57 행의 루프는 최하위 더블워드 순으로 배열에 저장된 정수들을 더한다.
+이런 순서로 더하는 이유는 확장 정밀도 산술 연산 (~\ref{sec:ExtPrecArith} 참조) 때문이다.
+~59 행은 오버플로우가 발생하였는지 확인한다. 오버플로우 시, 최상위 더블워드의
+마지막 덧셈에 의해 캐리 플래그가 세트된다. 배열에 저장된 더블워드들이 리틀 엔디안 형식으로
+되어 있기 때문에 루프는 배열의 처음 부분 부터 시작되어 배열의 끝에서 끝난다. 
+
+그림 ~\ref{fig:BigIntEx} 는 {\code Big\_int} 를 사용하는 짧은 예제 클래스를 보여준다.
+{\code Big\_int} 상수는 ~16 행과 같이 반드시 명확하게 정의되어야 한다. 이는 두 가지 연유에서 중요하다. 
+먼저, 부호가 없는 정수를 {\code Big\_int} 로 변환하는 변환 생성자가 없다. 두 번째로는 
+오직 같은 크기의 {\code Big\_int} 들만이 더해질 수 있다. 이는 변환을 복잡하게 하는데 왜냐하면
+어떠한 크기로 변환해야 할 지 모르기 때문이다. 클래스를 좀 더 복잡하게 만든다면 크기가 서로 다른
+것들도 더해질 수 있게 할 수 있다. 그러나 이를 여기에서 보임으로써 이 예제를 복잡하게
+만들고 싶은 생각은 없다. (그러나, 독자 여러분이 이를 한 번 해보기를 권한다) 
+
+\index{C++!Big\_int 예제|)}
+
+\begin{figure}[tp]
+\begin{lstlisting}[language=C++, frame=tlrb]{}
+#include <cstddef>
+#include <iostream>
+using namespace std;
+
+class A {
+public:
+  void __cdecl m() { cout << "A::m()" << endl; }
+  int ad;
+};
+
+class B : public A {
+public:
+  void __cdecl m() { cout << "B::m()" << endl; }
+  int bd;
+};
+
+void f( A * p )
+{
+  p->ad = 5;
+  p->m();
+}
+
+int main()
+{
+  A a;
+  B b;
+  cout << "Size of a: " << sizeof(a)
+       << " Offset of ad: " << offsetof(A,ad) << endl;
+  cout << "Size of b: " << sizeof(b)
+       << " Offset of ad: " << offsetof(B,ad)
+       << " Offset of bd: " << offsetof(B,bd) << endl;
+  f(&a);
+  f(&b);
+  return 0;
+}
+\end{lstlisting}
+\caption{상속 예제 \label{fig:SimpInh}}
+\end{figure}
+
+
+\subsection{상속과 다형성\index{C++!상속|(}}
+
+
+\begin{figure}[tp]
+\begin{AsmCodeListing}
+_f__FP1A:                       ; 맹글링 된 함수 이름 
+      push   ebp
+      mov    ebp, esp
+      mov    eax, [ebp+8]       ; eax 는 객체를 가리킨다. 
+      mov    dword [eax], 5     ; ad 를 위해 오프셋 0 을 사용 
+      mov    eax, [ebp+8]       ; 객체의 주소를 A::m() 에 전달
+      push   eax
+      call   _m__1A             ; A::m() 의 맹글링 된 메서드 이름 
+      add    esp, 4
+      leave
+      ret
+\end{AsmCodeListing}
+\caption{간단한 상속 예제를 위한 어셈블리 코드 \label{fig:FAsm1}}
+\end{figure}
+
+\emph{상속(Inheritance)} 을 통해 하나의 클래스를 다른 클래스에 데이터와 메서드를
+상속 할 수 있다. 예를 들어 그림 ~\ref{fig:SimpInh} 의 코드를 보자. 이는 두 개의 클래스
+{\code A} 와 {\code B} 가 나오는데, {\code B} 클래스가 {\code A} 로 부터 상속받는다.
+프로그램의 출력 결과는 
+
+\begin{verbatim}
+Size of a: 4 Offset of ad: 0
+Size of b: 8 Offset of ad: 0 Offset of bd: 4
+A::m()
+A::m()
+\end{verbatim}
+두 개의 클래스({\code A} 와 상속받은 {\code B})의 {\code ad} 데이타 멤버가 
+동일한 오프셋을 가짐을 주목해라. 이는 {\code f} 함수에 {\code A} 객체 혹은
+{\code A} 를 물려받은(\emph{i.e.} 상속받은) 클래스의 객체를 가리키는 포인터를 전달했을 수 도 있기 때문이다. (\emph{i.e} 상속된)
+그림 ~\ref{fig:FAsm1} 은 함수에 대한 어셈블리 코드를 보여준다. (\emph{gcc} 에 의해 생성되었고, NASM 형식으로 변환됨)
+
+\begin{figure}[tp]
+\begin{lstlisting}[language=C++, frame=tlrb]{}
+class A {
+public:
+  virtual void __cdecl m() { cout << "A::m()" << endl; }
+  int ad;
+};
+
+class B : public A {
+public:
+  virtual void __cdecl m() { cout << "B::m()" << endl; }
+  int bd;
+};
+\end{lstlisting}
+\caption{다형적 상속(Polymorphic Inheritance)\label{fig:VirtInh}}
+\end{figure}
+
+\index{C++!다형성|(}
+출력 결과에서 {\code A} 의 {\code m} 메서드가 {\code a} 와 {\code b} 객체로 부터 호출 되었을 때 모두
+호출되었다는 것을 주목하자. 어셈블리에서 {\code A::m()} 으로 호출하는 것은 
+어셈블리에서 코딩하기가 어렵다. 완전한 객체 지향 프로그래밍에서 호출되는 메서드는 
+어떠한 객체가 함수에 전달되느냐에 따라 달려있다. 이를 \emph{다형성(polymorphism)} 이라
+한다. C++ 은 기본적으로 이 기능을 사용하지 않는다. 우리는 \emph{virtual} 키워드 \index{C++!virtual} 를
+통해 이 기능을 사용할 수 있다. 그림 ~\ref{fig:VirtInh} 는 이 두 클래스가 어떻게 바뀌는지 보여준다. 다른
+코드들은 바뀔 필요가 없다. 다형성은 여러가지 형태로 구현 될 수 있다. 불행이도 현재 \emph{gcc} 에서의 구현은
+이전의 구현 되었던 것보다 훨씬 복잡하게 되었다. 여기에 대해선 깊이 들어가지는 않고 윈도우즈 기반의
+마이크로소프트와 볼랜드 컴파일러들이 사용하는 형태에 대해서만 이야기 하고자 한다. 이 컴파일러들에서의 구현은 몇 년 동안 바뀌지
+않았을 뿐더러 앞으로도 바뀌지 않을 것이다. 
+
+\emph{virtual} 키워드를 붙임으로써 프로그램의 출력은 아래와 같이 바뀐다:
+
+\begin{verbatim}
+Size of a: 8 Offset of ad: 4
+Size of b: 12 Offset of ad: 4 Offset of bd: 8
+A::m()
+B::m()
+\end{verbatim}
+
+
+\begin{figure}[tp]
+\begin{AsmCodeListing}[commentchar=!]
+?f@@YAXPAVA@@@Z:
+      push   ebp
+      mov    ebp, esp
+
+      mov    eax, [ebp+8]
+      mov    dword [eax+4], 5  ; p->ad = 5;
+
+      mov    ecx, [ebp + 8]    ; ecx = p
+      mov    edx, [ecx]        ; edx = vtable 을 가리키는 포인터 
+      mov    eax, [ebp + 8]    ; eax = p
+      push   eax               ; "this" 포인터를 푸시
+      call   dword [edx]       ; vtable 의 첫 번째 함수 호출
+      add    esp, 4            ; 스택을 정리한다 
+
+      pop    ebp
+      ret
+\end{AsmCodeListing}
+\caption{{\code f()} 함수를 위한 어셈블리 코드 \label{fig:FAsm2}}
+\end{figure}
+
+\begin{figure}[tp]
+\begin{lstlisting}[language=C++, frame=tlrb,escapeinside=~~]{}
+class A {
+public:
+  virtual void __cdecl m1() { cout << "A::m1()" << endl; }
+  virtual void __cdecl m2() { cout << "A::m2()" << endl; }
+  int ad;
+};
+
+class B : public A {    // B inherits A's m2()
+public:
+  virtual void __cdecl m1() { cout << "B::m1()" << endl; }
+  int bd;
+};
+/*~주어진 객체의 vtable 을 출력~ */
+void print_vtable( A * pa )
+{
+  // ~p 는 pa 를 더블워드의 배열로 생각한다~
+  unsigned * p = reinterpret_cast<unsigned *>(pa);
+  // ~vt 는가상테이블을 포인터들의 배열로 생각한다~
+  void ** vt = reinterpret_cast<void **>(p[0]);
+  cout << hex << "vtable address = " << vt << endl;
+  for( int i=0; i < 2; i++ )
+    cout << "dword " << i << ": " << vt[i] << endl;
+
+  // ~가상 함수를 이식성이 매우 떨어지는 방법으로 호출한다!~
+  void (*m1func_pointer)(A *);   // ~함수 포인터 변수~
+  m1func_pointer = reinterpret_cast<void (*)(A*)>(vt[0]);
+  m1func_pointer(pa);       //~함수 포인터를 통해 메서드 m1 을 호출~
+
+  void (*m2func_pointer)(A *);   // ~함수 포인터 변수~
+  m2func_pointer = reinterpret_cast<void (*)(A*)>(vt[1]);
+  m2func_pointer(pa);      // ~함수 포인터를 통해 메서드 m2 을 호출~
+}
+
+int main()
+{
+  A a;   B b1;  B b2;
+  cout << "a: " << endl;   print_vtable(&a);
+  cout << "b1: " << endl;  print_vtable(&b);
+  cout << "b2: " << endl;  print_vtable(&b2);
+  return 0;
+}
+\end{lstlisting}
+\caption{ 좀 더 복잡한 예제 \label{fig:2mEx}}
+\end{figure}
+
+
+\begin{figure}[tp]
+\centering
+%\epsfig{file=vtable}
+\input{vtable.latex}
+\caption{{\code b1} 의 내부적 표현\label{fig:vtable}}
+\end{figure}
+
+이제, {\code f} 의 두번째 호출에선 {\code B} 객체를 전달했기 때문에 {\code B::m()} 메서드를
+호출하게 된다. 하지만 달라진 것은 이것이 다가 아니다. {\code A} 의 크기는 8 이 된다. (그리고
+{\code B} 는 12) 또한 {\code ad} 의 오프셋은 0 이 아닌 4 가 된다. 그렇다면 오프셋 0 에는 무엇이
+있을까? 이것에 대한 대답은 어떻게 다형성이 구현되었는지에 따라 달라진다. 
+
+\index{C++!vtable|)} 가상 메서드를 한 개 라도 가지는 C++ 클래스들은 메서드 포인터들의 배열을
+가리키는 포인터의 추가적인 숨겨진 영역이 있다. \footnote{가상 메서드가 없는 클래스들의 경우
+C++ 컴파일러들은 언제나 동일한 데이타 멤버를 가지는 보통의 C 구조체와 호환 가능한 클래스를
+만든다} 이 테이블은 종종 \emph{가상테이블(vtable)} 이라 불린다. {\code A} 와 {\code B} 클래스의 가상테이블을 가리키는 포인터는
+오프셋 0 에 저장되어 있다. 윈도우즈 컴파일러는 언제나 이 포인터들을 클래스 시작 부분인 상속 트리의 최상단에 위치해
+놓는다. 함수 {\code f} (그림 ~\ref{fig:SimpInh})의 가상 메서드 버전의 어셈블리 코드 (그림 ~\ref{fig:FAsm2})를
+보면 {\code m} 메서드 호출은 라벨이 아님을 알 수 있다. ~9 행은 객체로 부터 가상테이블의 주소값을 찾는다.
+~11 행에서 객체의 주소값은 스택에 푸시된다. ~12 행에서 가상테이블의 첫 번째 주소\footnote{당연하게도 이 값은 이미 
+{\code ECX} 레지스터에 들어 있다. 그 값은 ~8 행에서 들어갔다. 또한 ~10 행을 제거하는 대신에 그 다음 행에
+{\code ECX} 를 푸시하게 바꾸면 된다. 이 코드는 별로 효율적이지 않는데 왜냐하면 컴파일러 최적화 옵션이
+켜지지 않은 채 생성된 코드 이기 대문이다} 로 분기함으로써 가상 메서드를 호출한다.  이 호출은 라벨을 사용하지 않고,
+{\code EDX} 가 가리키는 코드 주소로 분기한다. 이러한 형식의 호출은 \emph{나중 바인딩(late binding)} 라 한다. 
+\index{C++!나중 바인딩}. 나중 바인딩은 코드가 실행될 때 까지 어떠한 메서드를 호출할지 결정할 수 없게 한다. 
+이를 통해 객체의 올바른 메서드를 호출하게 한다. 보통의 경우 (그림 ~\ref{fig:FAsm1})는
+호출되는 형태는 \emph{빠른 바인딩(early binding)} 이라 한다. \index{C++!빠른 바인딩} 
+(컴파일 타임(compile time)에 무슨 메서드로 분기해야 할 지 알 수 있다.)
+
+세심한 독자들의 경우 왜 그림 ~\ref{fig:VirtInh} 의 클래스 메서드들을 {\code \_\_cdecl} 키워드를 사용함으로써  
+명백하게 C 호출 규약으로 정의하였는지에 대해 궁금해 할 것이다. 기본적으로 마이크로소프트는 표준 C 규약과 다른
+호출 규약을 C++ 클래스 메서드에 사용한다. 이는 대신에 메서드에서 작업하는 객체를 가리키는 포인터를 스택을 사용하는 대신에 {\code ECX} 레지스터에
+넣어 전달한다. 스택은 메서드의 다른 인자들을 전달하는데 사용된다. {\code \_\_cdecl} 변경자는 표준 C 
+호출 규약을 사용하게끔 한다. 볼랜드~C+++ 은 C 호출 규약을 기본으로 사용한다. 
+
+\begin{figure}[tp]
+\fbox{ \parbox{\textwidth}{\code
+a: \\
+vtable address = 004120E8\\
+dword 0: 00401320\\
+dword 1: 00401350\\
+A::m1()\\
+A::m2()\\
+b1:\\
+vtable address = 004120F0\\
+dword 0: 004013A0\\
+dword 1: 00401350\\
+B::m1()\\
+A::m2()\\
+b2:\\
+vtable address = 004120F0\\
+dword 0: 004013A0\\
+dword 1: 00401350\\
+B::m1()\\
+A::m2()\\
+} }
+\caption{그림~\ref{fig:2mEx} 의 프로그램의 출력값 \label{fig:2mExOut}}
+\end{figure}
+
+이번에는 약간 더 복잡한 예제를 살펴보자 (그림 ~\ref{fig:2mEx}). 여기서,
+클래스 {\code A} 와 {\code B} 는 각각 2 개의 메서드를 가지고 있다:
+{\code m1} 과 {\code m2}. {\code B} 클래스가 자신의 {\code m2} 메서드를
+정의하는 것이 아니라 {\code A} 클래스의 메서드를 상속 받는 다는 것을 기억해라.
+그림 ~\ref{fig:vtable} 은 {\code b} 객체가 메모리 상에 어떻게 나타나는지 보여준다.
+그림 ~\ref{fig:2mExOut} 은 프로그램의 출력 결과를 보여준다. 먼저, 각 객체의 가상테이블 주소를
+보자. 두 개의 {\code B} 객체들의 가상 테이블 주소들은 같으므로 이들은 같은 가상테이블을 공유한다. 가상테이블은
+클래스의 특징이지 객체가 아니다 (정적 데이타 멤버 처럼). 다음으로 가상테이블에 있는 주소값들을 보라.
+출력 결과를 보면 우리는 {\code m1} 메서드 포인터가 오프셋 ~0 (혹은 더블워드 ~0) 에 있고 
+{\code m2} 는 오프셋~4 (더블워드~1) 에 있음을 알 수 있다. {\code m2} 메서드 포인터는 {\code A} 와
+{\code B} 의 가상테이블들에서 동일한데, 왜냐하면 {\code B} 는 {\code m2} 메서드를 {\code A}
+클래스로 부터 상속 받았기 때문이다. 
+
+~25 에서 32 행은 객체에 대한 객체의 가상테이블의 주소값을 읽어서 가상 함수를 호출할 수 있는지를
+보여주고 있다. \footnote{이 코드는 오직 MS 와 볼랜드 컴파일러에서만 작동된다. \emph{gcc} 에서는
+작동하지 않는다}. 메서드 주소는 C 유형의 함수 포인터와 \emph{this} 포인터가 저장된다. 
+그림 ~\ref{fig:2mExOut} 에서의 출력값에서 우리는 이것이 실제로 작동한다는 것을 알 수 있다.
+그러나, 코드를 이렇게 쓰지는 \emph{말라}. 이는 오직 가상 메서드들이 가상테이블을 어떻게 사용하는지
+보여주기 위해서 쓴 것이다. 
+
+%Looking at the output of Figure~\ref{fig:2mExOut} does demonstrate several
+%features of the implementation of polymorphism.  The {\code b1} and {\code b2}
+%variables have the same vtable address; however the {\code a} variable
+%has a different vtable address. The vtable is a property of the class not
+%a variable of the class. All class variables share a common vtable. The two
+%{\code dword} values in the table are the pointers to the virtual methods.
+%The first one (number 0) is for {\code m1}. Note that it is different for the
+%{\code A} and {\code B} classes. This makes sense since the A and B classes
+%have different {\code m1} methods. However, the second method pointer is 
+%the same for both classes, since class {\code B} inherits the {\code m2}
+%method from its base class, {\code A}.
+
+여기서 몇 가지 교훈을 얻을 수 있다. 하나는 우리가 이진 파일에
+클래스 변수들을 읽고 쓸 때 매우 주의해야 한다는 점이다. 우리는 단순히 전체 객체를 읽거나
+쓸 수 없는데, 왜냐하면 이는 파일에 가상테이블 포인터를 읽거나 쓸 것이기 때문이다.
+이는 프로그램의 메모리 상에 가상테이블이 있는 곳을 가리키는 포인터 이고, 아는 프로그램마다
+다를 것이기 때문이다. 이같은 문제가 C 의 구조체에서도 발생 할 수 있지만, C 구조체의 경우
+프로그래머가 특별히 지정해야만 포인터를 가지게 된다. {\code A} 나 {\code B} 클래스에선
+명백히 정의된 포인터들이 없다. 
+
+재차 강조하지만 컴파일러들은 서로 다른 방식으로 가상 메서드를 구현했다는 점을
+잊지 말아야 한다. 윈도우즈 에서는 COM (Component Object Model) \index{COM} 
+클래스 객체들이 COM 인터페이스를 구현하기 위해 가상테이블을 사용한다.\footnote{
+COM 클래스는 또한 {\code \_\_stdcall} \index{호출 규약!stdcall} 호출 규약을 사용한다.
+표준 C 가 아니다} 마이크로소프트와 같은 방법으로 가상 메서드를 가상테이블을 이용하여 구현한 컴파일러만이 
+COM 클래스를 생성할 수 있다. 이는 볼랜드가 마이크로소프트와 같은 구현을 사용하였고,
+왜 \emph{gcc} 에서는 COM 클래스를 만들 수 없는지 알 수 있다. 
+
+가상 메서드를 위한 코드는 비-가상 메서드 것과 정확이 같다. 오직 이를 호출하는
+코드만이 다를 뿐이다. 만일 컴파일러가 어떤 가상 메서드가 호출되는지 정확히 알 수 있다면,
+이는 가상테이블을 무시하고 직접적으로 메서드를 호출 할 수 있다. (\emph{e.g} 빠른 바인딩)
+
+\index{C++!vtable|)}
+\index{C++!다형성|)}
+\index{C++!상속|)}
+\index{C++!클래스|)}
+\index{C++|)}
+
+\subsection{다른 C++ 기능들}
+
+다른 C++ 기능(\emph{e.g} 런타임 형식의 정보, 예외 처리 및 다중 상속)에 대해 이야기 하는 것은
+이 책의 범위를 훌쩍 뛰어 넘는다. 만일 독자 여러분이 더 자세히 알고 싶다면,
+Ellis 와 Stroustrup 이 쓴 \emph{The Annotated C++ Reference Manual} 과 
+Stroustrup 이 쓴 \emph{The Design and Evolution of C++} 을 읽어 보기를 권한다. 

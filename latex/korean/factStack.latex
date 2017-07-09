@@ -1,0 +1,36 @@
+﻿\setlength{\unitlength}{3947sp}%
+%
+\begingroup\makeatletter\ifx\SetFigFont\undefined%
+\gdef\SetFigFont#1#2#3#4#5{%
+  \reset@font\fontsize{#1}{#2pt}%
+  \fontfamily{#3}\fontseries{#4}\fontshape{#5}%
+  \selectfont}%
+\fi\endgroup%
+\begin{picture}(3033,2724)(301,-2173)
+\thinlines
+\put(1801,-61){\framebox(1500,300){}}
+\put(1801,239){\framebox(1500,300){}}
+\put(1801,-361){\framebox(1500,300){}}
+\put(1801,-961){\framebox(1500,300){}}
+\put(1801,-661){\framebox(1500,300){}}
+\put(1801,-1261){\framebox(1500,300){}}
+\put(1801,-1861){\framebox(1500,300){}}
+\put(1801,-1561){\framebox(1500,300){}}
+\put(1801,-2161){\framebox(1500,300){}}
+\put(901,539){\makebox(1.6667,11.6667){\SetFigFont{5}{6}{\rmdefault}{\mddefault}{\updefault}.}}
+\thicklines
+\put(1801,-1261){\line( 1, 0){1500}}
+\put(1801,-361){\line( 1, 0){1500}}
+\put(301, 89){\makebox(0,0)[lb]{\smash{\SetFigFont{14}{16.8}{\rmdefault}{\mddefault}{\updefault}n=3 프레임}}}
+\put(301,-886){\makebox(0,0)[lb]{\smash{\SetFigFont{14}{16.8}{\rmdefault}{\mddefault}{\updefault}n=2 프레임}}}
+\put(301,-1786){\makebox(0,0)[lb]{\smash{\SetFigFont{14}{16.8}{\rmdefault}{\mddefault}{\updefault}n=1 프레임}}}
+\put(2371,299){\makebox(0,0)[lb]{\smash{\SetFigFont{14}{16.8}{\rmdefault}{\mddefault}{\updefault}n(3)}}}
+\put(1936, 14){\makebox(0,0)[lb]{\smash{\SetFigFont{12}{16.8}{\rmdefault}{\mddefault}{\updefault}리턴 주소}}}
+\put(2041,-286){\makebox(0,0)[lb]{\smash{\SetFigFont{14}{16.8}{\rmdefault}{\mddefault}{\updefault}저장된 EBP}}}
+\put(2326,-586){\makebox(0,0)[lb]{\smash{\SetFigFont{14}{16.8}{\rmdefault}{\mddefault}{\updefault}n(2)}}}
+\put(1951,-886){\makebox(0,0)[lb]{\smash{\SetFigFont{12}{16.8}{\rmdefault}{\mddefault}{\updefault}리턴주소}}}
+\put(2041,-1186){\makebox(0,0)[lb]{\smash{\SetFigFont{14}{16.8}{\rmdefault}{\mddefault}{\updefault}저장된 EBP}}}
+\put(2326,-1501){\makebox(0,0)[lb]{\smash{\SetFigFont{14}{16.8}{\rmdefault}{\mddefault}{\updefault}n(1)}}}
+\put(1921,-1786){\makebox(0,0)[lb]{\smash{\SetFigFont{12}{16.8}{\rmdefault}{\mddefault}{\updefault}리턴 주소}}}
+\put(2026,-2101){\makebox(0,0)[lb]{\smash{\SetFigFont{14}{16.8}{\rmdefault}{\mddefault}{\updefault}저장된 EBP}}}
+\end{picture}

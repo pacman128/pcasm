@@ -1,0 +1,143 @@
+% !TEX TS-program = xelatex
+% !TEX encoding = UTF-8 Unicode
+
+% PDF를 만드시려면 다음 명령어를 차례대로 실행하십시오.
+%
+%	xelatex pcasm
+%	komkindex -s kotex pcasm
+%	xelatex pcasm
+%	komkindex -s kotex pcasm
+%	xelatex pcasm
+%
+% 이 명령을 실행하기 위해서는 시스템에 최신 버전의 XeLaTeX과 Ko.TeX이 설치되어 있어야 합니다.
+% TnXTeX( http://faq.ktug.or.kr/faq/TnXTeX ) 사용을 권장합니다. TnXTeX에는 XeLaTeX과 Ko.TeX이 내장되어 있으며, 함께 내장된 편집기인 TeXWorks에서 Finalize 프리셋을 사용하면 위의 컴파일 과정을 자동으로 진행할 수 있습니다.
+
+\documentclass[a4paper,amsmath,footnote,hangul,10.5pt,chapter]{oblivoir}
+
+\usepackage{fapapersize}
+\usefapapersize{210mm, 297mm, 30mm, 50mm, 30mm, 20mm}
+\setlength{\marginparsep}{1em}
+
+\usepackage{indentfirst}  % indent first paragraph of sections
+%\usepackage{graphicx}
+%\usepackage{listings}
+\usepackage{fancyvrb}
+\usepackage{epsfig}
+\usepackage{longtable}
+\usepackage{color}
+\usepackage{makeidx}
+\usepackage{float}
+\makeindex
+
+\hypersetup{pdfstartview={FitH}, pdfdisplaydoctitle=true, urlcolor=blue, colorlinks=false, bookmarks=true, bookmarksnumbered=true,breaklinks}
+
+%% Font Settings
+\setmainfont[Mapping=tex-text]{TeX Gyre Termes}
+\setsansfont[Mapping=tex-text]{TeX Gyre Heros}
+
+%% 만약 네이버의 나눔폰트와 Minion, Myriad 폰트를 사용할 수 있다면 아래에 있는 “\set…”으로 시작하는 폰트 설정 다섯 줄의 주석을 모두 해제하세요. 배포본 PDF는 아래의 설정을 이용하여 컴파일한 것입니다.
+%% 시스템에 Adobe Reader(버전 8.0 이상)가 설치되어 있고 최신 버전의 TnXTeX을 사용하는 경우 별도의 설정 없이도 Minion과 Myriad 폰트를 사용할 수 있습니다.
+%% 나눔폰트는 네이버에서 검색하면 바로 내려받을 수 있으며, 사용이나 배포가 자유롭습니다. 나눔고딕코딩은 따로 검색하여 설치해야 한다는 점에 유의하시기 바랍니다.
+
+%\setmainfont[Mapping=tex-text]{Minion Pro}
+%\setsansfont[Mapping=tex-text]{Myriad Pro}
+%\setmainhangulfont[Mapping=tex-text]{NanumMyeongjo}
+%\setsanshangulfont[Mapping=tex-text]{NanumGothic}
+%\setmonohangulfont{NanumGothicCoding}
+
+
+\xetexkofontregime[alphs=latin, quotes=latin, nums=hangul, puncts=prevfont, hyphens=latin, colons=latin, cjksymbols=hangul]{hangul} % 열고 닫는 따옴표 등이 달라지는 문제를 해결하는 부분.
+
+%문장부호 매달기 -- 이 명령은 폰트 설정 이후에 내려야 한다.
+\usepackage{xetexko-hanging}
+\hangingpunctuation
+
+\pagestyle{hangul}
+\aliaspagestyle{chapter}{hangul}
+
+% LaTeX 2.09식 명령어에 대한 호환성 보장. 임시 방편이지만…
+\renewcommand{\rm}{\rmfamily}
+\renewcommand{\sf}{\sffamily}
+\renewcommand{\tt}{\ttfamily}
+\renewcommand{\bf}{\bfseries}
+\renewcommand{\mathrm}[1]{\text{#1}}
+
+
+\hypersetup{pdftitle={PC 어셈블리 언어}, pdfauthor={Paul A. Carter, 이재범}, pdfsubject={80x86 어셈블리어 프로그래밍}, pdfkeywords={80x86, 어셈블리, 프로그래밍}}
+
+%표지 설정하기
+\pretitle{\vfill\centering\HUGE}
+\posttitle{\vfill}
+\preauthor{\centering\Large\begin{minipage}{10em}}
+\postauthor{\end{minipage}\vfill}
+\predate{\centering\Large}
+\postdate{\vfill\vfill\vfill}
+
+\title{PC 어셈블리어}
+\author{지은이 : Paul A. Carter\\ 번역자 : 이재범}
+\date{2006년 7월 23일}
+
+\usepackage{lecnote}
+\hyphenation{num-bers SF OF CF DF fact dif-fer-ence inter-rupts op-er-ands}
+
+\begin{document}
+\maketitle\thispagestyle{empty}
+
+\newlength{\AsmMargin}
+\setlength{\AsmMargin}{0em}
+\DefineVerbatimEnvironment{AsmCodeListing}{Verbatim}
+{numbers=left, frame=lines,xleftmargin=\AsmMargin, labelposition=all, commentchar=^ }
+
+\newcommand{\MarginNote}[1]{\marginpar{\sffamily \small #1}}
+
+\newpage
+\thispagestyle{empty}
+~\vfill
+\noindent Copyright \copyright\  2001, 2002, 2003, 2004 by Paul Carter\\
+\noindent This book is translated into Korean by Lee Jae Beom \\
+
+\noindent 
+이 문서 전체는 저자의 동의 없이도 자유롭게 수정되고(저자권, 저작권 및 권한 포함) 배포될 수 있으며
+문서 자체에는 어떠한 가격도 매겨지지 않습니다. 이는 리뷰나 광고와 같은 ``공정 사용(fair use)'' 인용문과
+번역과 같은 파생된 작업들을 모두 포함합니다. \\
+
+\noindent 
+참고로, 이 제한 조건은 문서를 복사 혹은 출력하는 것에 대해 값을 부과하는 것을 막기 위해서
+만들어 진 것이 아닙니다.\\
+
+\noindent 지도 선생님들 께서는 이 책을 학습 자료로 사용해도 되지만, 
+사용시 저자에게 알려주었으면 합니다.\\
+
+\noindent 한국어에 관련한 번역 오류나 오탈자는 제 블로그 {\url{http://kevin0960.tistory.com}} 이나
+{\texttt{\href{mailto:kev0960@gmail.com}{kev0960@gmail.com}}} 으로 메일을 보내주면 됩니다. \\
+
+\noindent 이 글은 이재범에 의해 번역되었습니다. 
+\index{서브 루틴|see{서브프로그램}}
+\index{REPNZ|see{REPNE}}
+\index{REPZ|see{REPE}}
+\index{C++!멤버 함수|see{메서드}}
+\index{텍스트 세그먼트|see{코드 세그먼트}}
+
+%\vfill
+\frontmatter
+\include{toc}
+\include{pcasmf}
+\mainmatter
+\input{pcasm1}
+\input{pcasm2}
+\input{pcasm3}
+\input{pcasm4}
+\input{pcasm5}
+\input{pcasm6}
+\input{pcasm7}
+%\include{pcasm8}
+\begin{appendix}
+\input{pcasma}
+\end{appendix}
+\clearpage
+\ifpdf
+\phantomsection % fixes link anchor
+\fi
+\addcontentsline{toc}{chapter}{Index}
+\printindex
+\end{document}

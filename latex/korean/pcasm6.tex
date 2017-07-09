@@ -1,0 +1,1139 @@
+﻿% -*-latex-*-
+\chapter{부동 소수점}\index{부동 소수점|(}
+
+\section{부동 소수점 표현}\index{부동 소수점!표현|(}
+
+\subsection{정수가 아닌 이진수}
+
+우리가 첫 번째 장에서 기수법에 대해 이야기 하였을 때, 오직 정수들에 대해서만 이야기 하였다.
+그러나, 명백히도 십진법과 같이 다른 진법 체계에서도 정수가 아닌 수를 표현할 수 있다. 십진법에선
+소수점 다음으로 나타나는 숫자들은 10 에 음수 승을 취하게 된다. 
+
+\[ 0.123 = 1 \times 10^{-1} + 2 \times 10^{-2} + 3 \times 10^{-3} \]
+
+물론, 이진수들에 대해서도 동일하게 적용된다. 
+\[ 0.101_2 = 1 \times 2^{-1} + 0 \times 2^{-2} + 1 \times 2^{-3} = 0.625 \]
+
+~1 장에서 정수 이진수를 십진수로 바꾸는데 사용했던 방법을 동일하게 적용하여 아래와 같이
+정수가 아닌 이진수를 십진수로 바꿀 수 있다. 
+
+\[ 110.011_2 = 4 + 2 + 0.25 + 0.125 = 6.375 \]
+
+십진수를 이진수로 바꾸는 것도 크게 어렵진 않다. 보통, 십진수를 두 개의 부분으로 나눈다:
+정수 부분과 소수 부분. 정수 부분은 ~1 장에서 다루었던 방법으로 이진수로 바꾼다. 소수 부분은
+아래의 설명한 방법을 통해 이진수로 변경될 수 있다. 
+
+\begin{figure}[t]
+\centering
+\fbox{
+\begin{tabular}{p{2in}p{2in}}
+\begin{eqnarray*}
+0.5625 \times 2 & = & 1.125 \\
+0.125 \times 2 & = & 0.25 \\
+0.25 \times 2 & = & 0.5 \\
+0.5 \times 2 & = & 1.0 \\
+\end{eqnarray*}
+&
+\begin{eqnarray*}
+\mbox{first bit} & = & 1 \\
+\mbox{second bit} & = & 0 \\
+\mbox{third bit} & = & 0 \\
+\mbox{fourth bit} & = & 1 \\
+\end{eqnarray*}
+\end{tabular}
+}
+\caption{0.5625 를 이진수로 바꾸기\label{fig:binConvert1}}
+\end{figure}
+
+예를 들어서 각각의 비트를 $a,b,c, \ldots$ 로 나타낸 이진수를 생각하자. 
+이는 아래와 같이 나타난다:
+
+\[ 0.abcdef\ldots \]
+위 수에 2 를 곱한 수는 아래와 같이 이진법으로 나타난다. 
+
+\[ a.bcdef\ldots \]
+첫 번째 비트가 이제 1 의 자리에 있음을 유의해라. $a$ 를 $0$ 으로 바꾼다면
+\[ 0.bcdef\ldots \]
+그리고 2 를 다시 곱한다면 
+\[ b.cdef\ldots \]
+이제, 두 번째 비트 ($b$) 가 1 의 자리에 오게 된다. 이 방법을 여러번 반복하여
+필요한 비트 수 만큼까지 값을 찾을 수 있다. 그림 ~\ref{fig:binConvert1} 는
+0.5625 를 이진수로 변환하는 예를 보여주고 있다. 이 방법은 소수 부분의 값이
+0 이 될 때 중단을 한다. 
+
+\begin{figure}[t]
+\centering
+\fbox{\parbox{2in}{
+\begin{eqnarray*}
+0.85 \times 2 & = & 1.7 \\
+0.7 \times 2 & = &  1.4 \\
+0.4 \times 2 & = &  0.8 \\
+0.8 \times 2 & = &  1.6 \\
+0.6 \times 2 & = &  1.2 \\
+0.2 \times 2 & = &  0.4 \\
+0.4 \times 2 & = &  0.8 \\
+0.8 \times 2 & = &  1.6 \\
+\end{eqnarray*}
+}}
+\caption{0.85 를 이진수로 바꾸기\label{fig:binConvert2}}
+\end{figure}
+
+또다른 예제에선 23.85 를 이진수로 바꾸었다. 정수 부분은
+이진수로 바꾸기가 매우 쉽다 ($23 = 10111_2$). 하지만 소수 부분 ($0.85$)은
+어떨까? 그림 ~\ref{fig:binConvert2} 는 소수 부분을 이진수로 바꾸는
+처음 몇 부분의 과정을 보여주고 있다. 사실, 이 수를 완전히 이진수로 바꾸기 위해선
+무한번의 연산이 필요하다. 이 말은 0.85 는 순환 이진 소수라는 것이다.
+\footnote{이는 전혀 놀라운 일이 아닌데, 어떤 수는 특정한 진법을 통해 
+표현한다면 무한 소수가 될 수 있지만 다른 진법에서는 유한 소수가 될 수 있다.
+예를 들어서 $\frac{1}{3}$ 을 생각해 보면 십진법으로 표현시 3 이 무한히 반복 되지만
+3 진법으로 표현한다면 $0.1_3$ 과 같이 깔끔하게 나타날 수 있다.}
+위 계산에서 나타나는 숫자들은 특정한 규칙들이 있다. 이를 잘 살펴본다면 
+$0.85 = 0.11\overline{0110}_2$ 임을 알 수 있다. 따라서, $23.85 = 10111.11\overline{0110}_2$
+이다. 
+
+따라서, 위 계산 결과를 통해 알 수 있는 점은 23.85 는 유한 개의 이진 비트를 사용하여
+수를 \emph{정확히} 나타낼 수 없다라는 점이다. (이는 $\frac{1}{3}$ 이 십진법으로
+유한개의 자리수를 가지는 소수로 정확하게 나타낼 수 없는 점과 같다) 이 장에서는
+C 에서의 {\code float} 과 {\code double} 변수들이 이진수로 어떻게 저장되는지 살펴 볼 것이다.
+따라서 23.85 와 같은 값들은 이 변수에 정확하게 저장될 수 없다. 오직 23.85 의 근사값 만이
+변수에 저장될 것이다. 
+
+하드웨어를 단순화 하기 위해 부동 소수점 수들은 일정한 형식으로 저장된다. 이 형식은
+과학적 기수법 표현 (다만 이진수에서는 10 의 멱수를 사용하지 않고 2 의 멱수를 사용한다)
+을 사용한다. 예를 들어 23.85, 혹은 $10111.11011001100110\ldots_2$ 은 다음과 같이
+저장된다. 
+
+\[ 1.011111011001100110\ldots \times 2^{100} \]
+(지수 (100) 도 이진수로 나타난다.). \emph{정규화} 된 부동 소수점 수는
+아래의 같은 꼴을 가진다. 
+
+\[ 1.ssssssssssssssss \times 2^{eeeeeee} \]
+이 때 $1.sssssssssssss$ 은\emph{가수(significand)} 라 하고 $eeeeeeee$ 은 
+\emph{지수(exponent)} 라 한다. 
+
+\subsection{IEEE 부동 소수점 표현}\index{부동 소수점!표현!IEEE|(}
+
+IEEE (전기 전자 기술자 협회, Institute of Electrical and Electronic Engineers) 는 
+부동 소수점 수들을 저장하기 위한 구체적인 이진 형식을 만든 국제적인 조직이다.
+이 형식은 오늘날 만들어진 대부분 (모든 컴퓨터는 아니다!) 의 컴퓨터에서 사용된다. 
+많은 경우 이 형식은 컴퓨터 하드웨어 자체에서 지원된다. 예를 들어 인텔의 수치
+보조처리기(numeric coprocessor) 이다. (이는 Pentium 부터 모든 인텔 CPU 들에게
+추가되었다) IEEE 는 정밀도가 다른 두 개의 형식을 지원한다. 이는 단일 정밀도(single precision)
+와 2배 정밀도(double precision) 이다. 단일 정밀도는 C 언어의 {\code float} 변수들이
+사용하며 2배 정밀도는 {\code double} 변수들이 사용한다.
+
+인털의 수치 보조처리기는 또한 더 높은 정밀도를 가지는 \emph{확장 정밀도(extended precision)}를
+사용한다. 사실, 보조처리기에 있는 모든 데이터들은 이 정밀도로 표현된다. 보조처리기는
+이를 메모리에 저장할 때에 단일 또는 2배 정밀도를 가지는 수들로 자동으로 변환한다.
+\footnote{ 일부 컴파일러 (예를 들어 Borland) 의 {\code long double} 형은 이 확장 정밀도를
+이용한다. 그러나 대부분의 경우 {\code double} 과 {\code long double} 형 모두 
+2배 정밀도를 사용한다. (이는 ANSI C 에서 허용된다)} 확장 정밀도는 IEEE 의 float 이나 double에 비해
+다른 형식을 사용하며 여기서는 이야기 하지 않도록 하겠다. 
+
+\subsubsection{IEEE 단일 정밀도}\index{부동 소수점!표현!단일 정밀도|(}
+
+\begin{figure}[t]
+\fbox{
+\centering
+\parbox{5in}{
+\begin{tabular}{|c|c|c|}
+\multicolumn{1}{p{0.3cm}}{31} &
+\multicolumn{1}{p{2.5cm}}{30 \hfill 23} &
+\multicolumn{1}{p{6cm}}{22 \hfill 0} \\
+\hline
+s & e & f \\
+\hline
+\end{tabular}
+\\[0.4cm]
+\begin{tabular}{cp{4.5in}}
+s & 부호 비트 - 0 = 양수, 1 = 음수 \\
+e & 편향 지수(8 비트) = 실제 지수값 + 7F (십진수로 127). 
+    지수의 값이 00 과 FF 일 때는 특별한 의미를 가진다.  \\
+f & 가수 - 1. 다음의 처음 23 비트 
+\end{tabular}
+}}
+\caption{IEEE 단일 정밀도\label{fig:IEEEsingle}}
+\end{figure}
+
+단일 정밀도 부동 소수점 형식은 수를 32 비트로 표현한다. 이는 대체로 십진수로 7 자리 정도
+정확하다. 부동 소수점 수들은 정수들에 비해 훨씬 복접한 형식으로 저장된다.
+그림 ~\ref{fig:IEEEsingle} 은 IEEE 단일 정밀도 수의 기본적인 형식을 보여준다. 
+이 형식에선 약간의 이상한 점이 있다. 부동 소수점 수들은 음수를 위해 2 의 보수 표현법을 사용하지
+않는다. 이들은 부호 있는 크기 표현(signed magnitude) 을 사용한다. 31 째 비트는 위에 나와있듯이
+수의 부호를 정한다. 
+
+이진 지수는 그 값 그대로 저장되지 않는다. 그 대신 7F 를 더해서 23 ~ 30 번째 비트에 더해진다.
+따라서 이 \emph{편향 된 지수(biased exponent)} 는 언제나 음수가 아니다. 
+
+소수 부분은 언제나 정규화 된 가수 부분이라 생각한다 ($1.sssssssss$ 형식으로). 언제나 첫 번째 비트가
+1 이므로, 1 은 \emph{저장되지 않는다}. 이를 통해 비트 하나를 추가적으로 저장할 수 있게 되어 정확성을
+향상 시킬 수 있다. 이 아이디어는 \emph{숨겨진 1 표현법(hidden one representation)} 이라 한다.\index{부동 소수점!표현!숨겨진 1}
+
+그렇다면 23.85 는 어떻게 저장될까? 
+ \MarginNote{언제나 명심해 둘 것은 프로그램이 41 BE CC CD 를 어떻게 해석하느냐에 따라
+ 그 값이 달라질 수 있다는 사실이다! 예를 들어 단일 정밀도 부동 소수점 수라고 생각한다면 
+ 이 값은 23.850000381 을 나타나게 된다. 하지만 더블워드 정수라고 생각한다면 이는 
+1,103,023,309 를 의미한다. CPU 는 어는 것이 이 수에 대한 정확한 표현인지 알 수 없다. }
+먼저 이 수는 양수이므로 부호 비트는 0 이다. 지수 값은 4 이므로, 편향된 지수 값은
+$7\mathrm{F} + 4 = 83_{16}$ 가 된다. 마지막으로 가수 부분은 01111101100110011001100 이다.
+(맨 처음의 1 은 숨겨져 있다는 사실을 명심해라) 이를 모두 합치면 (참고로 이해를 돕기 위해서
+부호 비트와 가수 부분은 밑줄이 처져 있고, 비트 들은 4 비트 니블들로 나뉘어 나타냈다)
+% 오타 faction -> fraction
+\[ \underline{0}\,100\;0001\;1
+   \,\underline{011\;1110\;1100\;1100\;1100\;1100}_2 = 41 \mathrm{BE} 
+\mathrm{CC} \mathrm{CC}_{16} \]
+이는 23.85 를 정확하게 표현한 것은 아니다 (왜냐하면 이진법에서 순환소수로 나타나기 때문).
+만일 위 수를 십진수로 바꾼다면 그 값은 대략 23.849998474 가 될 것이다. 이 값은
+23.85 와 매우 가깝지만 정확히 같지는 않다. 사실, C 에선 23.85 를 위와 같이 나타내지 않는다.
+C 에선, 정확한 이진 표현에서 단일 정밀도 형식으로 변환 시, 마지막으로 잘라낸 비트가 1 이므로 마지막 비트는 1 로 반올림 된다. 
+따라서 23.85 는 41 BE CC CD 로 나타나게 된다. 이는 십진수로 바꾸면 23.850000381 이므로 좀더
+23.85 를 가깝게 표현할 수 있다.  
+
+-23.85 는 어떻게 저장될까? 단순히 부호 비트만 바꾸면 된다. 따라서 C1 BE CC CD 가 된다. 
+2의 보수 표현법을 취하지 \emph{않는다}!
+
+\begin{table}[t]
+\fbox{
+\begin{tabular}{lp{3.1in}}
+$e=0 \quad\mathrm{,}\quad f=0$ & 이면 0 을 나타낸다. (이는 정규화 
+                         될 수 없다)  +0 와 -0 가 있음을 유의해라. \\
+$e=0 \quad\mathrm{,}\quad f \neq 0$ & 는 \emph{비정규화 된 수} 임을
+                              나타낸다. 이것은 다음 단원에서 다룬다. \\
+$e=\mathrm{FF} \quad\mathrm{,}\quad f=0$ 
+& 는 ($\infty$) 을 나타낸다. 음의 무한과 양의 무한이 있을 수 
+있다. \\
+$e=\mathrm{FF} \quad\mathrm{,}\quad f\neq 0$ 
+& \emph{NaN}(Not A Number) 라 부르는 정의되지 않은 값을 나타낸다.
+\end{tabular}
+}
+\caption{\emph{f} 와 \emph{e} 의 특별한 값들\label{tab:floatSpecials}}
+\end{table}
+
+\emph{e} 와 \emph{f} 의 특정한 조합은 IEEE float 에서 특별한 의미를 가진다.
+표 ~\ref{tab:floatSpecials} 는 이러한 특별한 값들을 보여준다. 무한대는 오버 플로우(over flow)나
+0 으로의 나눗셈에 의해 발생된다. 정의되지 않은 값(NaN) 은 올바르지 못한 연산, 예를 들면
+음수의 제곱근을 구한다던지, 두 개의 무한대를 더할 때 \emph{등등} 발생된다.
+
+정규화된 단일 정밀도 수들은 $1.0 \times 2^{-126}$ ($\approx 1.1755 \times 10^{-35}$) 에서 
+$1.11111\ldots \times 2^{127}$ ($\approx 3.4028 \times 10^{35}$) 까지의 값을 가질 수 있다.
+
+\subsubsection{비정규화 된 수\index{부동 소수점!표현!비정규화|(}}
+
+비정규화 된 수(Denormalized number)들은 너무 값이 작아서 정규화 할 수 없는 수들을 나타내기 위해 사용된다.
+(\emph{i.e.} $1.0 \times 2^{-126}$ 미만) 예를 들어 $1.001_2 \times 2^{-129}$ ($\approx 1.6530 \times 10^{-39}$) 라는
+수를 생각하자. 이 수를 정규화 하기에는 지수가 너무 작다. 그러나, 이 수는 비정규화 된 꼴:
+$0.01001_2 \times 2^{-127}$ 로 나타낼 수 있다. 이 수를 저장하기 위해 편향된 지수는
+0 으로 맞춰 진다. (표 ~\ref{tab:floatSpecials} 참조) 그리고 $2^{-127}$ 와 곱해진
+소수 부분은 맨 앞 자리의 비트를 포함한 완전한 수로 나타나게 된다. 따라서, $1.001 \times 2^{-129}$는:
+\[ \underline{0}\,000\;0000\;0
+   \,\underline{001\;0010\;0000\;0000\;0000\;0000} \]
+\index{부동 소수점!표현!비정규화|)}
+\index{부동 소수점!표현!단일 정밀도|)}
+
+
+\subsubsection{IEEE 2배 정밀도\index{부동 소수점!표현!2배 정밀도|(}}
+
+\begin{figure}[t]
+\centering
+\begin{tabular}{|c|c|c|}
+\multicolumn{1}{p{0.3cm}}{63} &
+\multicolumn{1}{p{3cm}}{62 \hfill 52} &
+\multicolumn{1}{p{7cm}}{51 \hfill 0} \\
+\hline
+s & e & f \\
+\hline
+\end{tabular}
+\caption{IEEE 2배 정밀도\label{fig:IEEEdouble}}
+\end{figure}
+
+IEEE 2배 정밀도 표현은 64 비트를 사용하며, 십진법으로 대략 15 자리 정도 정확하게
+나타낼 수 있다. 그림 ~\ref{fig:IEEEdouble} 에서 나타나듯이 기본적인 형식은
+단일 정밀도와 매우 유사하다. 다만 편향된 지수와 가수 부분이 각각 11 비트와 
+52 비트로 늘어났다.  
+
+편향된 지수 부분의 크기가 더 커졌으므로 두 가지 변화를 야기하게 된다. 먼저
+편향된 지수 값을 구할 때 진짜 지수에 3FF(1023) 을 더한다 (단일 정밀도의 7F 가 아니다).
+두 번째로 진짜 지수가 가질 수 있는 값의 범위가 넓어 졌다.
+2배 정밀도가 표현할 수 있는 수의 범위는 대략  $10^{-308}$ to $10^{308}$ 정도 된다. 
+
+또한 가수 부분이 더 커졌으므로 유효 숫자의 자리수가 더 늘어나게 되었다. 
+
+예를 들어 23.85 를 다시 생각해 보자. 편향된 지수는 16 진수로 $4 + \mathrm{3FF} = 403$가
+될 것이다. 따라서 2배 정밀도 표현으로는 :
+\[ \underline{0}\,100\;0000\;0011\;\underline{0111\;1101\;1001\;1001\;1001\;
+   1001\;1001\;1001\;1001\;1001\;1001\;1001\;1010} \]
+혹은 40 37 D9 99 99 99 99 9A 로 나타나게 된다. 이 수를 십진수로 변환한다면 
+그 값은 23.8500000000000014 가 되어 (무려 12 개의 0 이 있다!) 23.85 를 훨씬 정밀하게
+표현할 수 있게 된다.
+
+2배 정밀도도 단일 정밀도 표현과 같이 특별한 값들이 있다. 
+\footnote{유일한 차이점은 무한대와 NaN 의 경우 인데, 편향된 지수 값이 7FF 가 아니라
+FF 가 된다. }
+비정규화 된 수도 또한 매우 비슷하다. 유일한 차이점은 비정규화 된 수는$2^{-127}$ 가 아닌 $2^{-1023}$ 
+가 된다. 
+
+\index{부동 소수점!표현!2배 정밀도|)}
+\index{부동 소수점!표현!IEEE|)}
+\index{부동 소수점!표현|)}
+
+\section{부동 소수점 수들의 산술 연산\index{부동 소수점!산술 연산|(}}
+
+컴퓨터에서의 부동 소수점 수들의 산술 연산은 수들이 연속된 수학에서와는 다르다. 
+수학에서는 모든 수들이 정확한 값을 가졌다고 생각된다. 위에서 다루었듯이 
+컴퓨터가 다루는 많은 수들은 유한개의 비트를 통해 정확히 나타낼 수 없다. 모든 연산들은
+제한된 정밀도를 가진다. 이 단원에서의 예제들은 단순화를 위해 8 비트의 유효 숫자를 가진다고
+생각한다. 
+
+\subsection{덧셈}
+두 개의 부동 소수점 수들을 더하기 위해선 지수가 반드시 같아야 한다. 만일, 이 지수들이 같지 않다면
+수의 가수를 쉬프트 하여 큰 지수에 맞추어야 한다. 예를 들어 $10.375 + 6.34375 = 16.71875$
+를 이진법에서 수행한다고 하자. 
+
+\[
+\begin{array}{rr}
+ & 1.0100110 \times 2^3 \\
++& 1.1001011 \times 2^2 \\ \hline
+\end{array}
+\]
+이 두 수들은 지수값이 같지 않으므로 가수 부분을 쉬프트 하여 두 수의 지수가
+같게 한 뒤 더한다.
+
+\[
+\begin{array}{rr@{.}l}
+ &  1&0100110 \times 2^3 \\
++&  0&1100110 \times 2^3 \\ \hline
+ & 10&0001100 \times 2^3
+\end{array}
+\]
+이 때 $1.1001011 \times 2^2$ 에 쉬프트 연산을 취하면서 마지막 비트를 없애고
+반올림을 하여 $0.1100110 \times 2^3$ 가 되었음을 유의하자. 덧셈의 결과는 
+$10.0001100 \times 2^3$ (혹은 $1.00001100 \times 2^4$) 로 $10000.110_2$
+혹은 16.75 와 같이 같다. 이는 정확한 계산 결과인 16.71875 와 같지 \emph{않다}! 이는 단지
+덧셈 과정에서 반올림에 의해 오차가 나타난 근사값에 불과하다. 
+
+컴퓨터 (혹은 계산기)에서의 부동 소수점 연산은 언제나 근사임을 명심해야 한다.
+수학에서의 법칙들은 컴퓨터에서의 부동 소수점들에 적용될 수 없다. 수학은 언제나
+컴퓨터가 절대로 만들어 낼 수 없는 무한대의 정밀도를 가정한다. 예를 들어서
+수학에선 $(a + b) - b = a$ 라 말하지만 컴퓨터에서는 이 식이 성립하지 않을 수 있다!
+
+\subsection{뺄셈}
+뺄셈은 덧셈과 매우 유사하며, 같은 문제를 가지고 있다. 예를 들어서 $16.75 - 15.9375 = 0.8125$
+를 생각해보자. 
+
+\[
+\begin{array}{rr}
+ & 1.0000110 \times 2^4 \\
+-& 1.1111111 \times 2^3 \\ \hline
+\end{array}
+\]
+$1.1111111 \times 2^3$ 를 쉬프트 하면 $1.0000000 \times 2^4$ (반올림 됨)
+\[
+\begin{array}{rr}
+ & 1.0000110 \times 2^4 \\
+-& 1.0000000 \times 2^4 \\ \hline
+ & 0.0000110 \times 2^4
+\end{array}
+\]
+$0.0000110 \times 2^4 = 0.11_2 = 0.75$ 이므로 원 답과 일치하지 않는다. 
+
+\subsection{곱셈과 나눗셈}
+
+곱셈의 경우 유효 숫자 부분은 곱해지고, 지수 부분은 더해 진다. 예를 들어 
+$10.375 \times 2.5 = 25.9375$ 을 생각해 보면 
+
+\[
+\begin{array}{rr@{}l}
+ &  1.0&100110 \times 2^3 \\
+\times &  1.0&100000 \times 2^1 \\ \hline
+ &     &10100110 \\
++&   10&100110   \\ \hline
+ &   1.1&0011111000000 \times 2^4
+\end{array}
+\]
+당연하게도 실제 결과는 8 비트로 반올림 되어 
+\[1.1010000 \times 2^4 = 11010.000_2 = 26 \]
+
+나눗셈은 좀더 복잡하지만 반올림으로 인하여 같은 문제를 가진다. 
+
+\subsection{프로그래밍을 위한 조언}
+
+이 단원의 핵심적인 내용은 부동 소수점 연산이 정확하지 않다는 것이다. 
+프로그래머는 언제나 이를 고려해야 한다. 프로그래머들이 가장 많이
+범하는 실수로는 연산이 정확하다고 가정 하에 부동 소수점 수들을 비교하는 것이다.
+예를 들어 \lstinline|f(x)| 라는 이름의 함수를 고려하자. 이 함수는 복잡한 연산을 수행한다.
+우리의 프로그램의 목적은 이 함수의 근을 찾는 것이다. 
+\footnote{함수의 근이라 하면 $f(x) = 0$ 을 만족하는 값 $x$ 를 말한다.} 여러분은 아마
+\lstinline|x| 가 근인지 확인하기 위해 아래의 식을 이용할 것이다. 
+
+\begin{lstlisting}[stepnumber=0]{}
+  if ( f(x) == 0.0 )
+\end{lstlisting}
+그러나 만일 \lstinline|f(x)| 가 $1 \times 10^{-30}$ 을 리턴하면? 이는
+진짜 근의 훌륭한 근사값이다. 그러나, 위 식은 성립하지 않는다. 
+아마도 \lstinline|f(x)| 에서의 반올림으로 인한 오차로 인해 어떠한 IEEE 부동 소수점 형식으로 표현된
+\lstinline|x|값도 정확히 0 을 리턴하지 않을 것이다. 
+
+위 보다 훨씬 낳은 방법은 아래와 같다. 
+
+\begin{lstlisting}[stepnumber=0]{}
+  if ( fabs(f(x)) < EPS )
+\end{lstlisting}
+\lstinline|EPS| 는 매우 작은 양수 값인 매크로로 정의되어 있다. (예를 들면 $1 \times 10^{-10}$)
+이는 \lstinline|f(x)| 가 0 에 매우 가까울 때 성립이 된다. 통상적으로 두 개의 부동 소수점 값
+(\lstinline|x|) 을 다른 (\lstinline|y|) 값에 비교 할 때 아래와 같이 사용한다: 
+
+\begin{lstlisting}[stepnumber=0]{}
+  if ( fabs(x - y)/fabs(y) < EPS )
+\end{lstlisting}
+\index{부동 소수점!산술 연산|)}
+
+\section{수치 부프로세서}
+\index{부동 소수점 부프로세서|(}
+\subsection{하드웨어}
+\index{부동 소수점 부프로세서!하드웨어|(}
+가장 초기의 인털 프로세서들은 부동 소수점 연산을 지원하는 하드웨어가 없었다.
+이 말은 부동 소수점 연산을 할 수 없었다는 것이 아니다. 이는 단지 부동 소수점 수들의
+연산을 위해 많은 수의 비-부동 소수점 명령들을 수행해야 했다는 뜻이다. 이러한
+초기의 시스템에선 인텔은 부수적인\emph{수치 부프로세서(math coprocessor)}를 제공하였다.
+이 수치 부프로세서는 부동 소수점 수들의 연산을 위한 소프트웨어 상의 프로시저의 비해
+훨씬 빠른 속도로 명령을 수행하였다 (초기의 프로세서의 경우 대략 10 배 이상!). 8086/8088을
+위한 부프로세서는 8087 이라 불리었다. 80286 에선 80287이, 80386 에선 80387 이 부프로세서 였다. 
+80486DX 프로세서에선 80486에 수치 부프로세서가 통합되었다. 
+\footnote{그러나 80486SX 에는 통합된 부프로세서가 \emph{없었다}. 이를 위해 독립적인 80487SX
+칩이 있었다.} 펜티엄 이후 80x86 세대의 모든 프로세서들에게는 수치 부프로세서가 통합되었다. 그러나, 
+독립적으로 떨어져 있었을 때 처럼 프로그램 된다. 심지어 부프로세서가 없던 초기의 시스템들은 
+수학 부프로세서를 에뮬레이트 할 수 있는 소프트웨어가 있었다. 이 에뮬레이터는 프로그램이
+부프로세서 명령을 실행하면 자동적으로 활성화 되어 소프트웨어 프로시저를 통해 부프로세서가 
+내놓았을 같은 값을 내놓았다. (비록 매우 느렸지만)
+
+수치 부프로세서는 8 개의 부동 소수점 레지스터가 있다. 각각의 레지스터는 80 비트의 데이터를 보관한다.
+부동 소수점 수들은 이 레지스터들에 \emph{언제나} 80 비트 확장 정밀도로 저장된다. 이 레지스터들은 각각
+{\code ST0}, {\code ST1}, {\code ST2}, $\ldots$ {\code ST7} 로 이름 붙여졌다. 부동 소수점 레지스터들은
+주  CPU 에서의 정수 레지스터들과는 달리 다른 용도로 사용된다. 부동 소수점 레지스터들은
+\emph{스택(stack)}으로 구성되어 있다. 스택이 \emph{후입 선출} (LIFO) 리스트임을
+상기하자. {\code ST0} 는 언제나 스택의 최상단의 값을 가리킨다. 모든 새로운 수들은 스택의 최상단에 들어간다.
+기존의 수들은 새로운 수를 위한 공간을 만들기 위해 스택 한 칸 내려간다. 
+
+수치 부프로세서에는 상태 레지스터(status register) 가 있다. 이는 몇 가지의 플래그를 가진다.
+비교 연산에서는 오직 4 개의 플래그들이 사용된다:C$_0$, C$_1$, C$_2$, C$_3$. 이것들의
+사용은 나중에 다룰 것이다. 
+
+\index{부동 소수점 부프로세서!하드웨어|)}
+
+\subsection{명령}
+
+보통의 CPU 명령들과 부프로세서의 명령들을 쉽게 구별하기 위해 모든 부프로세서의 연상기호들은
+{\code F} 로 시작한다. 
+
+\subsubsection{데이터를 불러오고 저장하기}\index{부동 소수점 부프로세서!불러오고 저장하기|(}
+부프로세서의 레지스터 스택의 최상위 데이터에 값을 저장하는 몇 가지 연산들이 있다.\\
+\begin{tabular}{lp{4in}}
+{\code FLD \emph{source}} \index{FLD} & 
+는 메모리에서 부동 소수점 값을 불러와 스택 최상단에 저장한다. \emph{source} 는
+단일 혹은 2배 정밀도 값, 아니면 부프로세서의 레지스터 여야 한다. \\ 
+{\code FILD \emph{source}} \index{FILD} &
+는 \emph{정수}를 메모리로 부터 읽어들어, 부동 소수점 형식으로 변환한 뒤
+그 결과를 스택 최상단에 저장한다. \emph{source} 는 워드, 더블워드, 쿼드워드
+중 하나여야 한다. \\
+{\code FLD1} \index{FLD1} &
+1 을 스택 최상단에 저장한다.  \\
+{\code FLDZ} \index{FLDZ} &
+0 을 스택 최상단에 저장한다. \\
+\end{tabular}
+
+
+스택으로 부터의 데이터를 메모리에 저장하는 명령들도 몇 가지 있다. 이러한 명령들의 일부는
+스택에서 수를 \emph{팝(pop)} (\emph{i.e.} 제거하다) 한 후에 그 값을 저장한다. 
+
+
+\begin{tabular}{lp{4in}}
+{\code FST \emph{dest}} \index{FST} &
+스택의 최상단({\code ST0}) 을 메모리에 저장한다. \emph{dest} 은 
+단일 혹은 2배 정밀도 수 이거나 부프로세서 레지스터가 될 수 있다. \\
+{\code FSTP \emph{dest}} \index{FSTP} &
+은 스택의 최상단 값을 {\code FST} 와 같이 메모리에 저장한다. 그러나
+수가 저장된 다음에는 그 값은 스택에서 팝 된다. \emph{dest} 은
+단일 혹은 2배 정밀도 수 이거나 부프로세서 레지스터가 될 수 있다. \\
+{\code FIST \emph{dest}} \index{FIST} &
+는 스택의 최상단의 값을 정수로 변환한 뒤 메모리에 저장한다. \emph{dest}는
+워드 혹은 더블워드가 되어야만 한다. 스택 그 자체로는 바뀌지 않는다. 부동 소수점
+수가 정수로 어떻게 변환되느냐넨 부프로세서의 \emph{제어 워드(control word)}에 
+몇 개의 비트값에 따라 달라진다. 이는 특별한 (비-부동 소수점) 워드 레지스터로 부프로세서가
+어떻게 작동할지 제어한다. 기본적으로 제어 워드는 초기화 되어 있는데 이 때에는
+수에 가장 가까운 정수로 변환되어 진다. 그러나, {\code FSTCW} (저장 제어 워드
+Store Control Word) 와 {\code FLDCW} (불러오기 제어 워드, Load Control Word) 명령들을 통해
+어떻게 변환 할지를 바꿀 수 있다. \index{FSTCW} \index{FLDCW} \\
+
+{\code FISTP \emph{dest}} \index{FIST} &
+{\code FIST} 와 두 가지 빼고 동일하다. 하나는, 스택의 최상단이 팝 된다는 것이고,
+다른 하나는 \emph{dest} 가 쿼드워드도 될 수 있다는 것이다. 
+\end{tabular}
+
+스택 자체에서 데이터를 이동, 혹은 제거할 수 있는 명령이 두 개가 있다. \\
+
+\begin{tabular}{lp{4in}}
+{\code FXCH ST\emph{n}} \index{FXCH}  &
+스택에서의 {\code ST0} 와 {\code ST\emph{n}} 의 값을 바꾼다. 
+(이 때, \emph{n} 은 1 부터 7 까지의 값을 가질 수 있다.) \\
+{\code FFREE ST\emph{n}} \index{FFREE} &
+레지스터가 비었거나 미사용중임을 표시하여 스택에서의 레지스터의 값을 비운다. 
+\end{tabular}
+\index{부동 소수점 부프로세서!불러오고 저장하기|)}
+
+\subsubsection{덧셈과 뺄셈}\index{부동 소수점 부프로세서!덧셈과 뺄셈|(}
+
+각각의 덧셈 명령들은 {\code ST0} 과 다른 피연산자의 합을 계산한다. 그 결과는 언제나
+부프로세서 레지스터에 저장된다. \\
+\begin{tabular}{p{1.5in}p{3.5in}}
+{\code FADD \emph{src}} \index{FADD} &
+{\code ST0 += \emph{src}}. \emph{src} 는 어떤 부프로세서 레지스터이거나 
+메모리 상의 단일 혹은 2배 정밀도 수여도 상관 없다. \\
+{\code FADD \emph{dest}, ST0} &
+{\code \emph{dest} += ST0}. \emph{dest}는 임의의 부프로세서 레지스터 이다. \\
+{\code FADDP \emph{dest}} 또는 \newline {\code FADDP \emph{dest}, STO} \index{FADDP} &
+{\code \emph{dest} += ST0} 하고 팝 한다. \emph{dest} 는 임의의 
+부프로세서 레지스터 이다. \\
+{\code FIADD \emph{src}} \index{FIADD} &
+{\code ST0 += (float) \emph{src}}. 정수를 {\code ST0} 에 더한다. 
+\emph{src} 는 메모리 상의 워드 혹은 더블워드 값이다. 
+\end{tabular}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+segment .bss
+array        resq SIZE
+sum          resq 1
+
+segment .text
+      mov    ecx, SIZE
+      mov    esi, array
+      fldz                  ; ST0 = 0
+lp:
+      fadd   qword [esi]    ; ST0 += *(esi)
+      add    esi, 8         ; 다음 double 로 이동
+      loop   lp
+      fstp   qword sum      ; sum 에 결과를 저장
+\end{AsmCodeListing}
+\caption{배열의 원소 합 구하는 예제\label{fig:addEx}}
+\end{figure}
+
+두 개의 피연산자에 대해 덧셈 명령은 한 가지 이지만, 뺄셈 명령은 2 가지의 서로 다른 뺄셈 명령이
+존재할 수 있다. 왜냐하면 피연산자의 순서가 뺄셈에서는 중요하기 때문이다. (\emph{i.e.} $a + b = b + a$, 이지만
+$a - b \neq b - a$ 은 아니다!) 각 명령에 대해 뺄셈을 역으로 수행하는 명령이 있다. 이 역명령들은 끝에 언제나
+{\code R} 이나 {\code RP} 가 붙는다. 그림 ~\ref{fig:addEx} 는 배열의 double 형 원소들을 모두 더하는 코드를 보여주고
+있다. ~10 에서 13 행 까지 우리는 메모리 피연산의 크기를 확실히 지정해야 한다. 그렇지 않는 다면 어셈블러는 메모리
+피연산자가 float(더블워드) 인지 double(쿼드워드) 인자 알 수 없기 때문이다. 
+
+\begin{tabular}{p{1.5in}p{3.5in}}
+{\code FSUB \emph{src}} \index{FSUB} &
+{\code ST0 -= \emph{src}}. \emph{src} 는 임의의 부프로세서 레지스터 거나
+메모리 상의 단일 혹은 2배 정밀도 수 이면 된다. \\
+{\code FSUBR \emph{src}} \index{FSUBR} &
+{\code ST0 = \emph{src} - ST0}. \emph{src} 는 임의의 부프로세서 레지스터 거나
+메모리 상의 단일 혹은 2배 정밀도 수 이면 된다. \\
+{\code FSUB \emph{dest}, ST0} &
+{\code \emph{dest} -= ST0}. \emph{dest} 는 임의의 부프로세서 레지스터 이다. \\
+{\code FSUBR \emph{dest}, ST0} &
+{\code \emph{dest} = ST0 - \emph{dest}}.\emph{dest} 는 임의의 부프로세서 
+레지스터 이다. \\
+{\code FSUBP \emph{dest}} 혹은 \newline {\code FSUBP \emph{dest}, STO} \index{FSUBP} &
+{\code \emph{dest} -= ST0} 한 후 팝 한다. \emph{dest} 는 임의의 부프로세서
+레지스터 이다. \\
+{\code FSUBRP \emph{dest}} or \newline {\code FSUBRP \emph{dest}, STO} \index{FSUBRP} &
+{\code \emph{dest} = ST0 - \emph{dest}} 한 후 팝 한다. \emph{dest} 는 임의의 
+부프로세서 레지스터 이다. \\
+{\code FISUB \emph{src}} \index{FISUB} &
+{\code ST0 -= (float) \emph{src}}.{\code ST0} 에서 정수를 뺀다. 
+\emph{src} 는 반드시 메모리 상의 워드 혹은 더블워드 여야 한다. \\
+{\code FISUBR \emph{src}} \index{FISUBR} &
+{\code ST0 = (float) \emph{src} - ST0}.{\code ST0} 에서 정수를 뺀다.
+\emph{src} 는 반드시 메모리 상의 워드 혹은 더블워드 여야 한다.
+\end{tabular}
+
+\index{부동 소수점 부프로세서!덧셈과 뺄셈|)}
+
+\subsubsection{곱셈과 나눗셈}\index{부동 소수점 부프로세서!곱셈과 나눗셈|(}
+
+곰셉 명령은 덧셈 명령과 완벽히 동일하다. 
+
+\begin{tabular}{p{1.5in}p{3.5in}}
+{\code FMUL \emph{src}} \index{FMUL} &
+{\code ST0 *= \emph{src}}. \emph{src} 는 임의의 부프로세서 레지스터 거나
+메모리 상의 단일 혹은 2배 정밀도 수 이면 된다. \\
+{\code FMUL \emph{dest}, ST0} &
+{\code \emph{dest} *= ST0}.\emph{dest} 는 임의의 부프로세서 레지스터 이다. \\
+{\code FMULP \emph{dest}} 혹은 \newline {\code FMULP \emph{dest}, STO} \index{FMULP} &
+{\code \emph{dest} *= ST0} 한 후 팝 한다. \emph{dest} 는 임의의 부프로세서
+레지스터 이다. \\
+{\code FIMUL \emph{src}} \index{FMUL} &
+{\code ST0 *= (float) \emph{src}}. {\code ST0} 에 정수를 곱한다.
+\emph{src} 는 메모리 상의 워드 혹은 더블워드 여야 한다. 
+\end{tabular}
+
+놀랍지 않게도 나눗셈 명령은 뺄셈 명령과 거의 동일하다. 다만 0 으로 나눈다면
+무한대가 된다.\\
+
+\begin{tabular}{p{1.5in}p{3.5in}}
+{\code FDIV \emph{src}} \index{FDIV} &
+{\code ST0 /= \emph{src}}. \emph{src} 는 임의의 부프로세서 레지스터 거나
+메모리 상의 단일 혹은 2배 정밀도 수 이면 된다. \\
+{\code FDIVR \emph{src}} \index{FDIVR} &
+{\code ST0 = \emph{src} / ST0}. \emph{src} 는 임의의 부프로세서 레지스터 거나
+메모리 상의 단일 혹은 2배 정밀도 수 이면 된다. \\
+{\code FDIV \emph{dest}, ST0} &
+{\code \emph{dest} /= ST0}. \emph{dest} 는 임의의 부프로세서 레지스터 이다. \\
+{\code FDIVR \emph{dest}, ST0} &
+{\code \emph{dest} = ST0 / \emph{dest}}. \emph{dest} 는 임의의 부프로세서
+레지스터 이다. \\
+{\code FDIVP \emph{dest}} 혹은 \newline {\code FDIVP \emph{dest}, STO} \index{FDIVP} &
+{\code \emph{dest} /= ST0} 한 후 팝 한다. \emph{dest} 는 임의의 부프로세서
+레지스터 이다. \\
+{\code FDIVRP \emph{dest}} 혹은 \newline {\code FDIVRP \emph{dest}, STO} \index{FDIVRP} &
+{\code \emph{dest} = ST0 / \emph{dest}} 한 후 팝한다. \emph{dest} 는 임의의
+부프로세서 레지스터 이다. \\
+{\code FIDIV \emph{src}} \index{FIDIV} &
+{\code ST0 /= (float) \emph{src}}. {\code ST0}를 정수로 나눈다. 
+\emph{src} 는 메모리 상의 워드 혹은 더블워드 여야 한다. \\
+{\code FIDIVR \emph{src}} \index{FIDIVR} &
+{\code ST0 = (float) \emph{src} / ST0}. 정수를 {\code ST0} 로 나눈다.
+\emph{src} 는 메모리 상의 워드 혹은 더블워드 여야 한다. 
+\end{tabular}
+\index{부동 소수점 부프로세서!곱셈과 나눗셈|)}
+\subsubsection{비교\index{부동 소수점 부프로세서!비교|(}}
+
+부프로세서는 부동 소수점 수들에 대한 비교 명령도 수행한다. {\code FCOM} 계열의
+명령들이 이 작업을 한다. \\
+
+\begin{tabular}{lp{4in}}
+{\code FCOM \emph{src}} \index{FCOM} & 
+{\code ST0} 와 {\code \emph{src}} 를 비교. \emph{src} 는 임의의 
+부프로세서 레지스터 거나 메모리 상의 단일 혹은 2배 정밀도 수 이면 된다. \\
+{\code FCOMP \emph{src}} \index{FCOMP} & 
+{\code ST0} 와 {\code \emph{src}} 를 비교한 후 팝 한다.\emph{src} 는
+임의의 부프로세서 레지스터 거나 메모리 상의 단일 혹은 2배 정밀도 수 이면 된다.\\
+{\code FCOMPP} \index{FCOMPP} & 
+{\code ST0} 와 {\code ST1} 를 비교 한 후 팝을 두 번 한다. \\
+{\code FICOM \emph{src}} \index{FICOM} & 
+{\code ST0} 와 {\code (float) \emph{src}} 를 비교한다. \emph{src} 는 메모리 상의  
+워드 혹은 더블워드 정수 이다. \\
+{\code FICOMP \emph{src}} \index{FICOMP} & 
+{\code ST0} 와 {\code (float)\emph{src}} 를 비교 한 후 팝 한다. 
+\emph{src} 는 메모리 상의 워드 혹은 더블워드 정수 이다.  \\
+{\code FTST } \index{FTST} &
+{\code ST0} 와 0 을 비교한다.
+\end{tabular}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+;     if ( x > y )
+;
+      fld    qword [x]       ; ST0 = x
+      fcomp  qword [y]       ; STO 와 y 를 비교
+      fstsw  ax              ; 플래그 레지스터에 C 비트를 이동 
+      sahf
+      jna    else_part       ;  x>y 가 아니면 else_part 로 분기
+then_part:
+      ; then 을 위한 부분
+      jmp    end_if
+else_part:
+      ; else 를 위한 부분
+end_if:
+\end{AsmCodeListing}
+\caption{비교 예제\label{fig:compEx}}
+\end{figure}
+
+이 명령들은 부프로세서 상태 레지스터의 C$_0$, C$_1$, C$_2$, C$_3$ 비트들을
+바꾼다. 불행이도 CPU 가 직접 이러한 비트에 접근하는 것은 불가능 하다. 조건 분기 명령은
+부프로세서의 상태 레지스터가 아닌 플래그 레지스터를 사용한다.그러나 상태 워드의 비트들을
+이에 대응되는 플래그 레지스터의 비트에 옮기는 것은 아래의 몇 가지 새로운 명령을
+이용한다면 쉽다
+\\
+
+\begin{tabular}{lp{4in}}
+{\code FSTSW \emph{dest}} \index{FSTSW} & 
+부프로세서의 상태 워드를 메모리의 워드나 AX 레지스터에 저장한다.\\
+{\code SAHF} \index{SAHF} & 
+AH 레지스터를 플래그 레지스터에 저장한다. \\
+{\code LAHF} \index{LAHF} & 
+플래그 레지스터의 비트들과 함게 AH 를 불러온다. \\
+\end{tabular}
+
+\begin{figure}
+\begin{AsmCodeListing}[frame=single]
+global _dmax
+
+segment .text
+; function _dmax
+; 두 개의 double 인자 들 중 큰 것을 리턴한다.
+; C 원형
+; double dmax( double d1, double d2 )
+; 인자들:
+;   d1   - 첫 번째 double
+;   d2   - 두 번째 double
+; 리턴값:
+;  d1 과 d2 중 큰 것 (ST0 에 대입하여)
+%define d1   ebp+8
+%define d2   ebp+16
+_dmax:
+        enter   0, 0
+
+        fld     qword [d2]
+        fld     qword [d1]          ; ST0 = d1, ST1 = d2
+        fcomip  st1                 ; ST0 = d2
+        jna     short d2_bigger
+        fcomp   st0                 ; d2 를 팝 한다.
+        fld     qword [d1]          ; ST0 = d1
+        jmp     short exit
+d2_bigger:                          ; d2 가 더 크면 아무것도 안함
+exit:
+        leave
+        ret
+\end{AsmCodeListing}
+\caption{{\code FCOMIP} 예제 \label{fig:fcomipEx}}
+\index{FCOMIP}
+\end{figure}
+
+그림 ~\ref{fig:compEx} 는 코드 예제를 보여준다. ~5 행과 6 행은 부프로세서의
+상태 워드의 C$_0$, C$_1$, C$_2$, C$_3$ 비트들을 플래그 레지스터에 대입한다. 
+전달한 비트들은 두 개의 \emph{부호가 없는} 정수의 비교 결과와 동일한다. 이는
+우리가 ~7 행에서 {\code JNA} 를 사용한 이유이다. 
+
+펜티엄 프로(그리고 그 이후의 프로세서들 (펜티엄 II, III)) 는 두 개의 새로운 비교
+명령을 지원하는데 이는 CPU 의 플래그 레지스터의 값을 직접적으로 변경할 수 있다. 
+
+\begin{tabular}{lp{4in}}
+{\code FCOMI \emph{src}} \index{FCOMI} & 
+{\code ST0} 와 {\code \emph{src}} 를 비교한다. \emph{src} 는 반드시
+부프로세서 레지스터 여야 한다. \\
+{\code FCOMIP \emph{src}} \index{FCOMIP} & 
+{\code ST0} 와 {\code \emph{src}} 를 비교한 후 팝 한다.\emph{src} 는
+반드시 부프로세서 레지스터 여야 한다. \\
+\end{tabular}
+그림 ~\ref{fig:fcomipEx} 은 두 개의 double 값 중 큰 것을 찾는 {\code FCOMIP} 를 사용한
+예제 서브루틴을 보여주고 있다. 이 명령들을 정수 비교 함수들과 혼동하지 말라 ({\code FICOM} 과
+{\code FICOMP}).
+
+\index{부동 소수점 부프로세서!비교|)}
+
+\subsubsection{잡다한 명령들}
+%FINIT?
+
+\begin{figure}
+\begin{AsmCodeListing}[frame=single]
+segment .data
+x            dq  2.75          ; double 형식으로 변환
+five         dw  5
+
+segment .text
+      fild   dword [five]      ; ST0 = 5
+      fld    qword [x]         ; ST0 = 2.75, ST1 = 5
+      fscale                   ; ST0 = 2.75 * 32, ST1 = 5
+\end{AsmCodeListing}
+\caption{{\code FSCALE} 예제\label{fig:fscaleEx}}
+\index{FSCALE}
+\end{figure}
+
+이 단원은 부프로세서가 제공하는 여러 잡다한 명령들에 대해 다루어 보도록 
+한다. 
+
+\begin{tabular}{lp{4in}}
+{\code FCHS} \index{FCHS} & 
+{\code ST0 = - ST0}, {\code ST0} 의 부호를 바꾼다. \\
+{\code FABS} \index{FABS} & 
+$\mathtt{ST0} = |\mathtt{ST0}|$ ,{\code ST0} 의 절대값을 취한다.\\
+{\code FSQRT} \index{FSQRT} &
+$\mathtt{ST0} = \sqrt{\mathtt{STO}}$, {\code ST0} 의 제곱근을 구한다. \\
+{\code FSCALE} \index{FSCALE} &
+$\mathtt{ST0} = \mathtt{ST0} \times 2^{\lfloor \mathtt{ST1} \rfloor}$
+,{\code ST0} 에 2 의 멱수를 빠르게 곱한다. {\code ST1} 는 스택에저 제거되지 않는다.
+그림 ~\ref{fig:fscaleEx} 는 이 명령을 어떻게 사용하는지에 대한 예제를 보여준다. 
+
+\end{tabular}
+
+\subsection{예제}
+
+\subsection{2차 방정식의 근의 공식\index{quad.asm|(}}
+우리의 첫 번째 예제는 2차 방정식의 근의 공식을 어셈블리로 나타낸 것이다.
+
+\[ a x^2 + b x + c = 0 \]
+근의 공식을 통해 두 개의 근을 구할 수 있다. $x$: $x_1$ 와 $x_2$.
+\[ x_1, x_2 = \frac{-b \pm \sqrt{b^2 - 4 a c}}{2 a} \]
+제곱근 안의 식 ($b^2 - 4 a c$) 은 \emph{판별식(discriminant)} 라 부른다.
+이 값은 근이 어떠한 성질을 띄는지 판별하는데 유용하게 쓰인다. 
+
+\begin{enumerate}
+\item 실수인 중근을 가진다. $b^2 - 4 a c = 0$
+\item 두 개의 실수근을 가진다. $b^2 - 4 a c > 0$
+\item 두 개의 복소근을 가진다. $b^2 - 4 a c < 0$
+\end{enumerate}
+
+아래 어셈블리 서브루틴을 사용하는 작은 C 프로그램을 나타냈다. 
+
+\LabelLine{quadt.c}
+\begin{lstlisting}{}
+#include <stdio.h>
+
+int quadratic( double, double, double, double *, double *);
+
+int main()
+{
+  double a,b,c, root1, root2;
+
+  printf("Enter a, b, c: ");
+  scanf("%lf %lf %lf", &a, &b, &c);
+  if (quadratic( a, b, c, &root1, &root2) )
+    printf("roots: %.10g %.10g\n", root1, root2);
+  else
+    printf("No real roots\n");
+  return 0;
+}
+\end{lstlisting}
+\LabelLine{quadt.c}
+
+여기 어셈블리 서브루틴이 있다:
+\begin{AsmCodeListing}[label=quad.asm,commentchar=$]
+; 함수 quadratic
+; 2차 방정식의 근을 찾는다.  
+;       a*x^2 + b*x + c = 0
+; C 원형:
+;   int quadratic( double a, double b, double c,
+;                  double * root1, double *root2 )
+; 인자:
+;   a, b, c - 2차 방정식의 각 계수들 (위를 참조)
+;   root1   - 첫 번째 근을 저장할 double 을 가리키는 포인터 
+;   root2   - 두 번째 근을 저장할 double 을 가리키는 포인터 
+; 리턴값:
+;  실근을 찾으면 1 을 리턴, 아니면 0 리턴
+
+%define a               qword [ebp+8]
+%define b               qword [ebp+16]
+%define c               qword [ebp+24]
+%define root1           dword [ebp+32]
+%define root2           dword [ebp+36]
+%define disc            qword [ebp-8]
+%define one_over_2a     qword [ebp-16]
+
+segment .data
+MinusFour       dw      -4
+
+segment .text
+        global  _quadratic
+_quadratic:
+        push    ebp
+        mov     ebp, esp
+        sub     esp, 16         ; 2 개의 더블을 할당한다 (disc 와 one_over_2a)
+        push    ebx             ; 원래의 ebx 값을 저장
+
+        fild    word [MinusFour]; 스택 -4
+        fld     a               ; 스택: a, -4
+        fld     c               ; 스택: c, a, -4
+        fmulp   st1             ; 스택: a*c, -4
+        fmulp   st1             ; 스택: -4*a*c
+        fld     b
+        fld     b               ; 스택: b, b, -4*a*c
+        fmulp   st1             ; 스택: b*b, -4*a*c
+        faddp   st1             ; 스택: b*b - 4*a*c
+        ftst                    ; 0 과 비교
+        fstsw   ax
+        sahf
+        jb      no_real_solutions ; 만일 disc < 0, 이면 해가 없다.
+        fsqrt                   ; 스택: sqrt(b*b - 4*a*c)
+        fstp    disc            ; 저장 후 스택을 팝 한다.
+        fld1                    ; 스택: 1.0
+        fld     a               ; 스택: a, 1.0
+        fscale                  ; 스택: a * 2^(1.0) = 2*a, 1
+        fdivp   st1             ; 스택: 1/(2*a)
+        fst     one_over_2a     ; 스택: 1/(2*a)
+        fld     b               ; 스택: b, 1/(2*a)
+        fld     disc            ; 스택: disc, b, 1/(2*a)
+        fsubrp  st1             ; 스택: disc - b, 1/(2*a)
+        fmulp   st1             ; 스택: (-b + disc)/(2*a)
+        mov     ebx, root1
+        fstp    qword [ebx]     ;  *root1 에 저장
+        fld     b               ; 스택: b
+        fld     disc            ; 스택: disc, b
+        fchs                    ; 스택: -disc, b
+        fsubrp  st1             ; 스택: -disc - b
+        fmul    one_over_2a     ; 스택: (-b - disc)/(2*a)
+        mov     ebx, root2
+        fstp    qword [ebx]     ; *root2 에 저장
+        mov     eax, 1          ; 리턴값은 1
+        jmp     short quit
+
+no_real_solutions:
+        mov     eax, 0          ; 리턴값은 0
+
+quit:
+        pop     ebx
+        mov     esp, ebp
+        pop     ebp
+        ret
+\end{AsmCodeListing}
+\index{quad.asm|)}
+
+\subsection{파일로 부터 배열을 읽기\index{read.asm|(}}
+이번 예제에서는 어셈블리가 파일로 부터 double 을 읽어들인다. 아래는
+짧은 C 테스트 프로그램이다. 
+
+\LabelLine{readt.c}
+\begin{lstlisting}[escapeinside=~~]{}
+/*
+ * ~이 프로그램은 32 비트 read\_doubles() 어셈블리 프로시저를 테스트 한다.~
+ * ~이는 stdin 으로 부터 double 을 읽어 들인다. (파일로 부터 읽기 위해 ~
+ * ~ 리다이렉션(redirection)을 사용한다.)~
+ */
+#include <stdio.h>
+extern int read_doubles( FILE *, double *, int );
+#define MAX 100
+
+int main()
+{
+  int i,n;
+  double a[MAX];
+
+  n = read_doubles(stdin, a, MAX);
+
+  for( i=0; i < n; i++ )
+    printf("%3d %g\n", i, a[i]);
+  return 0;
+}
+\end{lstlisting}
+\LabelLine{readt.c}
+
+아래는 어셈블리 루틴이다. 
+\begin{AsmCodeListing}[label=read.asm]
+segment .data
+format  db      "%lf", 0        ; format for fscanf()
+
+segment .text
+        global  _read_doubles
+        extern  _fscanf
+
+%define SIZEOF_DOUBLE   8
+%define FP              dword [ebp + 8]
+%define ARRAYP          dword [ebp + 12]
+%define ARRAY_SIZE      dword [ebp + 16]
+%define TEMP_DOUBLE     [ebp - 8]
+
+;
+; _read_doubles 함수
+; C 원형:
+;   int read_doubles( FILE * fp, double * arrayp, int array_size );
+; 이 함수는 텍스트 파일로 부터 double 을 읽어 들여서 EOF 가 나올 때 까지나 
+; 배열이 꽉 찰 때 까지 배열에 저장한다.
+; 인자:
+;   fp         - 읽어 들일 FILE 포인터 (읽기 가능해야 한다)
+;   arrayp     - 읽어 들인 값을 저장할 double 배열을 가리키는 포인터
+;   array_size - 배열의 원소의 개수 
+; 리턴:
+;  배열에 저장된 double 의 개수 (EAX 에 저장됨)
+
+_read_doubles:
+        push    ebp
+        mov     ebp,esp
+        sub     esp, SIZEOF_DOUBLE      ; 스택에 하나의 double 을 정의 
+
+        push    esi                     ; esi 저장
+        mov     esi, ARRAYP             ; esi = ARRAYP
+        xor     edx, edx                ; edx = 배열 원소 위치 (처음이 0)
+
+while_loop:
+        cmp     edx, ARRAY_SIZE         ; edx < ARRAY_SIZE 인가?
+        jnl     short quit              ; 아니면 루프 루프 종료 
+;
+; TEMP_DOUBLE 로 double 값을 읽어 들이기 위해 fscanf() 를 호출
+; fscanf() 는 edx 값을 바꿀 수 있으므로 저장해 놓는다. 
+;
+        push    edx                     ; edx 저장
+        lea     eax, TEMP_DOUBLE
+        push    eax                     ; &TEMP_DOUBLE 푸시
+        push    dword format            ; &format 푸시
+        push    FP                      ; 파일 포인터 푸시 
+        call    _fscanf
+        add     esp, 12
+        pop     edx                     ; edx 복원
+        cmp     eax, 1                  ; fscanf 가 1 을 리턴했는가?
+        jne     short quit              ; 아니면 루프 종료
+;
+; TEMP_DOUBLE 를 ARRAYP[edx] 에 대입
+; (8 바이트의 double 은 두 개의 4 바이트 레지스터를 통해 대입된다.)
+;
+        mov     eax, [ebp - 8]
+        mov     [esi + 8*edx], eax      ; 하위 4 바이트를 복사 
+        mov     eax, [ebp - 4]
+        mov     [esi + 8*edx + 4], eax  ; 상위 4 바이트를 복사 
+
+        inc     edx
+        jmp     while_loop
+
+quit:
+        pop     esi                     ; esi 를 복원한다. 
+
+        mov     eax, edx                ; 리턴값을 eax 에 저장 
+
+        mov     esp, ebp
+        pop     ebp
+        ret 
+\end{AsmCodeListing}
+\index{read.asm|)}
+
+\subsection{소수 찾기\index{prime2.asm|(}}
+
+마지막 예제는 소수를 찾는 프로그램이다. 이미 앞에서 한 번 다루어 보았지만 
+이번 것은 좀더 속도가 향상되었다. 이번 프로그램은 앞에서 찾은 소수를 배열에 저장해
+놓고 특정한 수가 소수 인지를 판별하기 위해 특정한 수 이전의 모든 짝수로 나누어 보는
+것이 아니라 배열에 저장해 놓은 소수들만으로 나누어 본다. 
+
+또다른 차이점은 특정한 수가 소수 인지를 판별하기 위해 그 수의 제곱근 이하의 소수들만으로
+나누어 본다는 것이다. 이 때문에 부프로세서의 제어 워드를 변경하여 제곱근을 정수로 저장할 때
+반올림 하기 보단 내림을 해야한다. 이는 제어 워드의 10 과 11 번째 비트를 변경하면 된다. 
+이 비트들은 RC (반올림 제어, Rounding Control) 비트로 불린다. 만일 두 비트 모두 0 이라면 (기본값)
+부프로세서는 정수로 변환시에 반올림을 한다. 두 비트가 모두 1 이라면 부프로세서는 정수로
+변환시 내림을 한다. 유의해야 할 점은 기존의 제어 워드를 저장하고 리턴하기 전에 복원해야 한다는
+것이다. 
+
+아래는 C 드라이버 프로그램 이다
+\LabelLine{fprime.c}
+\begin{lstlisting}[escapeinside=~~]{}
+#include <stdio.h>
+#include <stdlib.h>
+/*
+ * ~ find\_primes 함수 ~
+ * ~ 지정된 개수의 소수들을 찾는다~
+ * ~인자들:~
+ *   a -~ 배열을 보관할 배열~
+ *   n - ~찾을 소수의 개수~
+ */
+extern void find_primes( int * a, unsigned n );
+
+int main()
+{
+  int status;
+  unsigned i;
+  unsigned max;
+  int * a;
+
+  printf("How many primes do you wish to find? ");
+  scanf("%u", &max);
+
+  a = calloc( sizeof(int), max);
+
+  if ( a ) {
+
+    find_primes(a,max);
+
+    /*~찾은 마지막 20 개의 소수를 출력 ~*/
+    for(i= ( max > 20 ) ? max - 20 : 0; i < max; i++ )
+      printf("%3d %d\n", i+1, a[i]);
+
+    free(a);
+    status = 0;
+  }
+  else {
+    fprintf(stderr, "Can not create array of %u ints\n", max);
+    status = 1;
+  }
+
+  return status;
+}
+\end{lstlisting}
+\LabelLine{fprime.c}
+
+아래는 어셈블리 루틴이다.
+
+\begin{AsmCodeListing}[label=prime2.asm]
+segment .text
+        global  _find_primes
+;
+; find_primes 함수
+; 지정한 수 만큼의 소수를 찾는다 
+; 인자:
+;   array  - 소수를 보관할 배열
+;   n_find - 찾을 소수의 개수
+; C 원형:
+;extern void find_primes( int * array, unsigned n_find )
+;
+%define array         ebp + 8
+%define n_find        ebp + 12
+%define n             ebp - 4           ; 현재까지 찾은 소수의 개수 
+%define isqrt         ebp - 8           ; guess 의 제곱근의 내림한 값 
+%define orig_cntl_wd  ebp - 10          ; 원래 제어 워드 값
+%define new_cntl_wd   ebp - 12          ; 새로운 제워 워드 값
+
+_find_primes:
+        enter   12,0                    ; 지역 변수를 위한 공간을 할당 
+
+        push    ebx                     ; 가능한 레지스터 변수들을 저장 
+        push    esi
+
+        fstcw   word [orig_cntl_wd]     ; 현재의 제어 워드를 저장 
+        mov     ax, [orig_cntl_wd]
+        or      ax, 0C00h               ; 반올림 비트를 11 로 한다. (내림)
+        mov     [new_cntl_wd], ax
+        fldcw   word [new_cntl_wd]
+
+        mov     esi, [array]            ; esi 는 배열을 가리킨다. 
+        mov     dword [esi], 2          ; array[0] = 2
+        mov     dword [esi + 4], 3      ; array[1] = 3
+        mov     ebx, 5                  ; ebx = guess = 5
+        mov     dword [n], 2            ; n = 2
+;
+; 이 바깥 루프는 각 루프 마다 새로운 소수를 하나씩 찾는다. 이 새로운 소수는
+; 배열의 끝부분에 추가된다. 기존의 소수 찾는 프로그램들과는 달리 이 함수는 
+; 소수 판별을 위해 그 수 미만의 모든 홀수들로 나누어 보지 않는다.
+; 오직 이미 찾은 소수들 만으로 나누어 본다. (이 때문에 이 소수들을 배열에
+; 저장한 것이다.)
+;
+while_limit:
+        mov     eax, [n]
+        cmp     eax, [n_find]           ; while ( n < n_find )
+        jnb     short quit_limit
+
+        mov     ecx, 1                  ; ecx 는 원소의 위치를 가리키는데 사용 
+        push    ebx                     ; guess 를 스택에 저장 
+        fild    dword [esp]             ;guess 를 부프로세서 스택에 불러온다
+        pop     ebx                     ; 스택에서 guess 를 뺀다.
+        fsqrt                           ; sqrt(guess) 값을 구한다. 
+        fistp   dword [isqrt]           ; isqrt = floor(sqrt(quess))
+;
+; 이 내부의 루프는 guess (ebx)를 이전에 찾은 소수들로 나누어서
+; guess 의 소수 인수를 찾을 때 까지 혹은  
+; 소수 인수가 floor(sqrt(guess)) 보다 클 때 까지 나눈다. 
+;(floor 은 내림 함수)
+while_factor:
+        mov     eax, dword [esi + 4*ecx]        ; eax = array[ecx]
+        cmp     eax, [isqrt]                    ; while ( isqrt < array[ecx] 
+        jnbe    short quit_factor_prime
+        mov     eax, ebx
+        xor     edx, edx
+        div     dword [esi + 4*ecx]     
+        or      edx, edx                        ; && guess % array[ecx] != 0 )
+        jz      short quit_factor_not_prime
+        inc     ecx                             ; 다음 소수로 시도한다 
+        jmp     short while_factor
+
+;
+; 새 소수를 찾음!
+;
+quit_factor_prime:
+        mov     eax, [n]
+        mov     dword [esi + 4*eax], ebx        ; guess 를 배열의 끝 부분에 추가 
+        inc     eax
+        mov     [n], eax                        ; inc n
+
+quit_factor_not_prime:
+        add     ebx, 2                          ; 다음 홀수를 시도해 본다 
+        jmp     short while_limit
+
+quit_limit:
+
+        fldcw   word [orig_cntl_wd]             ; 제어 워드를 복원 
+        pop     esi                             ; 레지스터 변수들을 복원 
+        pop     ebx
+
+        leave
+        ret 
+\end{AsmCodeListing}
+\index{prime2.asm|)}
+\index{부동 소수점 부프로세서|)}
+\index{부동 소수점|)}

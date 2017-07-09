@@ -1,0 +1,118 @@
+﻿% -*-LaTex-*-
+%front matter of pcasm book
+
+\chapter{머리말}
+
+\section*{이 책을 쓴 이유}
+
+이 책을 쓰게 된 동기는 바로 독자들에게 파스칼과 같은 언어들 보다
+낮은 수준에서 컴퓨터가 실제로 어떻게 작동하는지에 대한 자세한 
+이해를 위해서 이다. 컴퓨터가 실제로 어떻게 작동하는 지에 대해 자세히
+알게 된다면 독자 여러분은 C 나 C++ 과 같은 고급 언어를 통해 
+프로그램을 개발하는것을 훨씬 효율적으로 할 수 있을 것이다. 
+이 목적을 이루기 위해선 어셈블리 언어를 배우는 것이 가장 효과적이다. 
+다른 PC 어셈블리 언어 책들은 아직도 1981년 PC 에 사용되었던
+8086 프로세서에서 어떻게 프로그램을 만드는지에 대해 다루고 있다. 이
+8086 프로세서는 오직 \emph{실제} 모드 만을 지원한다. 이 모드에선
+어떠한 프로그램이라도 컴퓨터의 메모리나 다른 장치들에게 자유롭게 접근
+이 가능하다. 이 모드는 안정적인 멀티 태스킹 운영체제에는 적합하지 않다.
+이 책은 그 대신 \emph{보호} 모드에서 작동하는 (현재의 윈도우즈나 리눅스가 실행되는)
+80386 이나 그 이후에 나온 프로세서들에서 어떻게 프로그램을 만드는지에 대해
+다루고 있다. 이 모드는 현대의 운영체제들이 바라는 기능들을 가지고 있다.
+예를 들자면 가상 메모리나 메모리 보호 등이다. 
+보호 모드를 이용하는 데에는 여러 이유들이 있다. 
+
+\begin{enumerate}
+\item 다른 책이 다루는 8086 실제 모드에서 보다 프로그래밍 하기가
+      편하다
+\item 현대 모든 PC 운영체제는 보호 모드에서 작동된다. 
+\item 보호 모드에서 작동되는 많은 수의 무료 프로그램들이 있다. 
+\end{enumerate}
+따라서 제가 이 책을 쓰게된 가장 큰 동기는 바로 보호 모드 PC 어셈블리 
+프로그래밍에 대한 책의 부족 때문이다. 
+
+앞에서 살짝 말했듯이 이 책은 무료/공개 소스 소프트웨어만을 사용한다. 
+그 예로, NASM 어셈블러와 DJGPP C/C++ 컴파일러가 있다. 이 둘은 모두 
+인터넷을 통해서 다운 로드가 가능하다. 또한 이 책은 앞으로 리눅스에서
+NASM 어셈블리 코드를 어떻게 사용할 것인지와 Windows 에서 볼랜드사
+와 마이크로소프트사의 C/C++ 컴파일러를 어떻게 사용할 것인지에 대해 
+다룰 것 이다.
+앞서 말한 모든 프로그램들은 나의 웹사이트 http://www.drpaulcarter.com/pcasm 
+에서 다운로드가 가능하다. 이 책에서 다룰 예제들을 어셈블하고 실행시킬 것이라면
+나의 사이트에서 프로그램들을 \emph{꼭} 다운로드 해야 한다. 
+
+이 책이 어셈블리 프로그래밍의 모든 부분을 다루지 않았으리라 걱정 할
+필요는 없다. 나는 \emph{모든} 프로그래머가 보아야 할 어셈블리 언어의
+중요한 주제들을 모두 다루려고 노력했다. 
+
+
+\section*{감사의 말}
+
+저는 무료/공개 소스 운동에 기여해 주신 많은 프로그래머들에게 감사의 말을 전합니다. 
+많은 프로그램, 심지어 이 책 자체도 무료 소프트웨어를 통해서 만들어졌습니다. 특히 저는 
+John S. Fine, Simon Tatham, Julian Hall, 그리고 NASM 어셈블러를 개발하신 다른 모든 분들께 
+감사의 말을 전합니다. 또한 DJGPP C/C++ 컴파일러를 개발한 DJ Delorie 와 DJGPP 가 기반으로 
+한 GNU gcc 컴파일러를 개발한 많은 프로그래머들에게도, \TeX 와 \LaTeXe 를 개발한 Donald Knuth,
+마지막으로 자유 소프트웨어 재단을 창설한 Richard Stallman 과 리눅스 커널을 개발한 Linus Torvalds, 
+등 에게도 감사의 말을 전합니다. 
+
+아래는 이 책의 오류를 정정해 주신 분들의 목록 입니다. 
+\begin{itemize}\setlength{\parskip}{-0.5em}
+\item John S. Fine
+\item Marcelo Henrique Pinto de Almeida
+\item Sam Hopkins
+\item Nick D'Imperio
+\item Jeremiah Lawrence
+\item Ed Beroset
+\item Jerry Gembarowski
+\item Ziqiang Peng
+\item Eno Compton
+\item Josh I Cates
+\item Mik Mifflin
+\item Luke Wallis
+\item Gaku Ueda
+\item Brian Heward
+\item Chad Gorshing
+\item F. Gotti
+\item Bob Wilkinson
+\item Markus Koegel
+\item Louis Taber
+\item Dave Kiddell
+\item Eduardo Horowitz
+\item S\'{e}bastien Le Ray
+\item Nehal Mistry
+\item Jianyue Wang
+\item Jeremias Kleer
+\item Marc Janicki
+\item Trevor Hansen
+\item Giacomo Bruschi
+\item Leonardo Rodr\'{i}guez M\'{u}jica
+\item Ulrich Bicheler
+\item Wu Xing
+\end{itemize}
+
+\section*{인터넷 레퍼런스}
+\begin{minipage}[c]{\textwidth}
+\begin{tabular}{|ll|}
+\hline
+저자의 페이지 & {\code http://www.drpaulcarter.com/} \\
+%NASM   & {\code http://nasm.2y.net/} \\
+NASM SourceForge 페이지 & {\code http://sourceforge.net/projects/nasm/} \\
+DJGPP  & {\code http://www.delorie.com/djgpp} \\
+리눅스 어셈블리 & {\code http://www.linuxassembly.org/} \\
+어셈블리 언어의 미학& {\code http://webster.cs.ucr.edu/} \\
+유즈넷 & {\code comp.lang.asm.x86 } \\
+인텔 문서 & {\code http://developer.intel.com/design/}\\ & {\code Pentium4/documentation.htm} \\
+\hline
+\end{tabular}
+\end{minipage}
+
+\section*{피드백}
+
+저는 이 작업에 대한 피드백을 환영합니다. 
+\begin{center}
+\begin{tabular}{ll}
+\textbf{E-mail:} & \texttt{\href{mailto:pacman128@gmail.com}{pacman128@gmail.com}} \\
+\textbf{WWW:}    & \url{http://www.drpaulcarter.com/pcasm} \\
+\end{tabular}
+\end{center}
