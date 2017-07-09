@@ -1,0 +1,313 @@
+%appendix
+\chapter{Instrucciones del 80x86}
+\section{Instrucciones para enteros}
+Esta sección lista y describe las acciones y formatos de las 
+instrucciones para enteros de la familia de Intel 80x86
+
+Los formatos usan las siguientes abreviaturas:
+\begin{center}
+\begin{tabular}{|l|l|}
+\hline
+R   & registro general \\
+R8  & registro de 8 bits \\
+R16 & registro de 16 bits \\
+R32 & registro de 32 bits \\
+SR  & registro de segmento \\
+M   & memoria \\
+M8  & byte \\
+M16 & palabra \\
+M32 & palabra doble \\
+I   & valor inmediato \\
+\hline
+\end{tabular}
+\end{center}
+Las abreviaciones se pueden combinar para las instrucciones 
+con varios operandos. Por
+ejemplo el formato \emph{R,R} significa que la instrucción toma dos
+operandos de registro. Muchas de las instrucciones con dos operandos
+permiten los mismos operandos. La abreviación \emph{O2} se usa para
+representar los siguientes operandos: 
+\emph{R,R R,M R,I M,R M,I}. 
+Si se puede usar como operando un registro de 8 bits o la memoria, se usa
+la abreviación \emph{R/M8}
+
+La tabla también muestra cómo afectan las instrucciones varias de las 
+banderas del 
+registro FLAGS. Si la columna está en vacía, el bit correspondiente no
+se afecta. Si el bit siempre cambia a algún valor en particular, se
+muestra un 1 o un 0 en la columna. Si el bit cambia a un valor que
+depende del operando de la instrucción se coloca una \emph{C} en la
+columna. Finalmente, si el bit es modificado de alguna manera no definida
+se coloca un \emph{?} en la columna. Ya que las únicas instrucciones que
+cambian las banderas de dirección son {\code CLD} y {\code STD}, no se
+listan bajo la columna de FLAGS.
+
+\begin{longtable}{||l|p{1.5in}|p{0.75in}|c|c|c|c|c|c||}
+\hline \hline
+\multicolumn{1}{||c}{} & 
+   \multicolumn{1}{c}{} &
+   \multicolumn{1}{c}{} &
+  \multicolumn{6}{c||}{\textbf{Banderas}} \\ \cline{4-9}
+\multicolumn{1}{||c}{\textbf{Nombre}} & 
+   \multicolumn{1}{c}{\textbf{Descripción}} &
+   \multicolumn{1}{c}{\textbf{Formatos}} &
+   \multicolumn{1}{c}{\textbf{O}} &
+   \multicolumn{1}{c}{\textbf{S}} &
+   \multicolumn{1}{c}{\textbf{Z}} &
+   \multicolumn{1}{c}{\textbf{A}} &
+   \multicolumn{1}{c}{\textbf{P}} &
+   \multicolumn{1}{c||}{\textbf{C}} \\ \hline \endhead
+\hline \hline \endfoot
+%                                              O   S   Z   A   P   C
+{\code ADC} & Suma con carry & O2            & C & C & C & C & C & C \\
+{\code ADD} & Suma enteros   & O2            & C & C & C & C & C & C \\
+{\code AND} & AND entre bits   & O2            & 0 & C & C & ? & C & 0 \\
+{\code BSWAP} & Byte Swap    & R32           &   &   &   &   &   &  \\
+{\code CALL} & Llamado a rutina  & R M I         &   &   &   &   &   &   \\
+{\code CBW} & Convierta byte a palabra &         &   &   &   &   &   & \\
+{\code CDQ} & Convierte Dword a Qword &       &   &   &   &   &   & \\
+{\code CLC} & Borra el Carry &                  &   &   &   &   &   & 0 \\
+{\code CLD} & borra la bandera de dirección &         &   &   &   &   &   & \\
+{\code CMC} & Complementa el carry &             &   &   &   &   &   & C \\
+{\code CMP} & Compara enteros & O2          & C & C & C & C & C & C \\
+{\code CMPSB} & Compara Bytes &              & C & C & C & C & C & C \\
+{\code CMPSW} & Compara Words &              & C & C & C & C & C & C \\
+{\code CMPSD} & Compara Dwords &             & C & C & C & C & C & C \\
+{\code CWD} & Convierte Word a Dword en DX:AX & &   &   &   &   &   & \\
+{\code CWDE} & Convierte Word a Dword en EAX & &   &   &   &   &   & \\
+{\code DEC} & Decrementa entero & R M        & C & C & C & C & C & \\
+{\code DIV} & División sin signo & R M          & ? & ? & ? & ? & ? & ? \\
+{\code ENTER} & Hace el marco de la pila & I,0       &   &   &   &   &   & \\
+{\code IDIV} & División con signo & R M           & ? & ? & ? & ? & ? & ? \\
+{\code IMUL} & Multiplicación con signo & R M R16,R/M16 R32,R/M32 R16,I R32,I 
+                                       {\small R16,R/M16,I R32,R/M32,I}
+                                             & C & ? & ? & ? & ? & C \\
+{\code INC} & Incremento entero & R M        & C & C & C & C & C & \\
+{\code INT} & Genera una interrupción & I         &   &   &   &   &   & \\
+{\code JA } & Salta si está sobre & I                 &   &   &   &   &   & \\
+{\code JAE } & Salta si está sobre o es igual & I       &   &   &   &   &   & \\
+{\code JB } & Salta si está bajo & I                 &   &   &   &   &   & \\
+{\code JBE } & Salta si está bajo o es igual  & I      &   &   &   &   &   & \\
+{\code JC } & Salta si hay carry & I                 &   &   &   &   &   & \\
+{\code JCXZ } & Salta si CX = 0 & I           &   &   &   &   &   & \\
+{\code JE } & Salta si es igual & I                 &   &   &   &   &   & \\
+{\code JG } & Salta si es mayor & I               &   &   &   &   &   & \\
+{\code JGE } & Salta si es mayor o igual & I     &   &   &   &   &   & \\
+{\code JL } & Salta si es menor & I                  &   &   &   &   &   & \\
+{\code JLE } & Salta si es menor o igual & I        &   &   &   &   &   & \\
+{\code JMP } & Salto incondicional & R M I    &   &   &   &   &   & \\
+{\code JNA } & Salta si no está sobre & I            &   &   &   &   &   & \\
+{\code JNAE } & Salta si no está sobre o es igual& I   &   &   &   &   &   & \\
+{\code JNB } & Salta si no está bajo & i            &   &   &   &   &   & \\
+{\code JNBE } & Salta si no está bajo o es igual & I  &   &   &   &   &   & \\
+{\code JNC } & Salta si no hay carry & I             &   &   &   &   &   & \\
+{\code JNE } & Salta si no es igual & I            &   &   &   &   &   & \\
+{\code JNG } & Salta si no es mayor & I          &   &   &   &   &   & \\
+{\code JNGE } & Salta si no es mayor o es igual & I&   &   &   &   &   & \\
+{\code JNL } & Salta si no es menor & I             &   &   &   &   &   & \\
+{\code JNLE } & Salta si no es menor o igual & I   &   &   &   &   &   & \\
+{\code JNO } & Salta si no hay desborde & I          &   &   &   &   &   & \\
+{\code JNS } & Salta si es positivo & I              &   &   &   &   &   & \\
+{\code JNZ } & Salta si no es cero & I             &   &   &   &   &   & \\
+{\code JO } & Salta si hay desborde & I              &   &   &   &   &   & \\
+{\code JPE } & Salta si hay paridad par & I          &   &   &   &   &   & \\
+{\code JPO } & Salta si hay paridad impar & I           &   &   &   &   &   & \\
+{\code JS } & Salta si hay signo & I                  &   &   &   &   &   & \\
+{\code JZ } & Salta si hay cero & I                  &   &   &   &   &   & \\
+{\code LAHF} & Carga FLAGS en AH &          &   &   &   &   &   & \\
+{\code LEA} & Carga dirección efectiva & R32,M &   &   &   &   &   & \\
+{\code LEAVE} & Abandona el marco de la pila &          &   &   &   &   &   & \\
+{\code LODSB} & Carga byte &                  &   &   &   &   &   & \\
+{\code LODSW} & Carga palabra &                  &   &   &   &   &   & \\
+{\code LODSD} & Carga palabra doble &                 &   &   &   &   &   & \\
+{\code LOOP}  & Bucle       & I               &   &   &   &   &   & \\
+{\code LOOPE/LOOPZ} & Bucle si es igual & I     &   &   &   &   &   & \\
+{\code LOOPNE/LOOPNZ} & Bucle si no es igual & I  &   &   &   &   &   & \\
+{\code MOV} & Mueve datos & O2 \mbox{SR,R/M16} R/M16,SR
+                                             &   &   &   &   &   & \\
+{\code MOVSB} & Mueve byte &                  &   &   &   &   &   & \\
+{\code MOVSW} & Mueve palabra &                  &   &   &   &   &   & \\
+{\code MOVSD} & Mueve palabra doble &                 &   &   &   &   &   & \\
+{\code MOVSX} & Mueve con signo & R16,R/M8 R32,R/M8 R32,R/M16
+                                             &   &   &   &   &   & \\
+{\code MOVZX} & Mueve sin signo & R16,R/M8 R32,R/M8 R32,R/M16
+                                             &   &   &   &   &   & \\
+{\code MUL} & Multiplicación sin signo & R M        & C & ? & ? & ? & ? & C \\
+{\code NEG} & Negación & R M                   & C & C & C & C & C & C \\
+{\code NOP} & No Opera &                 &   &   &   &   &   & \\
+{\code NOT} & Complemento a 1 & R M           &   &   &   &   &   & \\
+{\code OR} & OR entre bits    & O2              & 0 & C & C & ? & C & 0 \\
+{\code POP} & Saca de la pila & R/M16 R/M32   &   &   &   &   &   & \\
+{\code POPA} & Saca todo de la pila &                     &   &   &   &   &   & \\
+{\code POPF} & Saca FLAGS &                   & C & C & C & C & C & C \\
+{\code PUSH} & Empuja en la pila & R/M16 R/M32 I &   &   &   &   &   & \\
+{\code PUSHA} & Empuja todo en la pila &                   &   &   &   &   &   & \\
+{\code PUSHF} & Empuja FLAGS &                 &   &   &   &   &   & \\
+{\code RCL} & Rota a la izquierda con carry & R/M,I R/M,CL
+                                             & C &   &   &   &   & C \\
+{\code RCR} & Rota a la derecha con carry & R/M,I R/M,CL
+                                             & C &   &   &   &   & C \\
+{\code REP} & Repite &                       &   &   &   &   &   & \\
+{\code REPE/REPZ} & Repite si es igual&        &   &   &   &   &   & \\
+{\code REPNE/REPNZ} & Repite si no es igual&  &   &   &   &   &   & \\
+{\code RET} & Retorno &                       &   &   &   &   &   & \\
+{\code ROL} & Rota a la izquierda & R/M,I R/M,CL     & C &   &   &   &   & C \\
+{\code ROR} & Rota a la derecha & R/M,I R/M,CL    & C &   &   &   &   & C \\
+{\code SAHF} & Copia AH en FLAGS &        &   & C & C & C & C & C \\
+{\code SAL} & Dezplazamiento a la izquierda & R/M,I R/M, CL &   &   &   &   &   & C \\
+{\code SBB}  & Resta con préstamo & O2     & C & C & C & C & C & C \\
+{\code SCASB} & busca un Byte &              & C & C & C & C & C & C \\
+{\code SCASW} & Busca una palabra &              & C & C & C & C & C & C \\
+{\code SCASD} & Busca una palabra doble &             & C & C & C & C & C & C \\
+{\code SETA } & fija sobre & R/M8                 &   &   &   &   &   & \\
+{\code SETAE } & fija sobre o igual & R/M8       &   &   &   &   &   & \\
+{\code SETB } & fija bajo & R/M8                 &   &   &   &   &   & \\
+{\code SETBE } & fija bajo o igual  & R/M8      &   &   &   &   &   & \\
+{\code SETC } & fija el carry & R/M8                 &   &   &   &   &   & \\
+{\code SETE } & fija igual & R/M8                 &   &   &   &   &   & \\
+{\code SETG } & fija mayor & R/M8               &   &   &   &   &   & \\
+{\code SETGE } & fija mayor o igual & R/M8     &   &   &   &   &   & \\
+{\code SETL } & fija menor & R/M8                  &   &   &   &   &   & \\
+{\code SETLE } & fija menor o igual & R/M8        &   &   &   &   &   & \\
+{\code SETNA } & fija no sobre & R/M8            &   &   &   &   &   & \\
+{\code SETNAE } & fija no sobre o igual & R/M8   &   &   &   &   &   & \\
+{\code SETNB } & fija no bajo & R/M8            &   &   &   &   &   & \\
+{\code SETNBE } & fija no bajo o igual & R/M8  &   &   &   &   &   & \\
+{\code SETNC } & fija no carry & R/M8             &   &   &   &   &   & \\
+{\code SETNE } & fija no igual & R/M8            &   &   &   &   &   & \\
+{\code SETNG } & fija no mayor & R/M8          &   &   &   &   &   & \\
+{\code SETNGE } & fija no mayor o igual & R/M8&   &   &   &   &   & \\
+{\code SETNL } & fija no menor & R/M8             &   &   &   &   &   & \\
+{\code SETNLE } & fijan no menor o igual & R/M8   &   &   &   &   &   & \\
+{\code SETNO } & fija no desborde & R/M8          &   &   &   &   &   & \\
+{\code SETNS } & fija no signo & R/M8              &   &   &   &   &   & \\
+{\code SETNZ } & fija no cero & R/M8             &   &   &   &   &   & \\
+{\code SETO } & fija desborde & R/M8              &   &   &   &   &   & \\
+{\code SETPE } & fija paridad par & R/M8          &   &   &   &   &   & \\
+{\code SETPO } & fija paridad impar & R/M8           &   &   &   &   &   & \\
+{\code SETS } & fija signo & R/M8                  &   &   &   &   &   & \\
+{\code SETZ } & fija cero & R/M8                  &   &   &   &   &   & \\
+
+{\code SAR} & Desplazamiento aritmético a la derecha & R/M,I R/M, CL 
+                                             &   &   &   &   &   & C \\
+{\code SHR} & Desplazamiento lógico a la derecha & R/M,I R/M, CL 
+                                             &   &   &   &   &   & C \\
+{\code SHL} & Desplazamiento lógico a la izquierda & R/M,I R/M, CL 
+                                             &   &   &   &   &   & C \\
+{\code STC} & fija el carry &                    &   &   &   &   &   & 1 \\
+{\code STD} & fija la bandera de dirección &           &   &   &   &   &   & \\
+{\code STOSB} & almacena byte &                 &   &   &   &   &   & \\
+{\code STOSW} & almacena palabra &                 &   &   &   &   &   & \\
+{\code STOSD} & almacena palabra doble &                &   &   &   &   &   & \\
+{\code SUB} & resta & O2                  & C & C & C & C & C & C\\
+{\code TEST} & comparación lógica & R/M,R R/M,I & 0 & C & C & ? & C & 0\\
+{\code XCHG} & Intercambio & R/M,R R,R/M        &   &   &   &   &   & \\
+{\code XOR} & XOR entre bits   & O2            & 0 & C & C & ? & C & 0 \\
+
+\end{longtable}
+
+\newpage
+\section{Instrucciones de punto flotante}
+
+\renewcommand{\thefootnote}{\fnsymbol{footnote}} En esta sección, se
+describen muchas de las instrucciones del coprocesador matemático del
+80x86. La sección de descripción describe brevemente la operación de la
+instrucción. Para ahorrar espacio, la información sobre si la instrucción
+saca de la pila no se da en la descripción. 
+
+La columna de formato muestra que tipo de operandos se pueden usar con
+cada instrucción. Se usan las siguientes abreviaturas
+\begin{center}
+\begin{tabular}{|l|l|}
+\hline
+ST\emph{n} & Un registro del coprocesador \\
+F          & número de precisión simple en memoria \\
+D          & número de precisión doble en memoria \\
+E          & número de precisión extendida en memoria \\
+I16        & palabra entera en memoria \\
+I32        & palabra doble entera en memoria \\
+I64        & palabra cuádruple entera en memoria \\
+\hline
+\end{tabular}
+\end{center}
+
+Las instrucciones que requieren un Pentium Pro o posterior están marcadas
+con un asterisco 
+(\footnotemark[1]).
+
+\begin{longtable}{||l|l|l||}
+\hline \hline
+\multicolumn{1}{||c}{\textbf{Instrucción}} & 
+  \multicolumn{1}{c}{\textbf{Descripción}} &
+\multicolumn{1}{c||}{\textbf{Formato}} \\
+\hline
+\endhead
+\hline \hline \endfoot
+{\code FABS} & $\mathtt{ST0} = |\mathtt{ST0}|$ & \\
+{\code FADD \emph{src}} & {\code ST0 += \emph{src}} & ST\emph{n} F D \\
+{\code FADD \emph{dest}, ST0} & {\code \emph{dest} += STO} & ST\emph{n} \\
+{\code FADDP \emph{dest}[,ST0]} & {\code \emph{dest} += ST0} & ST\emph{n} \\
+{\code FCHS} & $\mathtt{ST0} = - \mathtt{ST0}$ & \\
+{\code FCOM \emph{src}} & Compara {\code ST0} y {\code \emph{src}} &
+ST\emph{n} F D \\
+{\code FCOMP \emph{src}} & Compara {\code ST0} y {\code \emph{src}} &
+ST\emph{n} F D \\
+{\code FCOMPP \emph{src}} & Compara {\code ST0} y {\code ST1} & \\
+{\code FCOMI\footnotemark[1] \emph{src}} & Compara en FLAGS 
+& ST\emph{n} \\
+{\code FCOMIP\footnotemark[1] \emph{src}} & Compara en FLAGS 
+& ST\emph{n} \\
+{\code FDIV \emph{src}} & {\code ST0 /= \emph{src}} & ST\emph{n} F D \\
+{\code FDIV \emph{dest}, ST0} & {\code \emph{dest} /= STO} & ST\emph{n} \\
+{\code FDIVP \emph{dest}[,ST0]} & {\code \emph{dest} /= ST0} & ST\emph{n} \\
+{\code FDIVR \emph{src}} & {\code ST0 = \emph{src}/ST0} & ST\emph{n} F D \\
+{\code FDIVR \emph{dest}, ST0} & {\code \emph{dest} = ST0/\emph{dest}} 
+& ST\emph{n} \\
+{\code FDIVRP \emph{dest}[,ST0]} & {\code \emph{dest} = ST0/\emph{dest}} 
+& ST\emph{n} \\
+{\code FFREE \emph{dest}} & Marca como vacío & ST\emph{n} \\
+{\code FIADD \emph{src}} & {\code ST0 += \emph{src}} & I16 I32 \\
+{\code FICOM \emph{src}} & Compara {\code ST0} y {\code \emph{src}} &
+I16 I32 \\
+{\code FICOMP \emph{src}} & Compara {\code ST0} y {\code \emph{src}} &
+I16 I32 \\
+{\code FIDIV \emph{src}} & {\code STO /= \emph{src}} & I16 I32 \\
+{\code FIDIVR \emph{src}} & {\code STO = \emph{src}/ST0} & I16 I32 \\
+{\code FILD \emph{src}} & Push \emph{src} on Stack & I16 I32 I64 \\
+{\code FIMUL \emph{src}} & {\code ST0 *= \emph{src}} & I16 I32 \\
+{\code FINIT} & Inicia el coprocesador & \\
+{\code FIST \emph{dest}} & almacena {\code ST0} & I16 I32 \\
+{\code FISTP \emph{dest}} & almacena {\code ST0} & I16 I32 I64\\
+{\code FISUB \emph{src}} & {\code ST0 -= \emph{src}} & I16 I32 \\
+{\code FISUBR \emph{src}} & {\code ST0 = \emph{src} - ST0} & I16 I32 \\
+{\code FLD \emph{src}} & empuja \emph{src} en la pila & ST\emph{n} F D E \\
+{\code FLD1} & empuja 1.0 en la pila & \\
+{\code FLDCW \emph{src}} & Load Control Word Register & I16 \\
+{\code FLDPI} & empuja $\pi$ en la pila & \\
+{\code FLDZ} & empuja 0.0 en la pila & \\
+{\code FMUL \emph{src}} & {\code ST0 *= \emph{src}} & ST\emph{n} F D \\
+{\code FMUL \emph{dest}, ST0} & {\code \emph{dest} *= STO} & ST\emph{n} \\
+{\code FMULP \emph{dest}[,ST0]} & {\code \emph{dest} *= ST0} & ST\emph{n} \\
+{\code FRNDINT} & Redondea {\code ST0} & \\
+{\code FSCALE} & $\mathtt{ST0} = \mathtt{ST0} \times 2^{\lfloor \mathtt{ST1} \rfloor}$ & \\
+{\code FSQRT} & $\mathtt{ST0} = \sqrt{\mathtt{STO}}$ & \\
+{\code FST \emph{dest}} & almacena {\code ST0} & ST\emph{n} F D \\
+{\code FSTP \emph{dest}} & almacena {\code ST0} & ST\emph{n} F D E \\
+{\code FSTCW \emph{dest}} & Store Control Word Register & I16 \\
+{\code FSTSW \emph{dest}} & Store Status Word Register & I16 AX \\
+{\code FSUB \emph{src}} & {\code ST0 -= \emph{src}} & ST\emph{n} F D \\
+{\code FSUB \emph{dest}, ST0} & {\code \emph{dest} -= STO} & ST\emph{n} \\
+{\code FSUBP \emph{dest}[,ST0]} & {\code \emph{dest} -= ST0} & ST\emph{n} \\
+{\code FSUBR \emph{src}} & {\code ST0 = \emph{src}-ST0} & ST\emph{n} F D \\
+{\code FSUBR \emph{dest}, ST0} & {\code \emph{dest} = ST0-\emph{dest}} 
+& ST\emph{n} \\
+{\code FSUBP \emph{dest}[,ST0]} & {\code \emph{dest} = ST0-\emph{dest}} 
+& ST\emph{n} \\
+{\code FTST} & Compare {\code ST0} with 0.0 & \\
+{\code FXCH \emph{dest}} & Intercambia {\code ST0} y {\code \emph{dest}} 
+& ST\emph{n} \\
+\end{longtable}
+
+\renewcommand{\thefootnote}{\arabic{footnote}}
+
+

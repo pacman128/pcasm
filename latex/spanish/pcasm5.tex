@@ -1,0 +1,1067 @@
+% -*-latex-*-
+\chapter{Arreglos}
+\index{arreglos|(}
+\section{Introducción}
+
+Un \emph{arreglo} es un bloque contiguo de una lista de datos en la
+memoria.  Cada elemento de la lista debe  ser del mismo tipo y usar
+exactamente el mismo número de bytes de memoria para almacenarlo. Por
+estas propiedades, los arreglos permiten un acceso eficiente de los datos
+por su posición (o índice) en el arreglo. La dirección de cualquier
+elemento se puede calcular conociendo tres hechos:
+\begin{itemize}
+\item La dirección del primer elemento del arreglo.
+\item El número de bytes de cada elemento.
+\item El índice del elemento.
+\end{itemize}
+
+Es conveniente considerar el índice del primer elemento como 0 (tal como
+C). Es posible usar otros valores para el primer índice, pero esto
+complica los cálculos.
+
+\subsection{Definir arreglos\index{arreglos!definir|(}}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+segment .data
+; define un arreglo de 10 plabras dobles con valores 
+; iniciales de 1,2,..,10
+a1           dd   1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+; define un arreglo de 10 palabras inicadas todas con  0
+a2           dw   0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+; lo mismo de antes usando TIMES
+a3           times 10 dw 0
+; define un arreglo de bytes con 200 ceros y luego 100 con unos
+a4           times 200 db 0
+             times 100 db 1
+
+segment .bss
+; define un arreglo de 10 palabras dobles sin valor inicial
+a5           resd  10
+; define un arreglo de 100 palabras dobles sin valor inicial
+a6           resw  100
+\end{AsmCodeListing}
+\caption{Definir arreglos\label{fig:DataArrays}}
+\end{figure}
+
+\subsubsection{Definir arreglos en los segmentos {\code data} y {\code
+bss}\index{arreglos!defininir!estático}}
+
+Para definir un arreglo con valor inicial en el segmento {\code data},
+use las directivas normales: {\code db}, {\code dw}, etc. 
+\index{directiva!D\emph{X}}
+NASM también suministra la directiva llamada {\code
+TIMES}\index{directiva!TIMES} que se puede usar para repetir una
+instrucción muchas veces sin tener que duplicar las instrucciones a mano.
+La Figura~\ref{fig:DataArrays} muestra varios ejemplos de estos.
+
+Para definir un arreglo sin valor inicial en el segmento {\code bss}, use
+las directivas {\code resb},  {\code resw}, etc.
+\index{directiva!RES\emph{X}} Recuerde que estas directivas tienen un
+operando que especifica cuántas unidades de memoria reservar.  La
+Figura~\ref{fig:DataArrays} muestra también ejemplos de este tipo de
+definiciones
+
+\begin{figure}[t]
+\centering
+\begin{tabular}{l|c|ll|c|}
+\cline{2-2} \cline{5-5}
+EBP - 1  & char    & \hspace{2em} &           & \\
+\cline{2-2}
+         & no usado  &              &           & \\
+\cline{2-2}
+EBP - 8  & dword 1 &              &           & \\
+\cline{2-2}
+EBP - 12 & dword 2 &              &           & word \\
+\cline{2-2}
+         &         &              &           & array \\
+         &         &              &           & \\
+         & word    &              &           & \\
+         & array   &              & EBP - 100 & \\
+\cline{5-5}
+         &         &              & EBP - 104 & dword 1 \\
+\cline{5-5}
+         &         &              & EBP - 108 & dword 2 \\
+\cline{5-5}
+         &         &              & EBP - 109 & char \\
+\cline{5-5}
+EBP - 112 &        &              &           & no usado \\
+\cline{2-2} \cline{5-5}
+\end{tabular}
+\caption{Disposición de la pila \label{fig:StackLayouts}}
+\end{figure}
+
+\subsubsection{Definir arreglos como variables locales en la pila
+\index{arreglos!defininir!variable local}}
+
+No hay una manera directa de definir una arreglo como variable local en
+la pila. Como antes, uno calcula el total de bytes necesarios para
+\emph{todas} las variables locales, incluidos los arreglos, y resta esto
+de ESP (o directamente usando la instrucción {\code ENTER}). Por ejemplo,
+si una función necesita una variable caracter, dos enteros y 50 elementos
+de un arreglo de palabras, uno necesitaría $1+ 2 \time 4+ 50 \time 2 =
+109$ bytes.  Sin embargo, el número restado de ESP debería ser un
+múltiplo de cuatro (112 en este caso) para que ESP esté en el límite de
+una palabra doble. Uno podría formar las variables dentro de estos 109
+bytes de varias maneras. La Figura~\ref{fig:StackLayouts} muestra dos
+maneras posibles. La parte sin uso del primer ordenamiento está  para
+dejar las palabras dobles en los límites de palabras dobles para
+optimizar la velocidad del acceso a la memoria.
+\index{arreglos!definir|)}
+
+\subsection{Acceder a elementos de los arreglos\index{arreglos!acceso|(}}
+
+No existe el operador {\code [ ]} en el lenguaje ensamblador como en C.
+Para acceder a un elemento del arreglo, se debe calcular su dirección.
+Considere las dos definiciones siguientes de arreglos:
+\begin{AsmCodeListing}[frame=none, numbers=none]
+array1       db     5, 4, 3, 2, 1     ; arreglo de  bytes
+array2       dw     5, 4, 3, 2, 1     ; arreglo de palabras
+\end{AsmCodeListing}
+A continuación, algunos ejemplos que utilizan estos arreglos.
+\begin{AsmCodeListing}[frame=none]
+      mov    al, [array1]             ; al = array1[0]
+      mov    al, [array1 + 1]         ; al = array1[1]
+      mov    [array1 + 3], al         ; array1[3] = al
+      mov    ax, [array2]             ; ax = array2[0]
+      mov    ax, [array2 + 2]         ; ax = array2[1] (NO es array2[2]!)
+      mov    [array2 + 6], ax         ; array2[3] = ax
+      mov    ax, [array2 + 1]         ; ax = ??
+\end{AsmCodeListing}
+En la línea~5, se referencia el elemento 1 del arreglo, no el segundo.
+¿Por qué? Las  palabras son unidades de 2 bytes, para moverse al
+siguiente elemento del arreglo uno se debe desplazar 2 bytes adelante, no
+uno. La línea~7 leerá un byte del primer elemento y uno del segundo. En
+C, el compilador mira el tipo de apuntador para determinar cuántos bytes
+mover en una expresión aritmética para que el programador no tenga que
+hacerla. Sin embargo en ensamblador es él el que calcula el tamaño de los
+elementos del arreglo cuando se mueve de elemento en elemento. 
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single,commandchars=\\\{\}]
+      mov    ebx, array1           ; ebx = dirección de array1
+      mov    dx, 0                 ; dx almacenará sum
+      mov    ah, 0                 ; ?
+      mov    ecx, 5
+lp:
+      mov    al, [ebx]             ; al = *ebx
+      add    dx, ax                ; dx += ax (not al!) \label{line:SumArray1}
+      inc    ebx                   ; bx++
+      loop   lp
+\end{AsmCodeListing}
+\caption{Sumar elementos de un arreglo (Versión 1)\label{fig:SumArray1}}
+\end{figure}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single,commandchars=\\\{\}]
+      mov    ebx, array1           ; ebx = dirección de array1
+      mov    dx, 0                 ; dx almacenará sum
+      mov    ecx, 5
+lp:
+\textit{      add    dl, [ebx]             ; dl += *ebx}
+\textit{      jnc    next                  ; if no hay carry vaya a next}
+\textit{      inc    dh                    ; inc dh}
+\textit{next:}
+      inc    ebx                   ; bx++
+      loop   lp
+\end{AsmCodeListing}
+\caption{Sumar elementos de un arreglo (Versión 2)\label{fig:SumArray2}}
+\end{figure}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single,commandchars=\\\{\}]
+      mov    ebx, array1           ; ebx = dirección de  array1
+      mov    dx, 0                 ; dx almacenará sum
+      mov    ecx, 5
+lp:
+\textit{      add    dl, [ebx]             ; dl += *ebx}
+\textit{      adc    dh, 0                 ; dh += bandera de carry + 0}
+      inc    ebx                   ; bx++
+      loop   lp
+\end{AsmCodeListing}
+\caption{Sumar elementos de un arreglo (Versión 3)\label{fig:SumArray3}}
+\end{figure}
+
+La Figura~\ref{fig:SumArray1} muestra un fragmento de código que suma
+todos los elementos de {\code array1} del ejemplo anterior. En la
+línea~\ref{line:SumArray1}, a AX se le suma DX. ¿Por qué no AL? Primero,
+los dos operandos de la instrucción {\code ADD} deben ser del mismo
+tamaño. Segundo, es probable que al sumar bytes y lleguemos a un
+resultado que no quepa en un byte. Usando DX, se permite una suma hasta
+65.535. Sin embargo es importante ver que se está sumando AH también.
+Esta es la razón por la cual se fija AH a cero.\footnote{Fijando AH a
+cero se asume implícitamente que AL es un número sin signo. Si es con
+signo, la acción apropiada sería insertar una instrucción {\code CBW}
+entre las líneas~6 y 7} en la línea 3.
+
+Las Figuras~\ref{fig:SumArray2} y \ref{fig:SumArray3} muestran dos
+alternativas para calcular la suma. Las líneas en itálica reemplazan las
+líneas~6 y 7 de la Figura~\ref{fig:SumArray1}.
+
+\subsection{Direccionamiento indirecto más avanzado
+\index{direccionamiento indirecto!arreglos|(}}
+
+No es sorprendente que se use direccionamiento indirecto con arreglos. La
+forma más general de una referencia indirecta memoria es
+\begin{center}
+{\code [ \emph{reg base} + \emph{factor}*\emph{reg índice} + 
+      \emph{constante}]}
+\end{center}
+donde:
+\begin{description}
+\item[reg base] es uno de los registros EAX, EBX, ECX, EDX, EBP, ESP, ESI
+                o EDI.
+\item[factor] es 1, 2, 4 o 8. (Es 1, si el factor se omite)
+\item[index reg] es uno de estos registros EAX, EBX, ECX, EDX, EBP, ESI, EDI.
+                 (observe que ESP no está en la lista.)
+                (o expresión).
+\end{description}
+
+\subsection{Ejemplo}
+Se presenta un ejemplo que usa un arreglo y se pasa a la función. Usa el
+programa {\code array1c.c} (listado abajo) como driver y no el programa
+{\code driver.c}\index{array1.asm|(}.
+\begin{AsmCodeListing}[label=array1.asm]
+%define ARRAY_SIZE 100
+%define NEW_LINE 10
+
+segment .data
+FirstMsg        db   "Primeros 10 elementos del arreglo", 0
+Prompt          db   "Ingrese el índice del elemento a mostrar: ", 0
+SecondMsg       db   "Elemento %d es %d", NEW_LINE, 0
+ThirdMsg        db   "Elementos 20 hasta 29 del arreglo", 0
+InputFormat     db   "%d", 0
+
+segment .bss
+array           resd ARRAY_SIZE
+
+segment .text
+        extern  _puts, _printf, _scanf, _dump_line
+        global  _asm_main
+_asm_main:
+        enter   4,0		; variable local en  EBP - 4
+        push    ebx
+        push    esi
+
+; Se inicia el arreglo con 100, 99, 98, 97, ...
+
+        mov     ecx, ARRAY_SIZE
+        mov     ebx, array
+init_loop:
+        mov     [ebx], ecx
+        add     ebx, 4
+        loop    init_loop
+
+        push    dword FirstMsg         ; imprime FirstMsg
+        call    _puts
+        pop     ecx
+
+        push    dword 10
+        push    dword array
+        call    _print_array           ; imprime los 10 primeros 
+                                       ; elementos del arreglo
+        add     esp, 8
+
+; Le pregunta al usuario el índice del elemento
+Prompt_loop:
+        push    dword Prompt
+        call    _printf
+        pop     ecx
+
+        lea     eax, [ebp-4]      ; eax = dirección de la variable local
+        push    eax
+        push    dword InputFormat
+        call    _scanf
+        add     esp, 8
+        cmp     eax, 1               ; eax = valor de retorno de scanf
+        je      InputOK
+
+        call    _dump_line  ; vacía el resto de la línea y vuelve a
+		                    ; comenzar 
+        jmp     Prompt_loop          ; si la entrada no es válida
+
+InputOK:
+        mov     esi, [ebp-4]
+        push    dword [array + 4*esi]
+        push    esi
+        push    dword SecondMsg      ; imprime el valor del elemento
+        call    _printf
+        add     esp, 12
+
+        push    dword ThirdMsg       ; imprime los elementos  20 a 29
+        call    _puts
+        pop     ecx
+
+        push    dword 10
+        push    dword array + 20*4     ; dirección de array[20]
+        call    _print_array
+        add     esp, 8
+
+        pop     esi
+        pop     ebx
+        mov     eax, 0            ; retorna a C
+        leave                     
+        ret
+
+;
+; rutina _print_array
+; Rutina llamable desde C que imprime elementos de arreglos de palabras
+; dobles como enteros con signo
+; Prototipo de C:
+; void print_array( const int * a, int n);
+; Parámetros:
+;   a - Apuntador al arreglo a imprimir (en ebp+8 en la pila)
+;   n - número de enteros a imprimir (en ebp+12 en la pila)
+
+segment .data
+OutputFormat    db   "%-5d %5d", NEW_LINE, 0
+
+segment .text
+        global  _print_array
+_print_array:
+        enter   0,0
+        push    esi
+        push    ebx
+
+        xor     esi, esi                  ; esi = 0
+        mov     ecx, [ebp+12]             ; ecx = n
+        mov     ebx, [ebp+8]              ; ebx = dirección del arreglo
+print_loop:
+        push    ecx                       ; ¡printf podría cambiar ecx!
+
+        push    dword [ebx + 4*esi]       ; empuja a la pila array[esi]
+        push    esi
+        push    dword OutputFormat
+        call    _printf
+        add     esp, 12                   ; quita los parámetros (¡deja ecx!)
+
+        inc     esi
+        pop     ecx
+        loop    print_loop
+
+        pop     ebx
+        pop     esi
+        leave
+        ret
+\end{AsmCodeListing}
+
+\LabelLine{array1c.c}
+\begin{lstlisting}{}
+#include <stdio.h>
+
+int asm_main( void );
+void dump_line( void );
+
+int main()
+{
+  int ret_status;
+  ret_status = asm_main();
+  return ret_status;
+}
+
+/*
+ * función dump_line
+ * Vacía todos los caracteres de la línea del búfer de entrada
+ */
+void dump_line()
+{
+  int ch;
+
+  while( (ch = getchar()) != EOF && ch != '\n')
+    /* cuerpo vacío*/ ;
+}
+\end{lstlisting}
+\LabelLine{array1c.c}
+\index{array1.asm|)}
+\index{direccionamiento indirecto!arreglos|)}
+\index{arreglos!acceso|)}
+
+\subsubsection{Revisión de la instrucción {\code LEA}\index{LEA|(}}
+
+La instrucción {\code LEA} se puede usar para otros propósitos que sólo
+calcular direcciones. Un uso común es para cálculos rápidos. Considere lo
+siguiente:
+\begin{AsmCodeListing}[numbers=none,frame=none]
+      lea    ebx, [4*eax + eax]
+\end{AsmCodeListing}
+Esto efectivamente almacena el valor de $5 \times \mathtt{EAX}$ en EBX.
+Usando {\code LEA} para hacer esto, es más fácil y rápido que usar {\code
+MUL}\index{MUL}. Sin embargo, uno debe tener en cuenta que la expresión
+dentro de los paréntesis cuadrados \emph{debe} ser una dirección
+indirecta correcta. Así por ejemplo, esta instrucción no se puede usar
+para multiplicar por 6 rápidamente.
+\index{LEA|)}
+
+
+\subsection{Arreglos multidimiensionales
+\index{arreglos!multidimensional|(}}
+
+Un arreglo multidimensional no es realmente muy diferente que los arreglos 
+unidimensionales ya discutidos. De hecho, están representados en memoria
+tal como un arreglo unidimensional.
+
+\subsubsection{Arreglos bidimensionales
+\index{arreglos!multidimensional!dos dimensiones|(}}
+No debe sorprender que el arreglo multidimiensional más elemental es un 
+arreglo bidimensional. Un  arreglo bidimensional se 
+presenta a menudo como una malla de elementos. Cada elemento está 
+identificado por un par de índices. Por convención, el primer índice es 
+identificado con la fila del elemento y el segundo índice es la columna.
+
+Considere un arreglo con tres filas y dos columnas definidas como:
+\begin{lstlisting}[stepnumber=0]{}
+  int a[3][2];
+\end{lstlisting}
+El compilador de C reservaría espacio para un arreglo de 6 
+($=2 \times 3$) enteros y 
+ordena los elementos como sigue:
+
+\parbox{\textwidth}{
+\vspace{0.5em}
+\centering
+\begin{tabular}{||l|c|c|c|c|c|c||}
+\hline
+Índice & 0 & 1 & 2 & 3 & 4 & 5 \\
+\hline
+Elemento & a[0][0] & a[0][1] & a[1][0] & a[1][1] & a[2][0] & a[2][1]  \\
+\hline
+\end{tabular}
+\vspace{0.5em}
+}
+\noindent La tabla intenta mostrar cómo el elemento referenciado como
+{\code a[0][0]} es almacenado en el comienzo de los 6 elementos de un
+arreglo unidimensional. El elemento  {\code a[0][l]} se almacena en la
+siguiente posición (índice~1) y así sucesivamente.  Cada fila del arreglo
+bidimensional se almacena contiguamente en memoria. El último elemento de
+una fila es seguido por el primer elemento de la próxima fila. Esto es
+conocido como la representación \emph{\emph{rowwise}} del arreglo y es
+como un compilador de C/C++ podría representar el arreglo.
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[]
+   mov    eax, [ebp - 44]          ; ebp - 44 es el sitio de i
+   sal    eax, 1                   ; multiplica i por 2
+   add    eax, [ebp - 48]          ; add j
+   mov    eax, [ebp + 4*eax - 40]  ; ebp - 40 es la dirección a[0][0]
+   mov    [ebp - 52], eax          ; Almacena el resultado en  ebp - 52
+\end{AsmCodeListing}
+\caption{ Ensamblador para \lstinline|x = a[i][j]| \label{fig:aij}}
+\end{figure}
+
+¿Cómo el compilador determina dónde aparece {\code a[i][j]} en la
+representación \emph{rowwise}? Una fórmula elemental calculará el índice
+de {\code i} y {\code j}.  La fórmula en este caso es $2i + j$. No es
+difícil ver cómo se deriva esta fórmula. Cada fila es de dos elementos;
+así, el primer elemento de la fila {\code i} está en la posición $2i$ .
+Entonces la posición de la columna $j$ se encuentra sumando $j$ a $2i$.
+Este análisis también muestra cómo la fórmula se generaliza para un
+arreglo con {\code N} columnas. $N \times i + j$. Observe que la fórmula
+\emph{no} depende del número de filas.
+
+Como un ejemplo, veamos cómo compila \emph{gcc} el siguiente código
+(usando el arreglo {\code a} definido antes):
+\begin{lstlisting}[stepnumber=0]{}
+  x = a[i][j];
+\end{lstlisting}
+La Figura~\ref{fig:aij} muestra cómo el ensamblador trabaja esto, Así, el
+compilador esencialmente convierte el código a:
+\begin{lstlisting}[stepnumber=0]{}
+  x = *(&a[0][0] + 2*i + j);
+\end{lstlisting}
+y de hecho, el programador podría escribir de esta manera con los mismos
+resultados. 
+
+No hay nada mágico sobre la escogencia de la representación
+\emph{rowwise} del arreglo. Una representación \emph{columnwise} podría
+trabajar bien:
+
+\parbox{\textwidth}{
+\vspace{0.5em}
+\centering
+\begin{tabular}{||l|c|c|c|c|c|c||}
+\hline
+Index & 0 & 1 & 2 & 3 & 4 & 5 \\
+\hline
+Element & a[0][0] & a[1][0] & a[2][0] & a[0][1] & a[1][1] & a[2][1]  \\
+\hline
+\end{tabular}
+\vspace{0.5em}
+}
+\noindent En la representación \emph{columnwise}, cada columna se
+almacena contigua. El elemento {\code [i][j]} se almacenan en la posición
+$i + 3j$.  Otros lenguajes (FORTRAN, por ejemplo) usan la representación
+\emph{columnwise}. Esto es importante cuando se interfaza el código con
+varios lenguajes.
+\index{arreglos!multidimensional!dos dimensiones|)}
+
+\subsubsection{Dimensiones mayores que dos}
+Para las dimensiones mayores de 2, se aplica la misma idea básica.
+Considere el arreglo tridimensional:
+\begin{lstlisting}[stepnumber=0]{}
+  int b[4][3][2];
+\end{lstlisting}
+Este arreglo podría ser almacenado como si fueran cuatro arreglos
+bidimensionales cada uno de tamaño {\code [3][2]} consecutivamente en
+memoria. La tabla de abajo muestra como comienza él:
+
+\parbox{\textwidth}{
+\vspace{0.5em}
+\centering
+\begin{tabular}{||l|c|c|c|c|c|c||}
+\hline
+Index & 0 & 1 & 2 & 3 & 4 & 5  \\
+\hline
+Element & b[0][0][0] & b[0][0][1]  & b[0][1][0] & b[0][1][1] & b[0][2][0]
+&  b[0][2][1]  \\
+\hline
+\hline
+Index & 6 & 7 & 8 & 9 & 10 & 11 \\
+\hline
+Element & b[1][0][0] & b[1][0][1] & b[1][1][0] & b[1][1][1]  & b[1][2][0] 
+& b[1][2][1] \\
+\hline
+\end{tabular}
+\vspace{0.5em}
+}
+\noindent La fórmula para calcular la posición de {\code b[i][j][k]} es
+$6i + 2j + k$. El 6 está determinado por el tamaño  de los arreglos
+{\code [3][2]}. En general, para un arreglo {\code a[i][j][k]} será:
+$M\times N\times i + N \times j + k$. Observe que nuevamente la primera
+dimensión {\code L} no aparece en la fórmula.
+
+Para dimensiones mayores, se generaliza el mismo proceso.  Para un
+arreglo $n$ dimensional de dimensiones $D_1$ a $D_n$, la posición del
+elemento denotada por los índices $i_1$ a $i_n$ está dada por la fórmula:
+\begin{displaymath}
+D_2 \times D_3 \cdots \times D_n \times i_1 + D_3 \times D_4 \cdots \times D_n 
+\times i_2 + \cdots + D_n \times i_{n-1} + i_n
+\end{displaymath}
+o puede ser escrito más corto como:
+%or for the \"{u}ber math geek, it can be written more succinctly as:
+\begin{displaymath}
+\sum_{j=1}^{n} \: \left( \prod_{k=j+1}^{n} D_k \right) \: i_j
+\end{displaymath}
+\MarginNote{Aquí es donde puede decirle al autor que fue un mejor físico
+(o ¿fue la referencia a FORTRAN un regalo?)} La primera dimensión $D_1$
+no aparece en la fórmula:
+
+Por una representación \emph{columnwise} la fórmula general sería:
+\begin{displaymath} i_1 + D_1 \times i_2 + \cdots + D_1 \times D_2 \times
+\cdots \times D_{n-2} \times i_{n-1} + D_1 \times D_2 \times \cdots
+\times D_{n-1} \times i_n \end{displaymath} En la notación matemática
+griega de über: \begin{displaymath} \sum_{j=1}^{n} \: \left(
+\prod_{k=1}^{j-1} D_k \right) \: i_j \end{displaymath} En este caso, es
+la última dimensión $D_n$, la que no aparece en la fórmula.
+
+\subsubsection{Pasar arreglos multidimensionales como parámetros en C
+\index{arreglos!multidimensional!parámetros|(}}
+
+La representación \emph{rowwise} de arreglos multidimensionales tiene un
+efecto directo en la programación en C. Para arreglos unidimensionales,
+no se necesita el tamaño del arreglo para calcular donde está localizado
+un elemento en memoria. Esto no es cierto para arreglos
+multidimensionales.  Para acceder a los elementos de estos arreglos el
+compilador debe conocer todo menos la primera dimensión. Esto se vuelve
+aparente cuando consideramos el prototipo de la función que toma un
+arreglo multidimensional como parámetro. Lo siguiente no compilará:                
+\begin{lstlisting}[stepnumber=0]{}
+  void f( int a[ ][ ] );  /* No hay información de la dimensión */
+\end{lstlisting}
+Sin embargo, lo siguiente compila:
+\begin{lstlisting}[stepnumber=0]{}
+  void f( int a[ ][2] );
+\end{lstlisting}
+Cualquier arreglo bidimensional con dos columnas puede ser pasado a esta
+función. La primera dimensión no se necesita.\footnote{Se puede
+especificar un tamaño allí, pero será ignorado por el compilador.}
+
+No se confunda con una función con este prototipo:
+\begin{lstlisting}[stepnumber=0]{}
+  void f( int * a[ ] );
+\end{lstlisting}
+Esto define un arreglo unidimensional de apuntadores enteros (que
+incidentalmente puede ser usado para crear un arreglo de arreglos que se
+comporta muy parecido a un arreglo bidimensional).
+
+Para arreglos de dimensiones mayores, se debe especificar todo menos la
+primera dimensión. Por ejemplo, un arreglo de 4 dimensiones se podría
+pasar como:
+\begin{lstlisting}[stepnumber=0]{}
+  void f( int a[ ][4][3][2] );
+\end{lstlisting}
+\index{arreglos!multidimensional!parámetros|)}
+\index{arreglos!multidimensional|)}
+
+\section{Instrucciones de arreglos/cadenas}
+\index{instrucciones de cadena|(} 
+
+La familia de procesadores 80x86 suministran varias instrucciones que
+están diseñadas para trabajar con arreglos. Estas instrucciones son
+llamadas \emph{instrucciones de cadena}. Ellas usan los registros de
+índice (ESI y EDI)  para realizar una operación y entonces
+automáticamente incrementar o decrementar uno o los dos registros de
+índice. La \emph{bandera dirección} (DF)  \index{registro!FLAGS!DF} en el
+registro FLAGS determina si los registros de índice son incrementados o
+decrementados. Hay dos instrucciones que modifican la bandera dirección:
+\begin{description}
+\item[CLD] \index{CLD} Borra la bandera de dirección. En este estado, los
+registros de índice se incrementan.
+\item[STD] \index{STD} Establece la bandera de dirección. En este estado
+los registros de índice se decrementan.
+\end{description}
+Un error \emph{muy común} en la programación de 80x86 es olvidar colocar
+la bandera de dirección en el estado correcto de manera explícita. Esto a
+menudo hace que el código trabaje la mayor parte del tiempo (cuando
+sucede que la bandera de dirección está en el estado deseado) pero no
+trabaja \emph{todo} el tiempo.
+
+\begin{figure}[t]
+\centering
+{\code
+\begin{tabular}{|lp{1.5in}|lp{1.5in}|}
+\hline
+LODSB & AL = [DS:ESI]\newline ESI = ESI $\pm$ 1 & 
+STOSB & [ES:EDI] = AL\newline EDI = EDI $\pm$ 1 \\
+\hline
+LODSW & AX = [DS:ESI]\newline ESI = ESI $\pm$ 2 & 
+STOSW & [ES:EDI] = AX\newline EDI = EDI $\pm$ 2 \\
+\hline
+LODSD & EAX = [DS:ESI]\newline ESI = ESI $\pm$ 4 & 
+STOSD & [ES:EDI] = EAX\newline EDI = EDI $\pm$ 4 \\
+\hline
+\end{tabular}
+}
+\caption{Instrucciones de cadena de lectura y escritura\label{fig:rwString}
+         \index{LODSB} \index{STOSB} \index{LODSW} \index{LODSD} \index{STOSD}}
+\end{figure}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+segment .data
+array1  dd  1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+
+segment .bss
+array2  resd 10
+
+segment .text
+      cld                   ; ¡No olvide esto!
+      mov    esi, array1
+      mov    edi, array2
+      mov    ecx, 10
+lp:
+      lodsd
+      stosd
+      loop  lp
+\end{AsmCodeListing}
+\caption{Ejemplo de carga y almacenamiento\label{fig:lodEx}}
+\end{figure}
+
+\subsection{Leer y escribir en la memoria}
+
+Las instrucciones más elementales leen o escriben en memoria. Ellas
+pueden leer o escribir un byte, palabra o palabra doble de una vez.  La
+Figura~\ref{fig:rwString} muestra estas instrucciones con una corta
+descripción en pseudocódigo de qué hace ella. Hay varios puntos para
+tener en cuenta. Primero, ESI \index{registro!ESI} se usa para leer y EDI
+\index{registro!EDI} para escribir. Es fácil recordar esto si uno tiene
+en cuenta que SI significa \emph{Source Index} y DI significa
+\emph{Destination Index}.  Ahora, observe que el registro que almacena el
+dato es fijo (AL, AX o AEX).  Finalmente, observe que las instrucciones
+de almacenamiento usan ES para determinar el segmento donde escribir, no
+DS. En la programación en modo protegido esto normalmente no es un
+problema, ya que hay sólo un segmento de datos y ES debería ser iniciado
+automáticamente para referenciarlo. (tal como lo es DS). Sin embargo, en
+la programación en modo real es \emph{muy} importante para el programador
+iniciar ES \index{registro!segmento} con el valor de selector del
+segmento correcto.\footnote{Otra complicación es que uno no puede copiar
+el valor de DS en el registro de ES directamente usando la instrucción
+{\code MOV}. En lugar de ello, el valor DS debe copiarse a un registro de
+propósito general (como AX) y entonces copiado de este registro a ES
+usando dos instrucciones {\code MOV}.} La Figura~\ref{fig:lodEx} muestra
+un ejemplo del uso de estas instrucciones que copia un arreglo en otro.
+
+\begin{figure}[t]
+\centering
+{\code
+\begin{tabular}{|lp{2.5in}|}
+\hline
+MOVSB & byte [ES:EDI] = byte [DS:ESI] \newline ESI = ESI $\pm$ 1 \newline
+        EDI = EDI $\pm$ 1 \\
+\hline
+MOVSW & word [ES:EDI] = word [DS:ESI] \newline ESI = ESI $\pm$ 2 \newline
+        EDI = EDI $\pm$ 2 \\
+\hline
+MOVSD & dword [ES:EDI] = dword [DS:ESI] \newline ESI = ESI $\pm$ 4 \newline
+        EDI = EDI $\pm$ 4 \\
+\hline
+\end{tabular}
+}
+\caption{Instrucciones de cadena de movimiento de memoria\label{fig:movString} \index{MOVSB}
+         \index{MOVSW} \index{MOVSD}}
+\end{figure}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+segment .bss
+array  resd 10
+
+segment .text
+      cld                   ; ¡No olvide esto!
+      mov    edi, array
+      mov    ecx, 10
+      xor    eax, eax
+      rep stosd
+\end{AsmCodeListing}
+\caption{Ejemplo de arreglo cero\label{fig:zeroArrayEx}}
+\end{figure}
+
+La combinación de una instrucción {\code LODSx} y {\code STOSx} (en las
+líneas~13 y 14 de la Figura~\ref{fig:lodEx}) es muy común. De hecho, esta
+combinación se puede realizar con una sola instrucción para cadenas
+{\code MOVSx}. La Figura~\ref{fig:movString} describe las operaciones que
+estas instrucciones realizan. Las líneas~13 y 14 de la
+Figura~\ref{fig:lodEx} podría ser reemplazada con una sola instrucción
+{\code MOVSD} con el mismo efecto. La única diferencia sería que el
+registro EAX no sería usado en el bucle.
+
+\subsection{El prefijo de instrucción {\code REP}\index{REP|(}}
+
+La familia 80x86 suministra un prefijo de instrucción
+especial\footnote{un prefijo de instrucción no es una instrucción, es un
+byte especial que se coloca antes de una instrucción de cadena que
+modifica el comportamiento de la instrucción. Se usan otros prefijos para
+sobreescribir los segmentos por omisión de los accesos a memoria} llamado
+{\code REP} que se puede usar con las instrucciones anteriores Este
+prefijo le dice a la CPU que repita la próxima instrucción de cadena un
+número especificado de veces. El registro ECX se usa para contar las
+iteraciones (tal como la instrucción {\code LOOP}).  Usando el prefijo
+{\code REP}, el bucle en la Figura~\ref{fig:lodEx} (líneas~12 a 15) se
+podría reemplazar con una sola línea:
+\begin{AsmCodeListing}[frame=none, numbers=none]
+      rep movsd
+\end{AsmCodeListing}
+La Figura~\ref{fig:zeroArrayEx}  muestra otro ejemplo que llena de 
+ceros el contenido de un arreglo.
+\index{REP|)}
+
+\begin{figure}[t]
+\centering
+{\code
+\begin{tabular}{|lp{3.5in}|}
+\hline
+CMPSB & compara el byte [DS:ESI] y el byte [ES:EDI] \newline ESI = ESI $\pm$ 1 
+        \newline EDI = EDI $\pm$ 1 \\
+\hline
+CMPSW & compara la palabra [DS:ESI] y la word [ES:EDI] \newline ESI = ESI $\pm$ 2 
+        \newline EDI = EDI $\pm$ 2 \\
+\hline
+CMPSD & compara la dword [DS:ESI] y la dword [ES:EDI] \newline ESI = ESI $\pm$ 4 
+        \newline EDI = EDI $\pm$ 4 \\
+\hline
+SCASB & compara AL y [ES:EDI] \newline EDI $\pm$ 1 \\
+\hline
+SCASW & compara AX y [ES:EDI] \newline EDI $\pm$ 2 \\
+\hline
+SCASD & compara EAX y [ES:EDI] \newline EDI $\pm$ 4 \\
+\hline
+\end{tabular}
+}
+\caption{Comparación de las instrucciones de cadena\label{fig:cmpString}
+         \index{CMPSB} \index{CMPSW} \index{CMPSD} \index{SCASB}
+         \index{SCASW} \index{SCASD}}
+\end{figure}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single,commandchars=\\\{\}]
+segment .bss
+array        resd 100
+
+segment .text
+      cld
+      mov    edi, array    ; apuntador al inicio del arreglo
+      mov    ecx, 100      ; número de elementos
+      mov    eax, 12       ; número a buscar
+lp:
+      scasd    \label{line:scasdSrchStrEx}
+      je     found
+      loop   lp
+ ; código a ejecutar si no se encontró
+      jmp    onward
+found:
+      sub    edi, 4         ; edi apunta ahora a 12 en array\label{line:subSrchStrEx}
+ ; código a ejecutar si se encontró
+onward:
+\end{AsmCodeListing}
+\caption{Ejemplo de búsqueda\label{fig:srchStrEx}}
+\end{figure}
+
+\subsection{Comparación de las instrucciones de cadena}
+
+La Figura~\ref{fig:cmpString} muestra varias instrucciones de cadena
+nuevas que se pueden usar para comparar memoria con otra memoria o un
+registro. Ellas son útiles para comparar o buscar en arreglos. Ellas
+fijan el registro FLAGS tal como la instrucción {\code CMP}. Las
+instrucciones {\code CMPSx} \index{CMPSB} \index{CMPSW} \index{CMPSD}
+comparan el lugar de memoria correspondiente y {\code SCASx}
+\index{SCASB} \index{SCASW} \index{SCASD} comparan lugares de memoria en
+busca de un valor específico.
+
+La Figura~\ref{fig:srchStrEx} muestra una porción de código que busca el
+número 12 en un arreglo de palabras dobles, la instrucción {\code SCASD}
+en la línea~\ref{line:scasdSrchStrEx} siempre le suma 4 a EDI aún si el
+valor buscado se encuentra. Así si uno desea encontrar la dirección de
+donde está el 12 es necesario sustraer 4 de EDI (como lo hace la
+línea~\ref{line:subSrchStrEx}).
+
+\begin{figure}[t]
+\centering
+\begin{tabular}{|l|p{4in}|}
+\hline
+{\code REPE}, {\code REPZ} & repite la instrucciónn mientras la bandera Z
+                             esté fija o un máximo de ECX veces \\
+\hline
+{\code REPNE}, {\code REPNZ} & repite la instrucción mientras la bandera
+                               Z esté borrada o un máximo de ECX veces \\
+\hline
+\end{tabular}
+\caption{Prefijos de instrucción {\code REPx}\label{fig:repx} \index{REPE} 
+          \index{REPNE}}
+\end{figure}
+
+\begin{figure}
+\begin{AsmCodeListing}[frame=single,commandchars=\\\{\}]
+segment .text
+      cld
+      mov    esi, block1 ; dirección del primer bloque 
+      mov    edi, block2 ; dirección del segundo bloque
+      mov    ecx, size   ; tamaño del bloque en bytes 
+      repe   cmpsb       ; repita mientras la bandera Z esté fija
+      je     equal       ; Si Z está fija, los bloque son iguales\label{line:cmpBlocksEx}
+   ; código para ejecutar si los bloques no son igual
+      jmp    onward
+equal:
+   ; código para ejecutar si los bloques son iguales
+onward:
+\end{AsmCodeListing}
+\caption{Comparando bloques de memoria\label{fig:cmpBlocksEx}}
+\end{figure}
+
+\subsection{Prefijos de instrucción {\code REPx}}
+
+Hay varios prefijos de instrucción del tipo {\code REP} que se pueden
+usar con las instrucciones de comparación de cadenas. La
+Figura~\ref{fig:repx} muestra los dos nuevos prefijos y describe su
+operación. {\code REPE}\index{REPE} y {\code REPZ}\index{REPZ} son
+sinónimos para el mismo prefijo (como {\code RPNE}\index{REPNE} y {\code
+REPNZ}\index{REPNZ}) si la comparación repetida de la instrucción de
+cadena se detiene por el resultado de la comparación, el registro o
+registros índice se incrementan y ECX se decrementa; sin embargo, el
+registro FLAGS almacenará el estado que terminó la repetición.
+\MarginNote{¿Por qué  uno no solo ve si ECX es cero después de repetir la
+comparación?} Así es posible usar la bandera Z para determinar si las
+comparaciones repetidas pararon por una comparación o porque ECX es cero.
+
+La Figura~\ref{fig:cmpBlocksEx} muestra una porción  código de ejemplo
+que determina si dos bloques de memoria son iguales. El {\code JE} en la
+línea~\ref{line:cmpBlocksEx} del ejemplo examina el resultado de la
+instrucción anterior. Si la comparación repetida se detiene porque
+encontró dos bytes diferentes, la bandera Z continuará borrada y no se
+hace el salto; sin embargo, si las comparaciones paran porque ECX  se
+vuelve cero, la bandera Z estará fijada y el código salta a la etiqueta
+{\code equal}.
+
+\subsection{Ejemplo}
+
+Esta sección contiene un archivo fuente en ensamblador con varias
+funciones que implementan operaciones con arreglos usando instrucciones
+de cadena. Muchas de las funciones duplican las funciones de las
+bibliotecas conocidas de C.
+
+\index{memory.asm|(}
+\begin{AsmCodeListing}[label=memory.asm]
+global _asm_copy, _asm_find, _asm_strlen, _asm_strcpy
+
+segment .text
+; función _asm_copy
+; copia un bloque de memoria
+; prototipo de C 
+; void asm_copy( void * dest, const void * src, unsigned sz);
+; parámetros:
+;   dest - apuntador del búfer para copiar a
+;   src  - apuntador del búfer para copiar desde
+;   sz   - número de bytes a copiar 
+
+; A continuación, se definen algunos símbolos útiles 
+
+%define dest [ebp+8]
+%define src  [ebp+12]
+%define sz   [ebp+16]
+_asm_copy:
+        enter   0, 0
+        push    esi
+        push    edi
+
+        mov     esi, src        ; esi = dirección del búfer para copiar desde
+        mov     edi, dest       ; edi = dirección del búfer para copia a
+        mov     ecx, sz         ; ecx = número de bytes a copiar
+
+        cld                     ; borrar la bandera de dirección
+        rep     movsb           ; ejecute movsb ECX veces
+
+        pop     edi
+        pop     esi
+        leave
+        ret
+
+
+; function _asm_find
+; Busca en la memoria un byte dado
+; void * asm_find( const void * src, char target, unsigned sz);
+; parámetros
+;   src    - apuntador al lugar dónde buscar
+;   target - valor del byte a buscar
+;   sz     - tamaño en bytes de dónde se busca
+; valor de retorno
+;   si  target se encuentra, apunta a la primera ocurrencia de target 
+;   
+;   si no
+;     retorna NULL
+; NOTA: target es un valor de un byte, pero  se empuja en la pila como
+; una palabra doble. El byte se almacena en los 8 bits inferiores.
+; 
+%define src    [ebp+8]
+%define target [ebp+12]
+%define sz     [ebp+16]
+
+_asm_find:
+        enter   0,0
+        push    edi
+
+        mov     eax, target     ; al tiene el valor a buscar
+        mov     edi, src
+        mov     ecx, sz
+        cld
+
+        repne   scasb           ; busca hasta que ECX == 0 or [ES:EDI] == AL
+
+        je      found_it        ; Si la bandera Z se fija, entonces se
+                                ; encontró el valor 
+        mov     eax, 0          ; Si no se encontró, retorna un apuntador NULL
+        jmp     short quit
+found_it:
+        mov     eax, edi          
+        dec     eax              ; Si se encuentra retorna (DI - 1)
+quit:
+        pop     edi
+        leave
+        ret
+
+
+; function _asm_strlen
+; retorna el tamaño de una cadena 
+; unsigned asm_strlen( const char * );
+; parámetro
+;   src - apuntador a la cadena
+; valor de retorno:
+;   número de caracteres en la cadena (sin contar el 0 final) (en EAX)
+
+%define src [ebp + 8]
+_asm_strlen:
+        enter   0,0
+        push    edi
+
+        mov     edi, src        ; edi = apuntador a la cadena
+        mov     ecx, 0FFFFFFFFh ; usa el mayor valor posible en ECX
+        xor     al,al           ; al = 0
+        cld
+
+        repnz   scasb           ; busca un 0 para terminar
+
+;
+; repnz tendrá un trayecto muy largo, así el tamaño será 
+; FFFFFFFE - ECX, y no FFFFFFFF - ECX
+;
+        mov     eax,0FFFFFFFEh
+        sub     eax, ecx        ; length = 0FFFFFFFEh - ecx
+
+        pop     edi
+        leave
+        ret
+
+; función _asm_strcpy
+; copia una cadena
+; void asm_strcpy( char * dest, const char * src);
+; parámetros
+;   dest - apuntador a la cadena de destion
+;   src  - apuntador a la cadena origen
+; 
+%define dest [ebp + 8]
+%define src  [ebp + 12]
+_asm_strcpy:
+        enter   0,0
+        push    esi
+        push    edi
+
+        mov     edi, dest
+        mov     esi, src
+        cld
+cpy_loop:
+        lodsb                   ; Caraga AL e incrementa SI
+        stosb                   ; almacena AL e incrementa DI
+        or      al, al          ; fija las banderas de condición
+        jnz     cpy_loop        ; si no más allá de terminar 0, continúa
+
+        pop     edi
+        pop     esi
+        leave
+        ret
+\end{AsmCodeListing}
+
+\LabelLine{memex.c}
+\begin{lstlisting}{}
+#include <stdio.h>
+
+#define STR_SIZE 30
+/* prototipos */
+
+void asm_copy( void *, const void *, unsigned ) __attribute__((cdecl));
+void * asm_find( const void *, 
+                 char target, unsigned ) __attribute__((cdecl));
+unsigned asm_strlen( const char * ) __attribute__((cdecl));
+void asm_strcpy( char *, const char * ) __attribute__((cdecl));
+
+int main()
+{
+  char st1[STR_SIZE] = "test string";
+  char st2[STR_SIZE];
+  char * st;
+  char   ch;
+
+  asm_copy(st2, st1, STR_SIZE);   /* copia todos los 30 caracteres de la
+                                     cadena*/
+  printf("%s\n", st2);
+
+  printf("Digite un caracter: ");  /* busca un byte en la cadena */
+  scanf("%c%*[^\n]", &ch);
+  st = asm_find(st2, ch, STR_SIZE);
+  if ( st )
+    printf("Encontrado en : %s\n", st);
+  else
+    printf("No encontrado\n");
+
+  st1[0] = 0;
+  printf("Digite una Cadena:");
+  scanf("%s", st1);
+  printf("len = %u\n", asm_strlen(st1));
+
+  asm_strcpy( st2, st1);     /* copia un dato significativo en string */
+  printf("%s\n", st2 );
+
+  return 0;
+}
+\end{lstlisting}
+\LabelLine{memex.c}
+\index{memory.asm|)}
+\index{instrucciones de cadena|)}
+\index{arreglos|)}
+

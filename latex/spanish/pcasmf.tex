@@ -1,0 +1,125 @@
+% -*-LaTex-*-
+%front matter of pcasm book
+
+\chapter{Prefacio}
+
+\section*{Propósito}
+
+El propósito de este libro es dar al lector un mejor entendimiento de
+cómo trabajan realmente los computadores a un nivel más bajo que los
+lenguajes de alto nivel como Pascal. Teniendo un conocimiento profundo
+de cómo trabajan los computadores, el lector puede ser más productivo
+desarrollando software en lenguajes de alto nivel tales como C y C++.
+Aprender a programar en lenguaje ensamblador es una manera excelente
+de lograr este objetivo. Otros libros de lenguaje ensamblador aún
+enseñan a programar el procesador 8086 que usó el PC original en 1981.
+El procesador 8086 sólo soporta el modo \emph{real}. En este modo, 
+cualquier programa puede acceder a cualquier dirección de memoria
+o dispositivo en el computador. Este modo no es apropiado para un sistema
+operativo multitarea seguro. Este libro, en su lugar discute cómo
+programar los procesadores 80386 y posteriores en modo \emph{protegido}
+(el modo en que corren Windows y Linux). Este modo soporta las
+características que los sistemas operativos modernos esperan, como
+memoria virtual y protección de memoria.
+Hay varias razones para usar el modo protegido
+\begin{enumerate}
+\item Es más fácil de programar en modo protegido que en el modo real del
+8086 que usan los otros libros.
+\item Todos los sistemas operativos de PC se ejecutan en modo protegido.
+\item Hay disponible software libre que se ejecuta en este modos.
+\end{enumerate}
+La carencia de libros de texto para la programación en ensamblador de PC
+para modo protegido es la principal razón por la cual el autor escribió
+este libro.
+
+Cómo lo dicho antes, este libro hace uso de Software Libre: es decir el
+ensamblador NASM y el compilador de C/C++ DJGPP. Ambos se pueden
+descargar de Internet. El texto también discute cómo usar el código del 
+ensamblador NASM bajo el sistema operativo Linux y con los compiladores
+de C/C++ de Borland y Microsoft bajo Windows. Todos los ejemplos de estas
+plataformas se pueden encontrar en mi sitio web:
+{\url{http://www.drpaulcarter.com/pcasm}}.
+Debe descargar el código de los ejemplos, si desea ensamblar y correr los
+muchos ejemplos de este tutorial.
+
+Tenga en cuenta que este libro no intenta cubrir cada aspecto de la
+programación en ensamblador. El autor ha intentado cubrir los tópicos más
+importantes que \emph{todos} los programadores deberían tener
+
+\section*{Reconocimientos}
+
+El autor quiere agradecer a los muchos programadores alrededor del mundo
+que han contribuido al movimiento de Software Libre. Todos los programe y
+aún este libro en sí mismo fueron producidos usando software libre. 
+El autor desearía agradecerle especialmente a John~S.~Fine,
+Simon~Tatham, Julian~Hall 
+y otros por desarrollar el ensamblador NASM ya que todos los ejemplos de
+este libro están basados en él; a DJ Delorie por desarrollar el
+compilador usado de C/C++ DJGPP; la numerosa gente que ha contribuido al
+compilador GNU gcc en el cual está basado DJGPP; a Donald Knuth y otros
+por desarrollar los lenguajes de composición de textos \TeX\ y \LaTeXe\
+que fueron usados para producir este libro; a Richar Stallman (fundador
+de la Free Software Fundation), Linus Torvalds 
+(creador del núcleo de Linux) y a otros que han desarrollado el software
+que el autor ha usado para producir este trabajo.
+
+Gracias a las siguientes personas por correcciones:
+\begin{itemize}
+\item John S. Fine
+\item Marcelo Henrique Pinto de Almeida
+\item Sam Hopkins
+\item Nick D'Imperio
+\item Jeremiah Lawrence
+\item Ed Beroset
+\item Jerry Gembarowski
+\item Ziqiang Peng
+\item Eno Compton
+\item Josh I Cates
+\item Mik Mifflin
+\item Luke Wallis
+\item Gaku Ueda
+\item Brian Heward
+\item Chad Gorshing
+\item F. Gotti
+\item Bob Wilkinson
+\item Markus Koegel
+\item Louis Taber
+\item Dave Kiddell
+\item Eduardo Horowitz
+\item S\'{e}bastien Le Ray
+\item Nehal Mistry
+\item Jianyue Wang
+\item Jeremias Kleer
+\item Marc Janicki
+\end{itemize}
+
+
+\section*{Recursos en Internet}
+\begin{center}
+\begin{tabular}{|ll|}
+\hline
+Página del autor & \url{http://www.drpaulcarter.com/} \\
+%NASM   & {\code http://nasm.2y.net/} \\
+Página de NASM en SourceForge & \url{http://nasm.sourceforge.net/} \\
+DJGPP  & \url{http://www.delorie.com/djgpp} \\
+Ensamblador con Linux & \url{http://www.linuxassembly.org/} \\
+The Art of Assembly & \url{http://webster.cs.ucr.edu/} \\
+USENET & {\code comp.lang.asm.x86} \\
+Documentación de Intel & \url{http://www.intel.com/design/Pentium4/documentation.htm} \\
+\hline
+\end{tabular}
+\end{center}
+
+
+\section*{Comentarios}
+
+El autor agradece cualquier comentario sobre este trabajo.
+\begin{center}
+\begin{tabular}{ll}
+\textbf{E-mail:} & {\code pacman128@gmail.com} \\
+\textbf{WWW:}    & \url{http://www.drpaulcarter.com/pcasm} \\
+\end{tabular}
+\end{center}
+
+
+

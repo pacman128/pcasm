@@ -1,0 +1,1215 @@
+% -*-latex-*-
+\chapter{Punto flotante\index{punto flotante|(}}
+
+\section{Representación de punto flotante
+\index{punto flotante!representación|(}}
+
+\subsection{Números binarios no enteros}
+
+Cuando se discutieron los sistemas numéricos en el primer capítulo, sólo
+se trataron los valores enteros. Obviamente, debe ser posible representar
+números no enteros en otras bases y así como en decimal.  En decimal, los
+dígitos a la derecha del punto decimal tienen asociados potencias de 10
+negativas.
+\[ 0.123 = 1 \times 10^{-1} + 2 \times 10^{-2} + 3 \times 10^{-3} \]
+
+No es sorprendente que los números binarios trabajen parecido.
+\[ 0.101_2 = 1 \times 2^{-1} + 0 \times 2^{-2} + 1 \times 2^{-3} = 0.625 \]
+Esta idea se puede combinar con los métodos para enteros del Capítulo~1 
+para convertir un número.
+\[ 110.011_2 = 4 + 2 + 0.25 + 0.125 = 6.375 \]
+
+Convertir de decimal a binario no es muy difícil. En general divida el
+número decimal en dos partes: entero y fracción. Convierta la parte
+entera usando a binario usando los métodos del Capítulo~1.  La parte
+fraccionaria se convierte usando el método descrito a continuación:
+
+\begin{figure}[t]
+\centering
+\fbox{
+\begin{tabular}{p{2in}p{2in}}
+\begin{eqnarray*}
+0.5625 \times 2 & = & 1.125 \\
+0.125 \times 2 & = & 0.25 \\
+0.25 \times 2 & = & 0.5 \\
+0.5 \times 2 & = & 1.0 \\
+\end{eqnarray*}
+&
+\begin{eqnarray*}
+\mbox{first bit} & = & 1 \\
+\mbox{second bit} & = & 0 \\
+\mbox{third bit} & = & 0 \\
+\mbox{fourth bit} & = & 1 \\
+\end{eqnarray*}
+\end{tabular}
+}
+\caption{Convertir 0.5625 a binario\label{fig:binConvert1}}
+\end{figure}
+
+Considere una fracción binaria con los bits etiquetados como $a, b, c,
+\ldots$ entonces el número se ve como:
+\[ 0.abcdef\ldots \]
+Multiplique el número por dos. La representación binaria del nuevo número
+será:
+\[ a.bcdef\ldots \]
+Observe que el primer bit está ahora en el lugar del uno. Reemplace $a$ con 
+$0$ y obtiene:
+\[ 0.bcdef\ldots \]
+y multiplique por dos otra vez para obtener:
+\[ b.cdef\ldots \]
+Ahora el segundo bit ($b$) está en la primera posición. Este
+procedimiento se puede repetir hasta los bits que se deseen encontrar. La
+Figura~\ref{fig:binConvert1} muestra un ejemplo real que convierte 0.5625
+a binario. El método culmina cuando la parte fraccionaria es cero.
+
+\begin{figure}[t]
+\centering
+\fbox{\parbox{2in}{
+\begin{eqnarray*}
+0.85 \times 2 & = & 1.7 \\
+0.7 \times 2 & = &  1.4 \\
+0.4 \times 2 & = &  0.8 \\
+0.8 \times 2 & = &  1.6 \\
+0.6 \times 2 & = &  1.2 \\
+0.2 \times 2 & = &  0.4 \\
+0.4 \times 2 & = &  0.8 \\
+0.8 \times 2 & = &  1.6 \\
+\end{eqnarray*}
+}}
+\caption{Convertir 0.85 a binario\label{fig:binConvert2}}
+\end{figure}
+
+Como otro ejemplo, considere convertir 23.85 a binario. Es fácil
+convertir la parte entera ($23 = 10111_2$), pero ¿Qué pasa con la parte
+fraccionaria ($0.85$)? La Figura~\ref{fig:binConvert2} muestra el
+comienzo de este cálculo.  Si uno mira cuidadosamente los números, se
+encuentra con un bucle infinito. Esto significa que 0.85 en un binario
+periódico (a diferencia de los decimales periódicos en base
+10).\footnote{No debería sorprenderse de  que un número pudiera repetirse
+en una base, pero no en otra. Piense en $\frac{1}{3}$, es periódico en
+decimal, pero en ternario (base3) sería $0.1_34$.} Hay un patrón de los
+números calculados. Mirando en el patrón, uno puede ver que $0.85 =
+0.11\overline{0110}_2$. Así $23.85 = 10111.11\overline{0110}_2$.
+
+Una consecuencia importante del cálculo anterior es que 23.85 no se puede
+representar \emph{exactamente} en binario usando un número finito de
+bits. (Tal como $\frac{1}{3}$ no se puede representar en decimal con un
+número finito de dígitos). Como muestra este capítulo, las variables
+{\code float} y {\code double} en C son almacenados en binario. Así,
+valores como 23.85 no se pueden almacenar exactamente en estas variables.
+Sólo se puede almacenar una aproximación a 23.85
+
+Para simplificar el hardware, los números de punto flotante  se almacenan
+con un formato consistente. Este formato usa la notación científica (pero
+en binario, usando potencias de dos, no de diez). Por ejemplo 23.85 o
+$10111.11011001100110\ldots_2$ se almacenará como: \[
+1.011111011001100110\ldots \times 2^{100} \] (Donde el exponente (100)
+está en binario). Un número de punto flotante \emph{normalizado} tiene la
+forma: \[ 1.ssssssssssssssss \times 2^{eeeeeee} \] Dónde
+$1.sssssssssssss$ es la \emph{mantisa} y $eeeeeeee$ es el
+\emph{exponente}.
+
+\subsection{Representación IEEE de punto flotante
+\index{punto flotante!representación!IEEE|(}}
+
+El IEEE (Institute of Electrical and Electronic Engineer) es una
+organización internacional que ha  diseñado formato binarios específicos
+para almacenar números de punto flotante. Este formato se usa en la
+mayoría (pero no todos) los computadores hechos hoy día. A menudo es
+soportado por el hardware de computador en sí mismo. Por ejemplo el
+coprocesador numérico (o matemático) de Intel (que está empotrado en
+todas las CPU desde el Pentium) lo usa.  El IEEE define dos formatos con
+precisión diferente: precisión simple y doble. La precisión simple es
+usada por las variables {\code float} en C y la precisión doble es usada
+por la variable {\code double}.
+
+El coprocesador matemático de Intel utiliza un tercer nivel de mayor
+precisión llamado \emph{precisión extendida}. De hecho, todos los datos
+en el coprocesador en sí mismo están en esta precisión. Cuando se
+almacenan en memoria desde el coprocesador se convierte a precisión
+simple o doble automáticamente.\footnote{Algunos compiladores (como
+Borland) los tipos {\code long double} usa esta precisión extendida. Sin
+embargo, otros compiladores usan la precisión doble para {\code double} y
+{\code long double}. (Esto es permitido por ANSI C).} La precisión
+extendida usa un formato general ligeramente diferente que los formatos
+float y double de la IEEE y no será discutido acá.
+ 
+\subsubsection{Presición simple IEEE
+\index{punto flotante!representación!presición simple|(}}
+
+\begin{figure}[t]
+\fbox{
+\centering
+\parbox{5in}{
+\begin{tabular}{|c|c|c|}
+\multicolumn{1}{p{0.3cm}}{31} &
+\multicolumn{1}{p{2.5cm}}{30 \hfill 23} &
+\multicolumn{1}{p{6cm}}{22 \hfill 0} \\
+\hline
+s & e & f \\
+\hline
+\end{tabular}
+\\[0.4cm]
+\begin{tabular}{cp{4.5in}}
+s & bit de signo - 0 = positivo, 1 = negativo \\
+e & exponente sesgado (8-bits) = verdadero exponente + 7F (127 decimal). Los
+    valores 00 y FF tienen significado especial (vea el texto). \\
+f & fracción - los 23 primeros bits después de 1. en la mantisa.
+\end{tabular}
+}}
+\caption{Precisión simple de la IEEE\label{fig:IEEEsingle}}
+\end{figure}
+
+El punto flotante de precisión simple usa 32 bits para codificar el
+número. Normalmente son exactos los primeros 7 dígitos decimales. Los
+números de punto flotante son almacenados en una forma mucho más
+complicada que los enteros. La Figura~\ref{fig:IEEEsingle} muestra la
+forma básica del formato de precisión simple del IEEE. Hay varias
+peculiaridades del formato. Los números de punto flotante no usan la
+representación en complemento a 2 para los números negativos.  Ellos usan
+la representación de magnitud y signo. El bit 31 determina el signo del
+número como se muestra en la figura.
+
+El exponente binario no se almacena directamente. En su lugar, se
+almacena la suma del exponente y 7F en los bits 23 al 30. Este
+\emph{exponente sesgado} siempre es no negativo.
+
+La parte fraccionaria se asume que es normalizada (en la forma
+$1.sssssssss$).  Ya que el primer bit es siempre uno, éste uno \emph{no
+se almacena}. Esto permite el almacenamiento de un bit adicional al final
+y así se incrementa un poco la precisión. Esta idea se conoce como la
+\emph{representación oculta del uno}.  \index{punto
+flotante!representación!uno oculto}
+
+¿Cómo se podría almacenar 23.85?  \MarginNote{Uno debería tener en cuenta
+que los bytes 41 BE CC CD se pueden interpretar de diferentes maneras
+dependiendo qué hace un programa con ellos. Como número de punto flotante
+de precisión simple, ellos representan $23.850000381$, pero como un
+entero, ellos representan $1,103,023,309$. La CPU no conoce cuál es la
+interpretación correcta.} Primero es positivo, así el bit de signo es 0,
+ahora el exponente verdadero es 4, así que el exponente es $7\mathrm{F} +
+4 = 83_{16}$.  Finalmente la fracción es (recuerde el uno de adelante
+está oculto).  Colocando todo esto unido (para ayudar a aclarar las
+diferentes secciones del formato del punto flotante, el bit de signo y la
+fracción han sido subrayados y los bits se han agrupado en nibles):
+\[ \underline{0}\,100\;0001\;1
+   \,\underline{011\;1110\;1100\;1100\;1100\;1100}_2 = 41 \mathrm{BE} 
+\mathrm{CC} \mathrm{CC}_{16} \]
+Esto no es exactamente 23.85 (ya que es un binario periódico). Si uno
+convierte el número anterior a decimal, uno encuentra que es
+aproximadamente $23.849998474$. Este número es muy cercano a 23.85, pero
+no es exacto.  En C, 23.85 no se puede representar exactamente.  Ya que
+el bit del extremo izquierdo que fue truncado de la representación exacta
+es 1, el último bit es redondeado a 1. Así 23.85 podría ser representado
+como 41 BE CC  CD en hexadecimal usando precisión simple. Convirtiendo
+esto a decimal el resultado y que es una aproximación ligeramente mejor
+de 23.85.
+
+¿Cómo se podría representar -23.85? sólo cambie el bit de signo: C1BECCCD
+¡\emph{no} tome el complemento a 2!
+
+\begin{table}[t]
+\fbox{
+\begin{tabular}{lp{3.1in}}
+$e=0 \quad\mathrm{and}\quad f=0$ & representa el número cero (que no
+puede ser normalizado) Observe que hay un +0 y -0. \\ $e=0
+\quad\mathrm{and}\quad f \neq 0$ & representa un \emph{número sin
+normalizar}. Estos se discuten en la próxima sección. \\
+$e=\mathrm{FF} \quad\mathrm{and}\quad f=0$ 
+& representa infinito ($\infty$). Hay infinitos positivo y negativo. \\
+$e=\mathrm{FF} \quad\mathrm{and}\quad f\neq 0$ 
+& representa un resultado indefinido, Conocido como \emph{NaN} (Not a Number).
+\end{tabular}
+}
+\caption{Valores especiales de \emph{f} y \emph{e}\label{tab:floatSpecials}}
+\end{table}
+
+Ciertas combinaciones de \emph{e} y \emph{f} tienen significado especial
+para los float IEEE. El Cuadro~\ref{tab:floatSpecials} describe estos
+valores especiales. Un infinito se produce por un desborde o por una
+división por cero. Un resultado indefinido se produce por una operación
+no válida como tratar de encontrar la raíz cuadrada de un número
+negativo, sumar dos infinitos, etc.
+
+Los números de precisión simple están en el rango de 
+$1.0 \times 2^{-126}$ ($\approx 1.1755 \times 10^{-35}$) to 
+$1.11111\ldots \times 2^{127}$ ($\approx 3.4028 \times 10^{35}$).
+
+\subsubsection{Números sin normalizar
+\index{punto flotante!representación!desnormalizada|(}}
+
+Los números sin normalizar se pueden usar para representar números con
+magnitudes más pequeñas que los normalizados (menores a $1.0 \times
+2^{-126}$).  Por ejemplo, considere el número $1.001_2 \times 2^{-129}$
+($\approx 1.6530 \times 10^{-39}$).  En la forma normalizada, el
+exponente es muy pequeño. Sin embargo, se puede representar de una forma
+no normalizada como: $0.01001_2 \times 2^{-127}$.  Para almacenar este
+número, el exponente sesgado se fija 0 (ver
+Cuadro~\ref{tab:floatSpecials}) y la fracción es la mantisa completa del
+número escrito multiplicado por $2^{-127}$ (todos los bits son
+almacenados incluyendo el 1 a la izquierda del punto decimal). La
+representación de $1.001 \times 2^{-129}$ es entonces:
+\[ \underline{0}\,000\;0000\;0
+   \,\underline{001\;0010\;0000\;0000\;0000\;0000} \]
+\index{punto flotante!representación!desnormalizada|)}
+\index{punto flotante!representación!precisión simple|)}
+
+
+\subsubsection{Doble precisión IEEE
+\index{punto flotante!representación!precisión doble|(}}
+
+\begin{figure}[t]
+\centering
+\begin{tabular}{|c|c|c|}
+\multicolumn{1}{p{0.3cm}}{63} &
+\multicolumn{1}{p{3cm}}{62 \hfill 52} &
+\multicolumn{1}{p{7cm}}{51 \hfill 0} \\
+\hline
+s & e & f \\
+\hline
+\end{tabular}
+\caption{Precisión doble del IEEE \label{fig:IEEEdouble}}
+\end{figure}
+
+La doble precisión  IEEE usa 64 bits para representar números y
+normalmente son exactos los 15 primeros dígitos decimales.  Como muestra
+la Figura~\ref{fig:IEEEdouble}, el formato básico es muy similar a la
+precisión simple. Se usan más bits para el exponente (ll) y la fracción
+(52) que para la precisión simple.
+
+El gran rango para el exponente sesgado tiene dos consecuencias.  La
+primera es que se calcula como la suma del exponente real y 3FF (1023)
+(no 7F como para la precisión simple). Segundo, se permite un gran rango
+de exponentes verdaderos (y así usa un gran rango de magnitudes).  Las
+magnitudes de precisión doble van de $10^{-308}$ hasta $10^{308}$
+aproximadamente.
+
+En el campo de la fracción el responsable del incremento en el número de
+dígitos significativos para los valores dobles.
+
+Como un ejemplo, considere nuevamente 23.85 otra vez. El exponente
+sesgado será 
+$4 + \mathrm{3FF} = 403$ en hexadecimal. Así la representación doble sería:
+\[ \underline{0}\,100\;0000\;0011\;\underline{0111\;1101\;1001\;1001\;1001\;
+   1001\;1001\;1001\;1001\;1001\;1001\;1001\;1010} \]
+
+
+O 40 37 D9 99 99 99 99 9A en hexadecimal. Si uno convierte esto a decimal
+uno encuentra 23.8500000000000014 (¡hay 12 ceros!) que es una
+aproximación mucho mejor de 23.85. 
+
+La precisión doble tiene los mismos valores especiales que la precisión
+simple.\footnote{La única diferencia es que para los valores de infinito
+e indefinido, el exponente sesgado es 7FF y no FF.} Los números no
+normalizados son muy similares también.  La principal diferencia es que
+los números dobles sin normalizados usan $2^{-1023}$  en lugar de
+$2^{-127}$.
+\index{punto flotante!representacióon!precisión doble|)}
+\index{punto flotante!representación!IEEE|)}
+\index{punto flotante!representación|)}
+
+\section{Aritmética de punto flotante\index{punto flotante!aritmética|(}}
+
+La aritmética de punto flotante en un computador diferente que en la
+matemática continua. En matemáticas, todos los números pueden ser
+considerados exactos. Como se muestra en la sección anterior, en un
+computador muchos números no se pueden representar exactamente con un
+número finito de bits. Todos los cálculos se realizan con una precisión
+limitada. En los ejemplos de esta sección, se usarán números con una
+mantisa de 8 bits por simplicidad.
+
+\subsection{suma}
+Para sumar dos números de punto flotante, los exponentes deben ser
+iguales. Si ellos, no son iguales, entonces se deben hacer iguales,
+desplazando la mantisa del número con el exponente más pequeño. Por
+ejemplo, considere $10.375 + 6.34375 = 16.71875$ o en binario:
+\[
+\begin{array}{rr}
+ & 1.0100110 \times 2^3 \\
++& 1.1001011 \times 2^2 \\ \hline
+\end{array}
+\]
+Estos dos números no tienen el mismo exponente así que se desplaza  
+la mantisa para hacer iguales los exponentes y entonces sumar:
+\[
+\begin{array}{rr@{.}l}
+ &  1&0100110 \times 2^3 \\
++&  0&1100110 \times 2^3 \\ \hline
+ & 10&0001100 \times 2^3
+\end{array}
+\]
+Observe que el desplazamiento de $1.1001011 \times 2^2$ pierde el uno
+delantero y luego de redondear el resultado se convierte en $0.1100110
+\times 2^3$.  El resultado de la suma, $10.0001100 \times 2^3$ (o
+$1.00001100 \times 2^4$) es igual a $10000.110_2$ o 16.75. Esto \emph{no}
+es igual a la respuesta exacta (16.71875) Es sólo una aproximación debido
+al error del redondeo del proceso de la suma.
+
+Es importante tener en cuenta que la aritmética de punto flotante en un
+computador (o calculadora) es siempre una aproximación. Las leyes de las
+matemáticas no siempre funcionan con números de  punto flotante en un
+computador. Las matemáticas asumen una precisión infinita que un
+computador no puede alcanzar. Por ejemplo, las matemáticas enseñan que
+$(a + b) - b = a$; sin embargo, esto puede ser exactamente cierto en un
+computador.
+
+\subsection{Resta}
+La resta trabaja muy similar y tiene los mismos problemas que la suma.
+Como un ejemplo considere $16.75 - 15.9375 = 0.8125$:
+
+Subtraction works very similarly and has the same problems as addition.
+As an example, consider $16.75 - 15.9375 = 0.8125$:
+\[
+\begin{array}{rr}
+ & 1.0000110 \times 2^4 \\
+-& 1.1111111 \times 2^3 \\ \hline
+\end{array}
+\]
+Desplazando $1.1111111 \times 2^3$ da (redondeando arriba) $1.0000000 \times 2^4$
+\[
+\begin{array}{rr}
+ & 1.0000110 \times 2^4 \\
+-& 1.0000000 \times 2^4 \\ \hline
+ & 0.0000110 \times 2^4
+\end{array}
+\]
+$0.0000110 \times 2^4 = 0.11_2 = 0.75$ que no es exacto.
+
+\subsection{Multiplicación y división}
+
+Para la multiplicación, las mantisas son multiplicadas y los 
+exponentes son sumados. Considere $10.375 \times 2.5 = 25.9375$:
+\[
+\begin{array}{rr@{}l}
+ &  1.0&100110 \times 2^3 \\
+\times &  1.0&100000 \times 2^1 \\ \hline
+ &     &10100110 \\
++&   10&100110   \\ \hline
+ &   1.1&0011111000000 \times 2^4
+\end{array}
+\]
+Claro está, el resultado real podría ser redondeado a 8 bits para dar:
+\[1.1010000 \times 2^4 = 11010.000_2 = 26 \]
+
+La división es más complicada, pero tiene problemas similares con errores
+de redondeo.
+
+\subsection{Instrucciones condicionales}
+
+El principal punto de esta sección es que los cálculos de punto flotante
+no son exactos. El programador  necesita tener cuidado con esto. Un error
+común que el programador hace con números de punto flotante es
+compararlos asumiendo que el cálculo es exacto. Por ejemplo considere una
+función llamada \lstinline|f(x)| que hace un cálculo complejo y un
+programa está tratando de encontrar las raíces de la
+función.\footnote{Una raíz de una función es un valor $x$ tal que $f(x) =
+0$}.  Uno podría intentar usar la siguiente instrucción para mirar si 
+\lstinline|x| es una raíz:
+\begin{lstlisting}[stepnumber=0]{}
+  if ( f(x) == 0.0 )
+\end{lstlisting}
+¿Pero si \lstinline|f(x)| retorna $1 \times 10^{-30}$?  Esto
+probablemente significa que \lstinline|x| es una \emph{muy} buena
+aproximación a una raíz verdadera; sin embargo, la igualdad será falsa.
+Puede no haber ningún valor de punto flotante IEEE de \lstinline|x| que
+retorne cero exactamente, debido a los errores de redondeo en
+\lstinline|f(x)|.
+
+Un método mucho mejor sería usar:
+\begin{lstlisting}[stepnumber=0]{}
+  if ( fabs(f(x)) < EPS )
+\end{lstlisting}
+Dónde \lstinline|EPS| es un macro definido para ser un valor positivo muy
+pequeño (como $1 \times 10^{-10}$). Esto es cierto si \lstinline|f(x)|
+está muy cercano a cero. En general, para comparar un valor de punto
+flotante (digamos \lstinline|x|) con otro (\lstinline|y|) use:
+\begin{lstlisting}[stepnumber=0]{}
+  if ( fabs(x - y)/fabs(y) < EPS )
+\end{lstlisting}
+\index{punto flotante!aritmética|)}
+
+\section{El coprocesador numérico}
+\index{coprocesador de punto flotante|(}
+\subsection{Hardware}
+\index{coprocesador de punto flotante!hardware|(}
+Los primeros procesadores Intel no tenían soporte de hardware para las
+operaciones de punto flotante. Esto no significa que ellos no podían
+efectuar operaciones de punto flotante. Esto sólo significa que ellas se
+realizaban por procedimientos compuestos de muchas instrucciones que no
+son de punto flotante. Para estos primeros sistemas, Intel suministraba
+un circuito integrado adicional llamado \emph{coprocesador matemático}.
+Un coprocesador matemático tiene instrucciones de máquina que realizan
+instrucciones de punto flotante mucho más rápido que usando
+procedimientos de software (en los primeros procesadores se realizaban al
+menos 10 veces más rápido). El coprocesador para el 8086/8088 fue llamado
+8087. Para el 80286 era el 80287 y para el 80386 un 80387. El procesador
+80486DX integró el coprocesador matemático en el 80486 en sí
+mismo\footnote{Sin embargo el 80486SX no tiene el un coprocesador
+integrado. Existía un chip separado para estas máquinas (el 80487SX)}.
+Desde el Pentium, todas las generaciones del 80x86 tienen un coprocesador
+matemático empotrado; sin embargo él todavía se programa como si fuera
+una unidad separada. Inclusive en los primeros sistemas sin un
+coprocesador se puede instalar un software que emula el coprocesador
+matemático. Estos emuladores se activan automáticamente cuando un
+programa ejecuta una instrucción del coprocesador y corre un
+procedimiento que obtiene los mismos resultados que el coprocesador
+(mucho más lento claro está). 
+
+El coprocesador numérico tiene ocho registros de punto flotante. Cada
+registro almacena 80 bits. Los números  de punto flotante se almacenan en
+estos registros \emph{siempre} como números de 80 bits de precisión
+extendida. Los registros se llaman {\code STO}, {\code ST1}, $\ldots$
+{\code ST7}. Los registros de punto flotante se usan diferente que los
+registros enteros en la CPU. Los registros de punto flotante están
+organizados como una pila. Recuerde que una \emph{pila} es una lista LIFO
+(\emph{Last In Firist Out}). {\code STO} siempre se refiere al valores el
+tope de la pila.  Todos los números nuevos se añaden al tope de la pila.
+Los números existentes se empujan en la pila para dejarle espacio al
+nuevo número. 
+
+Hay también un registro de estado en el coprocesador numérico. Tiene
+varias banderas. Sólo las 4 banderas usadas en comparaciones serán
+estudiadas. C$_0$, C$_1$, C$_2$ and C$_3$.  El uso de ellas se discutirá
+luego.
+\index{coprocesador de punto flotante!hardware|)}
+
+\subsection{Instrucciones}
+
+Para distinguir fácilmente las instrucciones normales de la CPU de las
+del coprocesador, todos los nemónicos del coprocesador comienzan por
+{\code F}.
+
+\subsubsection{Carga y almacenamiento\index{coprocesador de punto
+flotante!carga y almacenamiento de datos|(}} Hay varias instrucciones que
+cargan datos en el tope de la pila de registro del coprocesador:\\
+\begin{tabular}{lp{4in}}
+{\code FLD \emph{fuente}} \index{FLD} & 
+Carga un número de punto flotante de la memoria en el tope de la pila.  
+\emph{fuente} puede ser un número de precisión simple doble o extendida o un 
+registro del coprocesador \\ 
+{\code FILD \emph{fuente}} \index{FILD} &
+Lee un \emph{entero} de memoria, lo convierte a punto flotante y almacena el 
+resultado en el tope de la pila. \emph{fuente} puede ser una palabra, palabra 
+doble o una palabra cuádruple. \\
+{\code FLD1} \index{FLD1} &
+almacena un uno en el tope de la pila.\\
+{\code FLDZ} \index{FLDZ} &
+almacena un cero en el tope de la pila. \\
+\end{tabular}
+
+Hay también varias instrucciones que almacenan datos de la pila en
+memoria. Algunas de estas instrucciones también \emph{sacan} el número de
+la pila. \\
+\begin{tabular}{lp{4in}}
+{\code FST \emph{dest}} \index{FST} &
+Almacena el tope de la pila ({\code ST0}) en memoria. El \emph{destino}
+puede ser un número de precisión simple o doble o un registro de
+coprocesador. \\
+{\code FSTP \emph{dest}} \index{FSTP} &
+Almacena el tope de la pila en la memoria tal como {\code FST}; sin
+embargo luego de que se almacena el número, su valor se saca de la pila.
+El \emph{destino} puede ser un número de precisión simple o doble o un
+registro del coprocesador. \\
+{\code FIST \emph{dest}} \index{FIST} &
+Almacena el valor del tope de la pila convertido a entero en memoria. El
+\emph{destino} puede ser una palabra o palabra doble. La pila no sufre
+ningún cambio. Cómo se convierte el número de punto flotante a entero
+depende de algunos bits de la 
+\emph{palabra de control} del coprocesador. Este es un registro especial (no de 
+punto flotante) que controla cómo trabaja el coprocesador. Por omisión,
+la palabra de control se inicia de tal manera que redondea al entero más
+cercano cuando se convierte a entero. Sin embargo las instrucciones
+{\code FSTCW} (\emph{Store Control Word})  
+y {\code FDLCW} (\emph{Load Control Word}) se pueden usar para cambiar este 
+comportamiento.
+\index{FSTCW} \index{FLDCW} \\
+{\code FISTP \emph{dest}} \index{FIST} &
+Lo mismo que {\code FIST}, excepto por dos cosas. El tope de la pila se saca y el 
+\emph{destino} también puede ser una palabra cuádruple.
+\end{tabular}
+
+Hay otras dos instrucciones que pueden mover o quitar datos de la pila en 
+sí misma. \\
+\begin{tabular}{lp{4in}}
+{\code FXCH ST\emph{n}} \index{FXCH}  &
+intercambia los valores en {\code ST0} y {\code ST\emph{n}} en la pila 
+(donde n es el número del registro de 1 a 7). \\
+{\code FFREE ST\emph{n}} \index{FFREE} &
+libera un registro en la pila, marcando el registro como no 
+usado o vacío.
+\end{tabular}
+\index{coprocesador de punto flotante!carga y almacenamiento de datos|)}
+
+\subsubsection{Suma y resta 
+\index{coprocesador de punto flotante!suma y resta|(}}
+
+Cada una de las instrucciones de suma calcula la suma de {\code ST0} y otro 
+operando, el resultado siempre se almacena en un registro del coprocesador. \\
+\begin{tabular}{p{1.5in}p{3.5in}}
+{\code FADD \emph{fuente}} \index{FADD} &
+{\code ST0 += \emph{fuente}}. \emph{fuente} puede ser cualquier registro del coprocesador o 
+un número de precisión simple o doble en memoria. \\
+{\code FADD \emph{dest}, ST0} &
+{\code \emph{dest} += ST0}. El \emph{destino} puede ser cualquier registro del coprocesador \\
+{\code FADDP \emph{dest}} o \newline {\code FADDP \emph{dest}, ST0} \index{FADDP} &
+{\code \emph{dest} += ST0} y luego se saca de la pila. El \emph{destino} puede ser cualquier 
+registro del coprocesador. \\
+{\code FIADD \emph{fuente}} \index{FIADD} &
+{\code ST0 += (float) \emph{fuente}}. suma un entero con {\code ST0}.
+\emph{fuente} debe ser una palabra o una palabra doble en memoria.
+\end{tabular}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+segment .bss
+array        resq SIZE
+sum          resq 1
+
+segment .text
+      mov    ecx, SIZE
+      mov    esi, array
+      fldz                  ; ST0 = 0
+lp:
+      fadd   qword [esi]    ; ST0 += *(esi)
+      add    esi, 8         ; se mueve al próximo dobule
+      loop   lp
+      fstp   qword sum      ; almacena el resultado en sum
+\end{AsmCodeListing}
+\caption{Ejemplo sumar arreglo\label{fig:addEx}}
+\end{figure}
+
+Hay el doble de instrucciones de resta que de suma porque el orden de los
+operandos es importante. (¡$a + b = b + a$, pero $a - b \neq b - a$!).
+Por cada instrucción, hay una alterna que resta en el orden inverso. Esas
+instrucciones al revés todas culminan con {\code R} o {\code RP}. La
+Figura~\ref{fig:addEx} muestra un pequeño código que suma los elementos
+de un arreglo de dobles. En las líneas 10 y 13, uno debe especificar el
+tamaño del operando de memoria. De otra forma el ensamblador no conocería
+si el operando de memoria era un float (dword) o double (qword).
+
+
+\begin{tabular}{p{1.5in}p{3.5in}}
+{\code FSUB \emph{fuente}} \index{FSUB} &
+{\code ST0 -= \emph{fuente}}. \emph{fuente} puede ser cualquier registro del coprocesador
+o un número de presición doble o simple en memoria. \\
+{\code FSUBR \emph{fuente}} \index{FSUBR} &
+{\code ST0 = \emph{fuente} - ST0}. \emph{fuente} puede ser cualquier registro del 
+coprocesador
+o un número de presición doble o simple en memoria. \\
+{\code FSUB \emph{dest}, ST0} &
+{\code \emph{dest} -= ST0}. \emph{dest} puede ser cualquier registro del
+coprocesador. \\
+{\code FSUBR \emph{dest}, ST0} &
+{\code \emph{dest} = ST0 - \emph{dest}}. \emph{dest} puede ser cualquier
+registro del coprocesador.  \\
+{\code FSUBP \emph{dest}} o \newline {\code FSUBP \emph{dest}, STO} \index{FSUBP} &
+{\code \emph{dest} -= ST0} y luego sale de la pila. \emph{dest} puede ser cualquier
+registro del coprocesador. \\
+{\code FSUBRP \emph{dest}} o \newline {\code FSUBRP \emph{dest}, STO} \index{FSUBRP} &
+{\code \emph{dest} = ST0 - \emph{dest}} y luego sale de la pila. \emph{dest} puede 
+ser cualquier registro del coprocesador. \\
+{\code FISUB \emph{fuente}} \index{FISUB} &
+{\code ST0 -= (float) \emph{fuente}}. Resta un entero de {\code ST0}. 
+\emph{fuente} debe ser una palabra o palabra doble en memoria. \\
+{\code FISUBR \emph{fuente}} \index{FISUBR} &
+{\code ST0 = (float) \emph{fuente} - ST0}. Resta {\code ST0} de un entero.
+ \emph{fuente} debe ser una palabra o palabra doble en memoria.
+\end{tabular}
+\index{coprocesador de punto flotante!suma y resta|)}
+\subsubsection{Multiplicación y división
+\index{coprocesador de punto flotante!multiplicación and división|(}}
+
+La instrucción de multiplicación son totalmente análogas a las 
+instrucciones de suma. \\
+
+\begin{tabular}{p{1.5in}p{3.5in}}
+{\code FMUL \emph{fuente}} \index{FMUL} &
+{\code ST0 *= \emph{fuente}}. \emph{fuente} puede ser cualquier registro del 
+coprocesador o un número de precisión simple o doble en memoria. \\
+{\code FMUL \emph{dest}, ST0} &
+{\code \emph{dest} *= ST0}. \emph{dest} puede ser cualquier registro del coprocesador. \\
+{\code FMULP \emph{dest}} o \newline {\code FMULP \emph{dest}, STO} \index{FMULP} &
+{\code \emph{dest} *= ST0} y luego sale de la pila. \emph{dest} puede ser cualquier
+registro del coprocesador. \\
+{\code FIMUL \emph{fuente}} \index{FMUL} &
+{\code ST0 *= (float) \emph{fuente}}. Multiplica un entero con {\code ST0}. 
+\emph{fuente} debe ser una palabra o palabra doble en memoria.
+\end{tabular}
+
+No es sorprendente que las instrucciones de división sean análogas a las 
+instrucciones de resta. La división por cero da infinito. \\
+
+\begin{tabular}{p{1.5in}p{3.5in}}
+{\code FDIV \emph{fuente}} \index{FDIV} &
+{\code ST0 /= \emph{fuente}}. \emph{fuente} puede ser cualquier registro del coprocesador
+o un número de precisión simple o doble en memoria. \\
+
+{\code FDIVR \emph{fuente}} \index{FDIVR} &
+{\code ST0 = \emph{fuente} / ST0}. \emph{fuente} puede ser cualquier registro del coprocesador o un número de precisión simple o doble en memoria. \\
+{\code FDIV \emph{dest}, ST0} &
+{\code \emph{dest} /= ST0}. \emph{dest} puede ser cualquier registro del coprocesador. \\
+{\code FDIVR \emph{dest}, ST0} &
+{\code \emph{dest} = ST0 / \emph{dest}}. \emph{dest} puede ser cualquier registro
+del coprocesador. \\
+{\code FDIVP \emph{dest}} o \newline {\code FDIVP \emph{dest}, STO} \index{FDIVP} &
+{\code \emph{dest} /= ST0} y luego sale de la pila. \emph{dest} puede ser cualquier
+registro del coprocesador. \\
+{\code FDIVRP \emph{dest}} o \newline {\code FDIVRP \emph{dest}, STO} \index{FDIVRP} &
+{\code \emph{dest} = ST0 / \emph{dest}} y luego sale de la pila. \emph{dest} puede
+ser cualquier registro del coprocesador. \\ 
+{\code FIDIV \emph{fuente}} \index{FIDIV} &
+{\code ST0 /= (float) \emph{fuente}}. Divide {\code ST0} por un entero. 
+\emph{fuente} debe ser una palabra o palabra doble en memoria. \\
+{\code FIDIVR \emph{fuente}} \index{FIDIVR} &
+{\code ST0 = (float) \emph{fuente} / ST0}. Divide un entero por {\code ST0}.
+ \emph{fuente} debe ser una palabra o palabra doble en memoria.
+\end{tabular}
+\index{coprocesador de punto flotante!multiplicación and división|)}
+
+\subsubsection{Comparaciones
+\index{coprocesador de punto flotante!comparaciones|(}}
+
+El coprocesador también realiza comparaciones de números de punto 
+flotante. La familia de instrucciones {\code FCOM} hacen esta operación. \\
+
+\begin{tabular}{lp{4in}}
+{\code FCOM \emph{fuente}} \index{FCOM} & 
+compara {\code ST0} y {\code \emph{fuente}}. \emph{fuente} puede ser 
+un registro del coprocesador o un float o un double en memoria. \\ 
+puede ser un
+{\code FCOMP \emph{fuente}} \index{FCOMP} & 
+compara {\code ST0} y {\code \emph{fuente}}, luego sale de la pila. \emph{fuente} 
+puede ser un registro del coprocesador o un float o double en memoria. \\
+{\code FCOMPP} \index{FCOMPP} & 
+compara {\code ST0} y {\code ST1}, y luego sale de la pila dos veces. \\
+{\code FICOM \emph{fuente}} \index{FICOM} & 
+compara {\code ST0} y {\code (float) \emph{fuente}}. \emph{fuente} 
+puede ser una palabra o palabra doble en memoria. \\ 
+{\code FICOMP \emph{fuente}} \index{FICOMP} & 
+compara {\code ST0} y {\code (float)\emph{fuente}}, y luego sale de la pila.
+\emph{fuente} puede ser una palabra o palabra doble entera en memoria. \\
+{\code FTST } \index{FTST} &
+compara {\code ST0} and 0.
+\end{tabular}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+;     if ( x > y )
+;
+      fld    qword [x]       ; ST0 = x
+      fcomp  qword [y]       ; compara STO e y
+      fstsw  ax              ; mueve los bits C a FLAGS
+      sahf
+      jna    else_part       ; si x no es mayor que y, 
+                             ; vaya a else_part
+then_part:
+     ; código para parte de entonces
+      jmp    end_if
+else_part:
+      ; código para parte si no
+end_if:
+\end{AsmCodeListing}
+\caption{Ejemplo de comparación\label{fig:compEx}}
+\end{figure}
+
+Estas instrucciones cambian los bits C$_0$, C$_1$, C$_2$ y C$_3$ del
+registro de estado del coprocesador. Desafortunadamente no es posible que
+la CPU acceda a estos bits directamente. Las instrucciones de salto
+condicional usan el registro FLAGS, no el registro de estado del
+coprocesador. Sin embargo es relativamente fácil transferir los bits de
+la palabra de estado a los bits correspondientes del registro FLAGS
+usando algunas instrucciones nuevas.\\
+\begin{tabular}{lp{4in}}
+{\code FSTSW \emph{dest}} \index{FSTSW} & 
+Almacena la palabra de estado del coprocesador in memoria o en el registro AX. \\
+{\code SAHF} \index{SAHF} & 
+Almacena el registro AH en el registro FLAGS. \\
+{\code LAHF} \index{LAHF} & 
+Carga el registro AH con los bits del registro FLAGS. \\
+\end{tabular}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+global _dmax
+
+segment .text
+; función _dmax
+; retorna el mayor de dos argumentos double
+; Prototipo de C
+; double dmax( double d1, double d2 )
+; Parámetros:
+;   d1   - primer double
+;   d2   - segundo double
+; Valor de retorno:
+;   El mayor de d1 y d2 (en ST0)
+%define d1   ebp+8
+%define d2   ebp+16
+_dmax:
+        enter   0, 0
+
+        fld     qword [d2]
+        fld     qword [d1]          ; ST0 = d1, ST1 = d2
+        fcomip  st1                 ; ST0 = d2
+        jna     short d2_bigger
+        fcomp   st0                 ; pop d2 de la pila
+        fld     qword [d1]          ; ST0 = d1
+        jmp     short exit
+d2_bigger:                          ; si d2 is max, no hace nada
+exit:
+        leave
+        ret
+\end{AsmCodeListing}
+\caption{Ejemplo de {\code FCOMIP}\label{fig:fcomipEx}}
+\index{FCOMIP}
+\end{figure}
+
+La Figura~\ref{fig:compEx} muestra un ejemplo cortico. Las líneas 5 y 6
+transfieren los bits C$_0$, C$_1$, C$_2$ y C$_3$ de la palabra de estado
+del coprocesador al registro FLAGS. Los bits son transferidos tal que
+ellos son análogos al resultado de una comparación de dos enteros
+\emph{sin signo}. Este es el porque la línea 7 usa la instrucción JNA.
+
+El Pentium Pro (y procesadores posteriores II y III) soportan 2 nuevos
+operadores de comparación que directamente modifican el registro FLAGS de
+la CPU.\\
+\begin{tabular}{lp{4in}}
+{\code FCOMI \emph{fuente}} \index{FCOMI} & 
+compara {\code ST0} y {\code \emph{fuente}}. \emph{fuente} debe ser un
+registro del coprocesador. \\ 
+{\code FCOMIP \emph{fuente}} \index{FCOMIP} & 
+COMPARA {\code ST0} y {\code \emph{fuente}}, y luego sale de la pila. \emph{fuente} 
+debse ser un registro del coprocesador. \\
+\end{tabular}
+La Figura~\ref{fig:fcomipEx} muestra una subrutina de ejemplo que encuentran el máximo de dos 
+números tipo double usando la instrucción {\code FCOMIP}. No confundan esta instrucción con la 
+función de comparación de enteros ({\code FICOMP} y {\code FICOM}).
+\index{coprocesador de punto flotante!comparaciones|)}
+
+\subsubsection{Instrucciones miscelaneas}
+%FINIT?
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+segment .data
+x            dq  2.75          ; convertido a formato double
+five         dw  5
+
+segment .text
+      fild   dword [five]      ; ST0 = 5
+      fld    qword [x]         ; ST0 = 2.75, ST1 = 5
+      fscale                   ; ST0 = 2.75 * 32, ST1 = 5
+\end{AsmCodeListing}
+\caption{Ejemplo de {\code FSCALE} \label{fig:fscaleEx}}
+\index{FSCALE}
+\end{figure}
+
+Esta sección cubre las otras instrucciones que suministra el procesador:
+
+\begin{tabular}{lp{4in}}
+{\code FCHS} \index{FCHS} & 
+{\code ST0 = - ST0} cambia el bit de signo de  {\code ST0}  \\
+{\code FABS} \index{FABS} & 
+$\mathtt{ST0} = |\mathtt{ST0}|$ Toma el valor absoluto de {\code ST0}\\
+{\code FSQRT} \index{FSQRT} &
+$\mathtt{ST0} = \sqrt{\mathtt{STO}}$ Toma la raíz cuadrada de {\code ST0} \\
+{\code FSCALE} \index{FSCALE} &
+$\mathtt{ST0} = \mathtt{ST0} \times 2^{\lfloor \mathtt{ST1} \rfloor}$
+multiplica {\code ST0} por una potencia de dos rápidamente. {\code ST1} no se
+quita de la pila del coprocesador . La Figure~\ref{fig:fscaleEx} muestra un ejemplo
+de cómo usar esta instrucción.
+\end{tabular}
+
+
+\subsection{Ejemplos}
+
+\subsection{Fórmula cuadrática\index{fórmula cuadrática|(}}
+
+El primer ejemplo muestra cómo se puede programar la fórmula cuadrática
+en ensamblador. Recuerde que la fórmula cuadrática calcula la solución de
+una ecuación cuadrática: \[ a x^2 + b x + c = 0 \] La fórmula en sí misma
+da dos soluciones para  $x$: $x_1$ y $x_2$.  \[ x_1, x_2 = \frac{-b \pm
+\sqrt{b^2 - 4 a c}}{2 a} \] La expresión dentro de la raíz cuadrada ($b^2
+- 4 a c$) es llamada \emph{discriminante}, su valor es útil para
+determinar las 3 posibilidades para la solución:
+\begin{enumerate}
+\item Hay solo un real en la solución degenerada. $b^2 - 4 a c = 0$
+\item Hay dos soluciones reales. $b^2 - 4 a c > 0$
+\item Hay dos soluciones complejas. $b^2 - 4 a c < 0$
+\end{enumerate}
+
+Este es un pequeño programa en C que usa la subrutina en ensamblador.
+\LabelLine{quadt.c}
+\begin{lstlisting}{}
+#include <stdio.h>
+
+int quadratic( double, double, double, double *, double *);
+
+int main()
+{
+  double a,b,c, root1, root2;
+
+  printf("Enter a, b, c: ");
+  scanf("%lf %lf %lf", &a, &b, &c);
+  if (quadratic( a, b, c, &root1, &root2) )
+    printf("roots: %.10g %.10g\n", root1, root2);
+  else
+    printf("No real roots\n");
+  return 0;
+}
+\end{lstlisting}
+\LabelLine{quadt.c}
+
+A continuación está la rutina en ensamblador.
+\begin{AsmCodeListing}[label=quad.asm,commentchar=$]
+; función quadratic
+; Halla la solución de la ecuación cuadrática: 
+;       a*x^2 + b*x + c = 0
+; Prototipo de C:
+;   int quadratic( double a, double b, double c,
+;                  double * root1, double *root2 )
+; Parámetros:
+;   a, b, c - Coeficientes de la ecuación cuadrática (ver arriba)
+;   root1   - Apuntador al double que almacena la primera raíz
+;   root2   - Apuntador al double que almacena la segunda raíz
+; Valor de retorno:
+;   devuelve 1 si las raíces son reales si no 0
+
+%define a               qword [ebp+8]
+%define b               qword [ebp+16]
+%define c               qword [ebp+24]
+%define root1           dword [ebp+32]
+%define root2           dword [ebp+36]
+%define disc            qword [ebp-8]
+%define one_over_2a     qword [ebp-16]
+
+segment .data
+MinusFour       dw      -4
+
+segment .text
+        global  _quadratic
+_quadratic:
+        push    ebp
+        mov     ebp, esp
+        sub     esp, 16         ; asigna 2 doubles (disc & one_over_2a)
+        push    ebx             ; debe guardar el valor original de ebx
+
+        fild    word [MinusFour]; pila -4
+        fld     a               ; pila: a, -4
+        fld     c               ; pila: c, a, -4
+        fmulp   st1             ; pila: a*c, -4
+        fmulp   st1             ; pila: -4*a*c
+        fld     b
+        fld     b               ; pila: b, b, -4*a*c
+        fmulp   st1             ; pila: b*b, -4*a*c
+        faddp   st1             ; pila: b*b - 4*a*c
+        ftst                    ; prueba con 0
+        fstsw   ax
+        sahf
+        jb      no_real_solutions ; if disc < 0, no hay soluciones reales
+        fsqrt                   ; pila: sqrt(b*b - 4*a*c)
+        fstp    disc            ; almacena y saca de la pila
+        fld1                    ; pila: 1.0
+        fld     a               ; pila: a, 1.0
+        fscale                  ; pila: a * 2^(1.0) = 2*a, 1
+        fdivp   st1             ; pila: 1/(2*a)
+        fst     one_over_2a     ; pila: 1/(2*a)
+        fld     b               ; pila: b, 1/(2*a)
+        fld     disc            ; pila: disc, b, 1/(2*a)
+        fsubrp  st1             ; pila: disc - b, 1/(2*a)
+        fmulp   st1             ; pila: (-b + disc)/(2*a)
+        mov     ebx, root1
+        fstp    qword [ebx]     ; almacena en *root1
+        fld     b               ; pila: b
+        fld     disc            ; pila: disc, b
+        fchs                    ; pila: -disc, b
+        fsubrp  st1             ; pila: -disc - b
+        fmul    one_over_2a     ; pila: (-b - disc)/(2*a)
+        mov     ebx, root2
+        fstp    qword [ebx]     ; almacena en *root2
+        mov     eax, 1          ; valor de retorno es 1
+        jmp     short quit
+
+no_real_solutions:
+        mov     eax, 0          ; valor de retorno es 0
+
+quit:
+        pop     ebx
+        mov     esp, ebp
+        pop     ebp
+        ret
+\end{AsmCodeListing}
+\index{quad.asm|)}
+
+\subsection{Leer arreglos de archivos\index{leer archivos|(}}
+
+Este ejemplo, es una rutina en ensamblador que lee doubles de un archivo. 
+Sigue un pequeño programa de prueba en C.
+\LabelLine{readt.c}
+\begin{lstlisting}{}
+/*
+ * Este programa prueba el procedimiento en ensamblador de 32 bits read_doubles() .
+ * Lee doubles de stdin. (use la redireccióon para leer desde un archivo.)
+ */
+#include <stdio.h>
+extern int read_doubles( FILE *, double *, int );
+#define MAX 100
+
+int main()
+{
+  int i,n;
+  double a[MAX];
+
+  n = read_doubles(stdin, a, MAX);
+
+  for( i=0; i < n; i++ )
+    printf("%3d %g\n", i, a[i]);
+  return 0;
+}
+\end{lstlisting}
+\LabelLine{readt.c}
+
+A continuación la rutina en ensamblador
+\begin{AsmCodeListing}[label=read.asm]
+segment .data
+format  db      "%lf", 0        ; formato para fscanf()
+
+segment .text
+        global  _read_doubles
+        extern  _fscanf
+
+%define SIZEOF_DOUBLE   8
+%define FP              dword [ebp + 8]
+%define ARRAYP          dword [ebp + 12]
+%define ARRAY_SIZE      dword [ebp + 16]
+%define TEMP_DOUBLE     [ebp - 8]
+
+;
+; función _read_doubles
+; prototipo de C:
+;   int read_doubles( FILE * fp, double * arrayp, int array_size );
+; Esta función lee dobles de un archivo de texto hasta EOF o hasta
+; que se llene el arreglo
+; Parámetros:
+;   fp         - apuntador FILE pointer a leer desde (se debe abrir para entrada)
+;   arrayp     - apuntador a un arreglo de doubles para leer en él
+;   array_size - número de elementos en el arreglo
+; Valor de retorno:
+;   número de doubles almacenado en el arreglo (en EAX)
+
+_read_doubles:
+        push    ebp
+        mov     ebp,esp
+        sub     esp, SIZEOF_DOUBLE      ; define un double en la pila
+
+        push    esi                     ; guarda esi
+        mov     esi, ARRAYP             ; esi = ARRAYP
+        xor     edx, edx                ; edx = índice del arreglo (inicialmente en 0)
+
+while_loop:
+        cmp     edx, ARRAY_SIZE         ; si edx < ARRAY_SIZE?
+        jnl     short quit              ; si no, salir del bucle
+;
+; llama a fscanf() para leer un double en TEMP_DOUBLE
+; fscanf() podría cambiar  edx y así guardarlo 
+;
+        push    edx                     ; guarda edx
+        lea     eax, TEMP_DOUBLE
+        push    eax                     ; push &TEMP_DOUBLE
+        push    dword format            ; push &format
+        push    FP                      ; push el apuntador al archivo
+        call    _fscanf
+        add     esp, 12
+        pop     edx                     ; restaura edx
+        cmp     eax, 1                  ; fscanf  retornó 1?
+        jne     short quit              ; si no, salir del bucle
+
+;
+; copia TEMP_DOUBLE en ARRAYP[edx]
+; (Los ocho bytes del double son copiados por las dos copias de 4 bytes)
+;
+        mov     eax, [ebp - 8]
+        mov     [esi + 8*edx], eax      ; primero copia los 4 bytes inferiores
+        mov     eax, [ebp - 4]
+        mov     [esi + 8*edx + 4], eax  ; ahora copia los 4 bytes superiores
+
+        inc     edx
+        jmp     while_loop
+
+quit:
+        pop     esi                     ; restaura esi
+
+        mov     eax, edx                ; almacena el valor de retorno en eax
+
+        mov     esp, ebp
+        pop     ebp
+        ret 
+\end{AsmCodeListing}
+\index{read.asm|)}
+
+\subsection{Hallar primos\index{prime2.asm|(}}
+
+Este último ejemplo halla números primos una vez más. Esta implementación 
+es más eficiente que la anterior. Almacena los primos que ha encontrado en 
+un arreglo y solo divide por los primos que ha encontrado antes, en lugar 
+de cada número impar, para encontrar nuevos primos.
+
+Otra diferencia es que el programa calcula la raíz cuadrada del número 
+examinado para buscar el próximo 
+primo para determinar en qué punto parar la búsqueda de factores. Altera 
+la palabra de control de coprocesador tal que cuando almacena la raíz 
+cuadrada como un entero, y la trunca en lugar de redondearla. Esto es 
+controlado por los bits 10 y 11 de la palabra de control. Estos bits se 
+llaman los bits RC (Raunding Control). Si ellos son ambos 0 (por omisión) 
+el coprocesador redondea cuando convierte a entero. Si ellos son ambos 1, 
+el coprocesador trunca las conversiones enteras. Observe que la rutina se 
+cuida de guardar la palabra de control original y restaurarla antes de 
+retornar.
+
+A continuación el programa en C:
+\LabelLine{fprime.c}
+\begin{lstlisting}{}
+#include <stdio.h>
+#include <stdlib.h>
+/*
+ * función find_primes
+ * Halla los números primos indicados
+ * Parámetros:
+ *   a - arreglo que almacena los primos
+ *   n - cuántos primos encontrar
+ */
+extern void find_primes( int * a, unsigned n );
+
+int main()
+{
+  int status;
+  unsigned i;
+  unsigned max;
+  int * a;
+
+  printf("¿Cuántos primos desea encontrar Ud.? ");
+  scanf("%u", &max);
+
+  a = calloc( sizeof(int), max);
+
+  if ( a ) {
+
+    find_primes(a,max);
+
+    /* imprime los 20 últimos primos encontrados */
+    for(i= ( max > 20 ) ? max - 20 : 0; i < max; i++ )
+      printf("%3d %d\n", i+1, a[i]);
+
+    free(a);
+    status = 0;
+  }
+  else {
+    fprintf(stderr, "No se puede crear el arreglo de %u ints\n", max);
+    status = 1;
+  }
+
+  return status;
+}
+\end{lstlisting}
+\LabelLine{fprime.c}
+
+A continuación la rutina en ensamblador:
+
+
+\begin{AsmCodeListing}[label=prime2.asm]
+segment .text
+        global  _find_primes
+;
+; function find_primes
+; Encuentra el número indicado de primos
+; Parámetros:
+;   array  - arreglo que almacena los primos
+;   n_find - cuántos primos encontrar
+; Prototipo de C
+;extern void find_primes( int * array, unsigned n_find )
+;
+%define array         ebp + 8
+%define n_find        ebp + 12
+%define n             ebp - 4           ; número de primos a encontrar 
+%define isqrt         ebp - 8           ; el piso de la raíz cudrada de guess
+%define orig_cntl_wd  ebp - 10          ; palabra original de control
+%define new_cntl_wd   ebp - 12          ; nueva palabra de control
+
+_find_primes:
+        enter   12,0                    ; Hace espacio para las variables locales
+
+        push    ebx                     ; guarda las posibles variables registro
+        push    esi
+
+        fstcw   word [orig_cntl_wd]     ; toma la palabra de control actual
+        mov     ax, [orig_cntl_wd]
+        or      ax, 0C00h               ; fija el redondeo de los bits a 11 (truncar)
+        mov     [new_cntl_wd], ax
+        fldcw   word [new_cntl_wd]
+
+        mov     esi, [array]            ; esi apunta a array
+        mov     dword [esi], 2          ; array[0] = 2
+        mov     dword [esi + 4], 3      ; array[1] = 3
+        mov     ebx, 5                  ; ebx = guess = 5
+        mov     dword [n], 2            ; n = 2
+;
+; Este bucle externo encuentra un nuevo primo en cada iteración, 
+; que se añade al final del arreglo. A diferencia del primer programa 
+; que halla primos, esta función no determina los primos dividiendo 
+; por todos los números impares. Sólo divide  por los números primos 
+; que ya se han encontrado. (Esta es la razón por la cual ellos se han 
+: almacenado en el arreglo)
+
+while_limit:
+        mov     eax, [n]
+        cmp     eax, [n_find]           ; while ( n < n_find )
+        jnb     short quit_limit
+
+        mov     ecx, 1                  ; ecx se usa como índice del arreglo
+        push    ebx                     ; almacena guess en la pila
+        fild    dword [esp]             ; carga guess en la pila del coprocesador
+        pop     ebx                     ; saca guess de la pila
+        fsqrt                           ; halla sqrt(guess)
+        fistp   dword [isqrt]           ; isqrt = floor(sqrt(quess))
+
+; Este b1ucle interno divide guess por los números primos ya encontrados
+; hasta que encuentre un factor primo de guess (que significa que guess
+; no es primo) o hasta que número primo a dividir sea más grande que
+; floor(sqrt(guess))
+;
+while_factor:
+        mov     eax, dword [esi + 4*ecx]        ; eax = array[ecx]
+        cmp     eax, [isqrt]                    ; while ( isqrt < array[ecx] 
+        jnbe    short quit_factor_prime
+        mov     eax, ebx
+        xor     edx, edx
+        div     dword [esi + 4*ecx]     
+        or      edx, edx                        ; && guess % array[ecx] != 0 )
+        jz      short quit_factor_not_prime
+        inc     ecx                             ; intenta el próximo primo
+        jmp     short while_factor
+
+;
+; found a new prime !
+;
+quit_factor_prime:
+        mov     eax, [n]
+        mov     dword [esi + 4*eax], ebx        ; suma al final de arreglo
+        inc     eax
+        mov     [n], eax                        ; inc n
+
+quit_factor_not_prime:
+        add     ebx, 2                          ; intenta con el impar siguiente
+        jmp     short while_limit
+
+quit_limit:
+
+        fldcw   word [orig_cntl_wd]             ; restaura la palabra de control
+        pop     esi                             ; restaura las variables de registro
+        pop     ebx
+
+        leave
+        ret 
+\end{AsmCodeListing}
+\index{prime2.asm|)}
+\index{coprocesador de punto flotante|)}
+\index{punto flotante|)}

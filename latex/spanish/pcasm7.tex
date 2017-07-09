@@ -1,0 +1,1538 @@
+% -*-latex-*-
+\chapter{Estructuras y C++}
+
+\section{Estructuras\index{estructuras|(}}
+
+\subsection{Introducción}
+
+Las estructuras se usan en C para agrupar datos relacionados en una
+variable compuesta. Esta técnica tiene varias ventajas:
+\begin{enumerate}
+\item Clarifica el código mostrando que los datos definidos en la estructura 
+están relacionados íntimamente.
+\item Simplifica el paso de datos a las funciones. En lugar de pasar muchas 
+variables separadas, ellas se pueden pasar como una variable.
+\item Incrementar la \emph{localidad}\index{localidad} del 
+código.\footnote{vea la sección de manejo de memoria virtual de 
+cualquier libro de texto de sistemas operativos para la discusión 
+del término.}
+\end{enumerate}
+
+Desde el punto de vista del ensamblador una estructura se puede
+considerar como un arreglo con elementos de \emph{diferente} tamaño. Los
+elementos de los arreglos reales son siempre del mismo tipo y mismo
+tamaño. Esta característica es la que le permite a uno calcular la
+dirección de cualquier elemento conociendo la dirección de inicio del
+arreglo, el tamaño de los elementos y el índice del elemento que se
+desea.
+
+En una estructura los elementos no tienen que tener el mismo tamaño
+(normalmente no). Por esto cada elemento de una estructura debe ser
+definido explícitamente mediante un \emph{nombre}, en lugar de un índice
+numérico.
+
+En ensamblador los elementos de una estructura se accederán de una manera
+parecida que los elementos de  un arreglo. Para acceder a un elemento uno
+debe conocer la dirección de inicio de la estructura y el
+\emph{desplazamiento relativo} desde el comienzo de la estructura, sin
+embargo, a diferencia de los arreglos donde este desplazamiento se puede
+calcular por el índice del elemento, al elemento de una estructura el
+compilador le asigna un desplazamiento.
+
+Por ejemplo considere la siguiente estructura:
+\begin{lstlisting}[stepnumber=0]{}
+struct S {
+  short int x;    /* entero de 2 bytes */
+  int       y;    /* entero de 4 bytes */
+  double    z;    /* float de 8 bytes  */
+};
+\end{lstlisting}
+
+\begin{figure}
+\centering
+\begin{tabular}{r|c|}
+\multicolumn{1}{c}{Offset} & \multicolumn{1}{c}{ Element } \\
+\cline{2-2}
+0 & {\code x} \\
+\cline{2-2}
+2 & \\
+  & {\code y} \\
+\cline{2-2}
+6 & \\
+  & \\
+  & {\code z} \\
+  & \\
+\cline{2-2}
+\end{tabular}
+\caption{Estructura S \label{fig:structPic1}}
+\end{figure}
+
+La Figura~\ref{fig:structPic1} muestra cómo una variable de tipo {\code
+S} podría verse en la memoria del computador. La norma ANSI dicta que los
+elementos de una estructura son colocados en memoria en el mismo orden
+que ellos son definidos en la {\code estructura}. También dicta que el
+primer elemento está al comienzo de la estructura (desplazamiento cero).
+También define otro macro útil en el archivo de cabecera {\code stddef.h}
+llamado {\code offsetof()}\index{estructuras!offsetof()}.  Este macro
+calcula y retorna el desplazamiento de cualquier elemento de una
+estructura. Este macro toma dos parámetros, el primero es el nombre de
+\emph{tipo} de la estructura, el segundo del nombre del elemento al cual
+encontrarle el desplazamiento.  Así el resultado de {\code offsetof(S,y)}
+podría ser 2 según la Figura~\ref{fig:structPic1}.
+
+%TODO: talk about definition of offsetof() ??
+
+\subsection{Alineamiento de la memoria}
+
+\begin{figure}
+\centering
+\begin{tabular}{r|c|}
+\multicolumn{1}{c}{Offset} & \multicolumn{1}{c}{ Element } \\
+\cline{2-2}
+0 & {\code x} \\
+\cline{2-2}
+2 & \emph{unused} \\
+\cline{2-2}
+4 & \\
+  & {\code y} \\
+\cline{2-2}
+8 & \\
+  & \\
+  & {\code z} \\
+  & \\
+\cline{2-2}
+\end{tabular}
+\caption{Estructura S \label{fig:structPic2}}
+
+\end{figure}
+\index{estructuras!alineamiento|(}
+Si uno usa el macro {\code offsetof} para encontrar el desplazamiento de
+{\code y} usando el compilador \emph{gcc} uno encontrará que retorna 4 y
+no 2. ¿Por qué?  \MarginNote{Recuerde que una dirección está en los
+límites de una palabra doble si es divisible por cuatro.} Porque
+\emph{gcc} (y muchos otros compiladores) alinean por omisión las
+variables a los límites de palabras dobles.  En el modo protegido de 32
+bits, la CPU lee la memoria más rápido si el dato comienza en el límite
+de una palabra doble. La Figura~\ref{fig:structPic2} muestra cómo se ve
+realmente la estructura {\code S} usando \emph{gcc}. El compilador
+inserta dos bytes no usados en la estructura para alinear {\code y}(y
+{\code z}) en un límite de palabra doble. Esto muestra por qué es buena
+idea usar {\code offsetof} para calcular los desplazamientos en lugar de
+calcularlos uno mismo cuando se usan estructuras definidas  en C.
+
+Claro está, si la estructura solo se usa en ensamblador el programador
+puede determinar el desplazamiento él mismo.  Sin embargo si uno está
+interfazando C y ensamblador es muy importante que los dos códigos estén
+de acuerdo en los desplazamientos de los elementos de la estructura. Una
+complicación es que diferentes compiladores de C pueden tener
+desplazamientos diferentes de los elementos. Por ejemplo, como se ha
+visto, el compilador \emph{gcc} crea una estructura {\code S} que se ve
+como la Figura~\ref{fig:structPic2}; sin embargo, el compilador de
+Borland podría crear una estructura como la de la
+Figura~\ref{fig:structPic1}.  Los compiladores de C suministran maneras
+de especificar el alineamiento usado para los datos. Sin embargo la norma
+ANSI C no específica cómo se hace esto y así, cada compilador lo hará a
+su manera.
+
+%Borland's compiler has a flag, {\code -a}, that can be
+%used to define the alignment used for all data. Compiling with {\code -a 4}
+%tells \emph{bcc} to use double word alignment. Microsoft's compiler 
+%provides a {\code \#pragma pack} directive that can be used to set
+%the alignment (consult Microsoft's documentation for details). Borland's
+%compiler also supports Microsoft's pragma 
+
+El compilador \emph{gcc}\index{compilador!gcc!\_\_attribute\_\_} tiene un
+método flexible y complicado de especificar el alineamiento. El
+compilador le permite a uno especificar el alineamiento de cualquier tipo
+usando una sintaxis especial. Por ejemplo, la siguiente línea:
+\begin{lstlisting}[stepnumber=0]{}
+  typedef short int unaligned_int __attribute__((aligned(1)));
+\end{lstlisting}
+\noindent Define un nuevo tipo llamado {\code unaligned\_int} que se
+alinea en los límites de los bytes (sí, todos los paréntesis después de
+{\code \_\_attribute\_\_} se necesitan). El 1 en el parámetro de {\code
+aligned} se puede reemplazar con otras potencias de dos para especificar
+otros alineamientos (2 para alineamiento de palabra, 4 para el
+alineamiento de palabras dobles, etc.). Si el elemento {\code y} de la
+estructura se cambia por un tipo {\code unaligned\_int}, \emph{gcc}
+podría colocar {\code y} a una distancia de 2. Sin embargo {\code z}
+podría continuar a una distancia de 8 ya que las palabras dobles tienen
+un alineamiento de palabra por omisión. La definición del tipo de {\code
+z} tendría que ser cambiada para colocarlos una distancia de 6.
+
+\begin{figure}[t]
+\begin{lstlisting}[frame=tlrb,stepnumber=0]{}
+struct S {
+  short int x;    /* entero de 2 bytes */
+  int       y;    /* entero de 4 bytes */
+  double    z;    /* float de 8 bytes  */
+} __attribute__((packed));
+\end{lstlisting}
+\caption{Estructura embalada usando \emph{gcc}
+\label{fig:packedStruct}\index{compilador!gcc!\_\_attribute\_\_}}
+\end{figure}
+
+El compilador \emph{gcc} también permite \emph{embalar} una estructura.
+Esto le dice al compilador que use el mínimo de espacio para la
+estructura.  La Figura~\ref{fig:packedStruct} muestra cómo se podría
+escribir {\code S} de esta manera.  De esta forma {\code S} usaría el
+menor número de bytes posibles, 14.
+
+Los compiladores de Borland y Microsoft, soportan el mismo método de
+especificar el alineamiento usando la directiva {\code \#pragma}.
+\index{compilador!Microsoft!embalado pragma}
+\begin{lstlisting}[stepnumber=0]{}
+#pragma pack(1)
+\end{lstlisting}
+La directiva anterior le dice al compilador que embale los elementos de
+estructuras en los límites de los bytes (sin relleno extra). El uno se
+puede reemplazar con dos, cuatro, ocho o dieciséis para especificar el
+alineamiento en una palabra, palabra doble, palabra cuádruple y párrafo
+respectivamente. Esta directiva tiene efecto hasta que se sobreescriba
+por otra directiva. Esto puede causar problemas ya que estas directivas
+se usan a menudo en los archivos de encabezamiento. Si el archivo de
+encabezamiento se incluye antes que otros archivos de encabezamiento con
+estructuras, esas estructuras pueden estar diferente que las que tendrían
+por omisión. Esto puede conducir un error muy difícil de encontrar.  Los
+módulos de un programa podrían desordenar los elementos de las
+estructuras de otros módulos.
+
+\begin{figure}[t]
+\begin{lstlisting}[frame=tlrb,stepnumber=0]{}
+#pragma pack(push)    /* guarda el estado de alineamiento */
+#pragma pack(1)       /* establece el alieamiento de byte  */
+
+struct S {
+  short int x;    /* entero de 2 bytes */
+  int       y;    /* entero de 4 bytes  */
+  double    z;    /* float de 8 bytes   */
+};
+
+#pragma pack(pop)     /* restaura el alineamiento original */
+\end{lstlisting}
+\caption{Estructura embalada usando Microsoft o Borland
+\label{fig:msPacked}\index{compilador!Microsoft!embalado pragma}}
+\end{figure}
+
+Hay una manera de evitar este problema. Microsoft y Borland tienen una
+manera de guardar el alineamiento y restaurarlo luego. La
+Figura~\ref{fig:msPacked} muestra cómo se haría esto.
+\index{estructuras!alineamiento|)}
+
+\subsection{Campos de bits\index{estructuras!campos de bits|(}}
+
+\begin{figure}[t]
+\begin{lstlisting}[frame=tlrb,stepnumber=0]{}
+struct S {
+  unsigned f1 : 3;   /* campo de 3 bits  */
+  unsigned f2 : 10;  /* campo de 10 bits */
+  unsigned f3 : 11;  /* campo de 11 bits */
+  unsigned f4 : 8;   /* campo de 8  bits */
+};
+\end{lstlisting}
+\caption{Ejemplo campo de bits \label{fig:bitStruct}}
+\end{figure}
+
+Los campos de bit le permiten a uno especificar miembros de una
+estructura que solo usa un número especificado de bits. El tamaño de los
+bits no tiene que ser múltiplo de 8.  Un campo de bits miembro está
+definido como un \lstinline|unsigned int| o un \lstinline|int| con dos
+puntos y luego el tamaño en bits. La Figura~\ref{fig:bitStruct} muestra
+un ejemplo.  Esto define una variable de 32 bits que se descompone en las
+siguientes partes:
+\begin{center}
+\begin{tabular}{|c|c|c|c|}
+\multicolumn{1}{c}{8 bits} & \multicolumn{1}{c}{11 bits} 
+& \multicolumn{1}{c}{10 bits} & \multicolumn{1}{c}{3 bits} \\ \hline
+\hspace{2em} f4 \hspace{2em} & \hspace{3em} f3 \hspace{3em}
+& \hspace{3em} f2 \hspace{3em} & f1 \\
+\hline
+\end{tabular}
+\end{center}
+El primer campo está asignado a los bits menos significativos de esta
+palabra doble.\footnote{Actualmente, la norma ANSI/ISO C le da al
+compilador alguna flexibilidad de como se ordenan los bits exactamente.
+Sin embargo los compiladores populares (\emph{gcc}, \emph{Microsoft} y
+\emph{Borland}) usarán este orden en los campos.}
+
+Sin embargo, el formato no es tan simple, si uno mira cómo se almacenan
+los bits en memoria. La dificultad ocurre cuando los campos de bits se
+salen de los límites del byte. Ya que los bytes en un procesador little
+endian se invertirán en memoria. Por ejemplo, los campos de la estructura
+{\code S} se verán en memoria.
+\begin{center}
+\begin{tabular}{|c|c||c|c||c||c|}
+\multicolumn{1}{c}{5 bits} & \multicolumn{1}{c}{3 bits} 
+& \multicolumn{1}{c}{3 bits} & \multicolumn{1}{c}{5 bits} 
+& \multicolumn{1}{c}{8 bits} & \multicolumn{1}{c}{8 bits} \\ \hline
+f2l & f1 &  f3l  & f2m & \hspace{1em} f3m \hspace{1em} 
+& \hspace{1.5em} f4 \hspace{1.5em} \\
+\hline
+\end{tabular}
+\end{center}
+La etiqueta \emph{f2l} se refiere a los últimos cinco bits (los 5 bits
+menos significativos) del campo \emph{f2}. La etiqueta \emph{f2m} se
+refiere a los 5 bits más significativos de \emph{f2}. Las líneas
+verticales dobles muestran los límites de los bytes. Si uno invierte
+todos los bytes, las partes de los campos \emph{f2} y \emph{f3} se
+colocarán en el lugar correcto.
+
+\begin{figure}[t]
+\centering
+\begin{tabular}{|c*{8}{|p{1.3em}}|}
+\hline
+Byte $\backslash$ Bit & 7 & 6 & 5 & 4 & 3 & 2 & 1 & 0 \\ \hline
+0 & \multicolumn{8}{c|}{Codigo de operación (08h) } \\ \hline
+1 & \multicolumn{3}{c|}{Unidad Lógica \# } & \multicolumn{5}{c|}{msb de LBA} \\ \hline
+2 & \multicolumn{8}{c|}{mitad de la dirección del bloque lógico} \\ \hline
+3 & \multicolumn{8}{c|}{lsb de dirección del bloque lógico} \\ \hline
+4 & \multicolumn{8}{c|}{Longitud de transferencia} \\ \hline
+5 & \multicolumn{8}{c|}{Control} \\ \hline
+\end{tabular}
+\caption{Formato de la orden leer de SCSI  \label{fig:scsi-read}}
+\end{figure}
+
+\begin{figure}[t]
+\begin{lstlisting}[frame=lrtb]{}
+#define MS_OR_BORLAND (defined(__BORLANDC__) \
+                        || defined(_MSC_VER))
+
+#if MS_OR_BORLAND
+#  pragma pack(push)
+#  pragma pack(1)
+#endif
+
+struct SCSI_read_cmd {
+  unsigned opcode : 8;
+  unsigned lba_msb : 5;
+  unsigned logical_unit : 3;
+  unsigned lba_mid : 8;    /* bits de la mitad */
+  unsigned lba_lsb : 8;
+  unsigned transfer_length : 8;
+  unsigned control : 8;
+}
+#if defined(__GNUC__)
+   __attribute__((packed))
+#endif
+;
+
+#if MS_OR_BORLAND
+#  pragma pack(pop)
+#endif
+\end{lstlisting}
+\caption{Estructura del formato de la orden leer de SCSI\label{fig:scsi-read-struct}
+\index{compilador!gcc!\_\_attribute\_\_}
+\index{compilador!Microsoft!embalado pragma}}
+\end{figure}
+
+La forma de la memoria física no es importante a menos que los datos se
+transfieran hacia o fuera de nuestro programa (lo cual es muy poco común
+con campos de bits). Es común para dispositivos de hardware usar números
+impares de bits donde los campos de bits son útiles para representarlos.
+
+
+\begin{figure}[t]
+\centering
+\begin{tabular}{|c||c||c||c||c|c||c|}
+\multicolumn{1}{c}{8 bits} & \multicolumn{1}{c}{8 bits} 
+& \multicolumn{1}{c}{8 bits} & \multicolumn{1}{c}{8 bits} 
+& \multicolumn{1}{c}{3 bits} & \multicolumn{1}{c}{5 bits} 
+& \multicolumn{1}{c}{8 bits} \\ \hline
+control & transfer\_length & lba\_lsb  & lba\_mid &  
+logical\_unit  & lba\_msb & opcode \\
+\hline
+\end{tabular}
+\caption{Ordenamiento de los campos de {\code SCSI\_read\_cmd} \label{fig:scsi-read-map}}
+\end{figure}
+\index{SCSI|(}
+Un ejemplo es SCSI\footnote{\emph{Small Computer System Interface}, es
+una norma de la industria para discos duros etc.}: Una orden de lectura
+directa para un dispositivo SCSI se especifica enviando un mensaje de 6
+bits al dispositivo con el formato especificado en la
+Figura~\ref{fig:scsi-read}. La dificultad de representar esto usando
+campos de bits es la \emph{dirección del bloque lógico} (LBA) que abarca
+3 bytes diferentes en la orden. De la Figura~\ref{fig:scsi-read} uno ve
+que el dato se almacena en el formato big endian. La
+Figura~\ref{fig:scsi-read-struct} muestra una definición que intenta
+trabajar con todos los compiladores. Las dos primeras líneas definen un
+macro que retorna verdadero si el código se compila con los compiladores
+de Borland o Microsoft. La parte potencialmente confusa  está en las
+líneas 11 a 14. Primero uno podría sorprenderse de ¿Por qué los bits
+\lstinline|lba_mid| y \lstinline|lba_lsb| están definidos separados  y no
+en un solo campo de 16 bits? La razón es que el dato está en big endian.
+Un campo de 16 bits podría ser almacenado con el orden little endian por
+el compilador. Ahora, los campos  \lstinline|lba_msb| y
+\lstinline|logical_unit| parecen invertidos; sin embargo esto no es el
+caso. Ellos tienen que colocarse en este orden. La
+Figura~\ref{fig:scsi-read-map} muestra cómo se colocan los campos en una
+entidad de 48 bits (los límites del byte están una vez más marcados con
+líneas dobles). Cuando esto se almacena en memoria en el orden little
+endian, los bits se colocan en el orden
+deseado.(Figura~\ref{fig:scsi-read})
+
+
+\begin{figure}[t]
+\begin{lstlisting}[frame=lrtb]{}
+struct SCSI_read_cmd {
+  unsigned char opcode;
+  unsigned char lba_msb : 5;
+  unsigned char logical_unit : 3;
+  unsigned char lba_mid;    /* bits de la mitad*/
+  unsigned char lba_lsb;
+  unsigned char transfer_length;
+  unsigned char control;
+}
+#if defined(__GNUC__)
+   __attribute__((packed))
+#endif
+;
+\end{lstlisting}
+\caption{Estructura alterna del formato de la orden leer de SCSI\label{fig:scsi-read-struct2}
+ \index{compilador!gcc!\_\_attribute\_\_}
+ \index{compilador!Microsoft!embalado pragma}}
+\end{figure}
+
+Para complicar las cosas más, la definición para
+\lstinline|SCSI_read_cmd| no trabaja correctamente en el compilador de
+Microsoft. Si se evalúa la expresión \lstinline|sizeof(SCSI_read_cmpl)|,
+Microsoft C retornará 8 no 6. Esto es porque el compilador de Microsoft
+usa el tipo de campo de datos para determinar cómo colocar los bits.  Ya
+que los bits están definidos como de tipo \lstinline|unsigned|, el
+compilador rellena dos bytes al final de la estructura para tener un
+múltiplo de palabras dobles. Esto se puede solucionar haciendo todos los
+campos \lstinline|unsigned short|.      
+
+Ahora el compilador de Microsoft no necesita agregar ningún relleno ya
+que los 6 bytes son un múltiplo de una palabra\footnote{Mezclar
+diferentes tipos de campos de bits produce un comportamiento muy confuso.
+Se invita al lector a experimentar al respecto} Los otros compiladores
+también trabajarán correctamente con este cambio.  La
+Figura~\ref{fig:scsi-read-struct2} muestra otra definición que trabaja
+con los tres compiladores. Se evitan todos los problemas usando campos de
+tipo \lstinline|unsigned char|.
+\index{SCSI|)}
+
+El lector no debería entristecerse si encuentra la división anterior
+confusa. ¡Es confusa! El autor a menudo encuentra menos confuso evitar
+los campos de bits y en su lugar usar las operaciones entre bits para
+examinar y modificar los bits manualmente.
+\index{estructuras!campos de bit|)}
+
+%TODO:discuss alignment issues and struct size issues
+
+\subsection{Usando estructuras en ensamblador}
+
+Como se discutió antes, acceder a una estructura en ensamblador es muy
+parecido a acceder a un arreglo. Por ejemplo considere cómo uno podría
+escribir una rutina en ensamblador que le asignará cero al elemento
+{\code y} de una estructura {\code S}. Asumiendo que el prototipo de la
+rutina sería:
+\begin{lstlisting}[stepnumber=0]{}
+void zero_y( S * s_p );
+\end{lstlisting}
+\newpage
+\noindent La rutina en ensamblador sería:
+\begin{AsmCodeListing}
+%define      y_offset  4
+_zero_y:
+      enter  0,0
+      mov    eax, [ebp + 8]      ; toma  s_p (apuntador a la estructura) 
+                                 ; de la pila 
+      mov    dword [eax + y_offset], 0
+      leave
+      ret
+\end{AsmCodeListing}
+
+C le permite a uno pasar estructuras por valor a una función; sin embargo
+esto la mayoría de las veces es mala idea. Cuando se pasa por valor,
+todos los datos de la estructura se deben copiar en la pila y luego
+traídos por la rutina, En lugar de esto es mucho más eficiente pasar un
+apuntador a una estructura.
+
+C También permite que un tipo de estructura se use como un valor de
+retorno.  Obviamente la estructura no se puede retornar en el registro
+{\code EAX}. Cada compilador maneja la situación diferente. Una solución
+común es que el compilador usa esto para internamente reescribir la
+función para que tome una apuntador a una estructura como parámetro. El
+apuntador se usa para colocar el valor de retorno en una estructura
+definida fuera de la rutina llamada.
+
+La mayoría de los ensambladores (incluido NASM) tiene un soporte
+empotrado para definir estructuras en su código de ensamblador. Consulte
+su documentación para los detalles.
+
+% add section on structure return values for functions
+
+\index{estructuras|)}
+
+\section{Ensamblador y C++\index{C++|(}}
+
+El lenguaje de programación C++ es una extensión del lenguaje C. Muchas
+de las reglas básicas para interfazar C y ensamblador también son válidas
+para C++. Sin embargo algunas reglas necesitan ser modificadas. También
+algunas de las extensiones de C++ son fáciles de entender con
+conocimiento del lenguaje ensamblador. Esta sección asume un conocimiento
+básico de C++.
+
+\subsection{Manipulación de la sobrecarga de nombres
+\index{C++!manipulación de nombres|(}}
+\label{subsec:mangling}
+\begin{figure}
+\centering
+\begin{lstlisting}[frame=tlrb]{}
+#include <stdio.h>
+
+void f( int x )
+{
+  printf("%d\n", x);
+}
+
+void f( double x )
+{
+  printf("%g\n", x);
+}
+\end{lstlisting}
+\caption{Dos funciones {\code f()}\label{fig:twof}}
+\end{figure}
+
+C++ permite que se definan diferentes funciones (y funciones miembro de
+clases) con el mismo nombre. Cuando más de una función comparte el mismo
+nombre, se dice que la función está \emph{sobrecargada}. Si se definen
+dos funciones con el mismo nombre en C, el encadenador producirá un error
+porque él encontrará dos definiciones para el mismo símbolo en los
+archivos objeto que está encadenando. Por ejemplo considere el código de
+la Figura~\ref{fig:twof}. El código en ensamblador equivalente definiría
+2 etiquetas {\code \_f} que obviamente será un error.
+
+C++ usa el mismo proceso de encadenamiento que C, pero evita este error
+haciendo una \emph{manipulación de nombres} o modificando el símbolo
+usado para etiquetar la función. De alguna manera C usa la manipulación
+de nombres también.  Añade un guión bajo a la etiqueta de la función de C
+cuando se crea la etiqueta para la función. Sin embargo, C manipulará el
+nombre de ambas funciones en la Figura~\ref{fig:twof} de la misma manera
+y produce un error. C++ usa un proceso de manipulación más sofisticado
+que produce dos etiquetas diferentes para las funciones. Por ejemplo, a
+la primera función de la Figura~\ref{fig:twof} le podría asignar DJGPP la
+etiqueta {\code \_f\_\_Fi} y a la segunda función, {\code \_f\_\_Fd}.
+Esto evita errores de encadenamiento.
+
+% check to make sure that DJGPP does still but an _ at beginning for C++
+
+Desafortunadamente no está normalizado cómo se manejan los nombres en C++
+y cada compilador trata los nombres a su manera. Por ejemplo Borland C++
+podría usar las etiquetas {\code @f\$qi} y {\code @f\$qd} para las dos
+funciones de la Figura~\ref{fig:twof}. Sin embargo, las reglas no son
+completamente arbitrarias. El nombre manipulado codifica la \emph{firma}
+de la función. La firma de una función está definida por el orden y el
+tipo de sus parámetros. Observe que la función que toma un solo parámetro
+{\code int} tiene una \emph{i} al final de la etiqueta manipulada (para
+DJGPP y Borland) y la que toma un argumento {\code double} tiene una
+\emph{d} al final de la etiqueta manipulada. Si tuviera una función
+llamada {\code f} con el prototipo.
+\begin{lstlisting}[stepnumber=0]{}
+  void f( int x, int y, double z);
+\end{lstlisting}
+\noindent DJGPP podría manipular el nombre para ser {\code \_f\_\_Fiid} y
+Borland a {\code @f\$qiid}.
+
+El tipo de retorno de una función \emph{no} hace parte de la firma de la
+función y no se codifica en el nombre manipulado. Este hecho explica una
+regla de sobre carga en C++. Sólo funciones cuya firma es única se pueden
+sobrecargar.  Como uno puede ver, si dos funciones, con el mismo nombre y
+firma, están definidas en C++ ellas producirán el mismo nombre manipulado
+y crearán un error de encadenamiento. Por omisión C++ manipula los
+nombres de las funciones así no estén sobrecargadas. Cuando se compila un
+archivo el compilador no tiene manera de saber si una función en
+particular está sobrecargada o no, así que manipula todos los nombres. De
+hecho también manipula los nombres de las variables globales codificando
+el tipo de variable de manera similar a la firma de las funciones. Así
+uno puede definir una variable global en un archivo como de cierto tipo y
+entonces intentar usarla en otro archivo como de un tipo erróneo, se
+producirá un error del encadenador. Esta característica de C++ es
+conocida como \emph{encadenamiento seguro de
+tipos}\index{C++!encadenamiento seguro de tipos}(\emph{typesafe linking}.
+También se expone a otro tipo de error, prototipos inconsistentes. Esto
+ocurre cuando la definición de una función en un módulo no concuerda con
+el prototipo usado por otro módulo. En C esto puede ser un problema muy
+difícil de depurar. C no atrapa este error. El programa compilará y
+encadenará, pero tendrá un comportamiento indefinido cuando se invoca el
+código colocando diferentes tipos de datos en la pila de los que la
+función espera. En C++, esto producirá un error de encadenado. 
+
+Cuando el compilador de C++ está examinando la sintaxis de un  llamado a
+función, él busca una función donde emparejen los tipos de los argumentos
+pasados a la función.\footnote{El emparejamiento no tiene que ser exacto,
+el compilador considerará las conversiones de tipos de los argumentos.
+Las reglas para este proceso están más allá del alcance de este libro.
+Consulte un libro de C++ para los detalles.} Si se empareja entonces crea
+un {\code CALL} a la función correcta usando las reglas de manipulación
+del compilador.
+
+Ya que cada compilador usa sus reglas de manipulación de nombres, los
+archivos objeto de C++ generados por diferentes compiladores no se pueden
+unir, el código de C++ compilado con compiladores diferentes no es
+posible unirlo. Este hecho es importante cuando se considera usar una
+biblioteca de C++ precompilada. Si uno desea escribir una función en
+ensamblador que será usada con código C++, debe conocer las reglas de
+manipulación de nombres del compilador (o usar la técnica explicada
+abajo).
+
+El estudiante astuto puede preguntar si el código de la
+Figura~\ref{fig:twof} trabajará como se espera. Ya que C++ manipula los
+nombres de todas las funciones, entonces la función {\code printf} será
+manipulada y el compilador no producirá un {\code CALL} a la etiqueta
+{\code \_printf}. Esto es un válido. Si el prototipo para {\code printf}
+fue colocado simplemente al principio del archivo, esto podría pasar.  El
+prototipo es:
+\begin{lstlisting}[stepnumber=0]{}
+  int printf( const char *, ...);
+\end{lstlisting}
+%%%-----------------
+\noindent DJGPP podría manipular esto como {\code \_printf\_\_FPCce} (la
+{\code F} es por \emph{función}, {\code P} por \emph{apuntador}, {\code
+C} por \emph{constante}, {\code c} por \emph{char} y {\code e} por
+\emph{elipsis}).  Esto podría no llamar la función {\code printf} de la
+biblioteca de C. Claro está, debe haber alguna forma para el código de
+C++ llamar código de C. Esto es muy importante ya que hay una gran
+cantidad de código de C útil. Además permitirle a uno llamar código de C
+heredado, C++ también le permite a uno llamar código de ensamblador
+usando las convenciones normales de llamado.  \index{C++!extern ''C''|(}
+
+C++ extiende la palabra clave {\code extern} para permitir especificar
+que la función o variable global que modifica usa las convenciones de
+llamado de C. En la terminología de C++, las variables y funciones
+globales usan el \emph{encadenamiento de C}. Por ejemplo para declarar
+que {\code printf} tenga el encadenamiento de C, use el prototipo:
+\begin{lstlisting}[language=C++,stepnumber=0]{}
+extern "C" int printf( const char *, ... );
+\end{lstlisting}
+\noindent Esto le dice al compilador que no use las reglas de
+manipulación de nombres en esta función, y en su lugar usar las reglas de
+C. Sin embargo, haciendo esto, la función {\code printf} no se puede
+sobrecargar. Esto suministra una manera fácil de interfazar C++ y
+ensamblador, define la función para que use el encadenamiento de C y la
+convención de llamado de C.
+
+Por conveniencia C++ también permite el encadenamiento de un bloque de
+funciones y variables globales a ser definidas. El bloque se enmarca por
+las típicas llaves:
+\begin{lstlisting}[stepnumber=0,language=C++]{}
+extern "C" {
+  /* encadenamiento tipo C a variables globales y prototipos de funciones */
+}
+\end{lstlisting}
+
+Si uno examina los archivos de encabezado de ANSI C que vienen con los 
+compiladores de C/C++ de hoy día, en  ellos se encontrá al principio de cada 
+archivo de cabecera:
+\begin{lstlisting}[stepnumber=0,language=C++]{}
+#ifdef __cplusplus
+extern "C" {
+#endif
+\end{lstlisting}
+\noindent Y una construcción parecida cerca del final conteniendo el fin
+de la llave. Los compiladores de C++ definen el macro {\code
+\_\_cplusplus} (con \emph{dos} guiones bajos adelante). La porción de
+código anterior encierra todo el archivo de cabecera en un bloque {\code
+extern~""C""} si el archivo de cabecera es compilado como C++, pero no
+hace nada si es compilado como C (ya que el compilador de C daría un
+error de sintaxis para {\code extern ""C""}). Esta misma técnica puede
+ser usada por cualquier programador para crear un archivo de cabecera
+para las rutinas de ensamblador que pueden ser usadas con C o C++.
+\index{C++!extern ''C''|)}
+\index{C++!manipulación de nombres|)}
+
+\begin{figure}
+\begin{lstlisting}[language=C++,frame=tlrb]{}
+void f( int & x )     // el & denota una referencia
+{ x++; }
+
+int main()
+{
+  int y = 5;
+  f(y);               // se pasa la referencia a y, obeserve que 
+                      // no hay & acá
+  printf("%d\n", y);  // imprime 6!
+  return 0;
+}
+\end{lstlisting}
+\caption{Ejemplo de referencia\label{fig:refex}}
+\end{figure}
+
+\subsection{Referencias\index{C++!referencias|(}}
+
+Las \emph{referencias} son otra característica nueva C++. Ellas le
+permiten a uno pasar parámetros a funciones sin usar apuntadores
+explícitamente. Por ejemplo, considere el código de la
+Figura~\ref{fig:refex}. Los parámetros por referencia son muy simples,
+ellos realmente son tan solo apuntadores. El compilador solo le oculta
+esto al programador (tal como los compiladores de Pascal implementan los
+parámetros {\code var} como apuntadores). Cuando el compilador genera el
+ensamblador para el llamado a la función en la línea~7, pasa la
+\emph{dirección} de {\code y}. Si uno escribió la función {\code f} en
+ensamblador, ella se debería comportar como si el prototipo
+fuera\footnote{Claro está ella podría esperar declarar la función con
+encadenamiento C para evitar la manipulación de nombres discutida en la
+sección~\ref{subsec:mangling}}:
+\begin{lstlisting}[stepnumber=0]{}
+  void f( int * xp);
+\end{lstlisting}
+
+Las referencias son sólo una conveniencia que es especialmente útil para
+la sobrecarga de operadores. Esta es otra característica de C++ que le
+permite a uno definir el significado de los operadores comunes en
+estructuras o tipos de clases.  Por ejemplo, un uso común es definir el
+operador más ({\code +)} para unir objetos tipo cadena. Así, si {\code a}
+y {\code b } fueran cadenas, {\code a~+~b} debería retornar la unión de
+las cadenas {\code a} y {\code b}. C++ llama una función para hacer esto
+(de hecho, esta expresión podría ser reescrita en la notación de función
+como {\code operator~+(a,b)}).  Por eficiencia uno podría querer pasar la
+dirección de los objetos cadena en lugar de pasarlos por valor. Sin
+referencias esto se podría hacer como {\code operator~+(\&a,\&b)}, pero
+esto requeriría escribir en la sintaxis del operador como {\code
+\&a~+~\&b}. Esto sería muy complicado y confuso. Sin embargo, usando
+referencias, uno puede escribir {\code a~+~b} que se ve muy natural.
+
+\index{C++!referencias|)}
+\subsection{Funciones inline\index{C++!funciones inline|(}}
+
+Las \emph{funciones inline} son otra característica de C++\footnote{Los
+compiladores de C a menudo soportan esta característica como una
+extensión de ANSI C}. Las funciones inline son hechas para reemplazar,
+los macros basados en el procesador que toman parámetros que son muy
+propensos a tener errores. Recuerde de C, que escribir un macro que eleva
+al cuadrado un número podría verse como:
+\begin{lstlisting}[stepnumber=0]{}
+#define SQR(x) ((x)*(x))
+\end{lstlisting}
+\noindent Debido a que el preprocesador no entiende C  y hace simples
+sustituciones, se requieren los paréntesis para calcular la respuesta
+correcta en la mayoría de los casos. Sin embargo, aún esta versión no
+dará la respuesta correcta para {\code SQR(X++)}.
+
+\begin{figure}
+\begin{lstlisting}[language=C++,frame=tlrb]{}
+inline int inline_f( int x ) 
+{ return x*x; }
+
+int f( int x ) 
+{ return x*x; }
+
+int main()
+{
+  int y, x = 5;
+  y = f(x);
+  y = inline_f(x);
+  return 0;
+}
+\end{lstlisting}
+\caption{ejemplo inline\label{fig:InlineFun}}
+\end{figure}
+
+
+Los macros se usan porque ellos eliminan el trabajo extra de hacer un
+llamad a función para una función elemental. Como se demostró en el
+capítulo de subprogramas realizar un llamado a función involucra varios
+pasos. Por cada función elemental, el tiempo que se toma en llamar la
+función puede ser mayor que el tiempo necesario en realizar las
+operaciones en la función. La función inline es una manera mucho más
+amigable de escribir código que se vea como una función normal, pero que
+\emph{no} hace el bloque de código para {\code CALL}. En lugar de ello
+los llamados a funciones inline son reemplazados por el código que
+realiza la función. C++ le permite a una función ser inline colocando la
+palabra {\code inline} clave al frente de la definición de la función.
+Por ejemplo considere las funciones declaradas en la
+Figura~\ref{fig:InlineFun}.  El llamado a la función {\code f} en la
+línea 10 hace un llamado normal a una función  (en ensamblador, asumiendo
+que {\code x} está en la dirección {\code ebp-8} e {\code y} está en
+{\code ebp-4}:
+
+\begin{AsmCodeListing}
+      push   dword [ebp-8]
+      call   _f
+      pop    ecx
+      mov    [ebp-4], eax
+\end{AsmCodeListing}
+Sin embargo, el llamado a la función {\code inline\_f} de la línea~11 podría verse 
+como:
+\begin{AsmCodeListing}
+      mov    eax, [ebp-8]
+      imul   eax, eax
+      mov    [ebp-4], eax
+\end{AsmCodeListing}
+
+En este caso hay dos ventajas de las funciones inline.  Primero la
+función en línea es rápida. No se colocan los parámetros en la pila, no
+se crea el marco de la pila ni se destruye, no se hace el salto. Segundo
+el llamado de las funciones en línea usa menos código. Este último punto
+es verdad para este ejemplo pero no siempre es  cierto.
+
+La principal desventaja de las funciones inline es que el código en línea
+no se encadena y así el código de una función en línea debe estar
+disponible en \emph{todos} los archivos que la usen. El ejemplo anterior
+prueba esto. El llamado de una función normal solo requiere el
+conocimiento de los parámetros, el tipo de valor de retorno, la
+convención de llamado y el nombre de la etiqueta para la función. Toda
+esta información está disponible en el prototipo de la función. Sin
+embargo al usar funciones inline se requiere conocer todo el código de la
+función. Esto significa que si \emph{cualquier} parte de una función en
+línea se cambia, \emph{todos} los archivos fuentes que usen la función
+deben ser recompilados. Recuerde que para las funciones no inline, si el
+prototipo cambia, a menudo los archivos que usan la función no necesitan
+ser recompilados. Por todas estas razones, el código de las funciones en
+línea se colocan normalmente en los archivos de cabecera. Esta práctica
+es contraria a la regla  estricta de C las instrucciones de código
+ejecutable \emph{nunca} se colocan en los archivos de cabecera.
+
+\index{C++!funciones inline|)}
+
+\begin{figure}[t]
+\begin{lstlisting}[language=C++,frame=tlrb]{}
+class Simple {
+public:
+  Simple();                // Construcctor por omisión 
+  ~Simple();               // destructor
+  int get_data() const;    // funciones miembro
+  void set_data( int );
+private:
+  int data;                // datos miembro
+};
+
+Simple::Simple()
+{ data = 0; }
+
+Simple::~Simple()
+{ /* cuerpo vacío */ }
+
+int Simple::get_data() const
+{ return data; }
+
+void Simple::set_data( int x )
+{ data = x; }
+\end{lstlisting}
+\caption{Una clase simple de C++\label{fig:SimpleClass}}
+\end{figure}
+
+\subsection{Clases\index{C++!clases|(}}
+
+Una clase en C++ describe un tipo de objeto. Un objeto tiene como
+miembros a datos y funciones\footnote{a menudo llamados en C++
+\emph{funciones miembro} o más generalmente
+\emph{métodos}\index{métodos}.}.  En otras palabras, es una {\code
+estructura} con datos y funciones asociadas a ella. Considere la clase
+definida en la Figura~\ref{fig:SimpleClass}. Una variable de tipo {\code
+Simple} se podría ver tal como una {\code estructura} normal en C con un
+solo {\code int} como miembro.  \MarginNote{En efecto, C++ usa la palabra
+clave {\code this} para acceder al apuntador de un objeto que está dentro
+de la función miembro.} Las funciones \emph{no} son almacenadas en la
+memoria asignada a la estructura.  Sin embargo las funciones miembro son
+diferentes de las otras funciones .  Ellas son pasadas como un parámetro
+\emph{oculto}. Este parámetro es un apuntador al objeto al cual la
+función pertenece.
+
+\begin{figure}[t]
+\begin{lstlisting}[stepnumber=0]{}
+void set_data( Simple * object, int x )
+{
+  object->data = x;
+}
+\end{lstlisting}
+\caption{Versión de C de Simple::set\_data()\label{fig:SimpleCVer}}
+\end{figure}
+
+
+\begin{figure}[t]
+\begin{AsmCodeListing}
+_set_data__6Simplei:           ; nombre manipulador
+      push   ebp
+      mov    ebp, esp
+
+      mov    eax, [ebp + 8]   ; eax = apuntador al objeto (this)
+      mov    edx, [ebp + 12]  ; edx = parámetro entero
+      mov    [eax], edx       ; data tiene un desplazamiento de 0
+
+      leave
+      ret
+\end{AsmCodeListing}
+\caption{Salida del compilador para Simple::set\_data( int ) \label{fig:SimpleAsm}}
+\end{figure}
+
+
+Por ejemplo considere el método {\code set\_data} de la clase {\code
+Simple} de la Figura~\ref{fig:SimpleClass}.  Si se escribió en C se vería
+como una función que fue pasada explícitamente a un apuntador al objeto
+como muestra la Figura~\ref{fig:SimpleCVer}.  La opción {\code -S} en el
+compilador \emph{DJGPP} (y en los compiladores \emph{gcc} y Borland
+también) le dice al compilador que genere un archivo que contenga el
+lenguaje ensamblador equivalente del código producido. Para \emph{DJGPP}
+y \emph{gcc} el archivo ensamblador finaliza con una extensión  {\code
+.s} y desafortunadamente usa la sintaxis del lenguaje ensamblador AT\&T
+que es diferente de la sintaxis de NASM y MASM.\footnote{El sistema de
+compilador \emph{gcc} incluye su propio ensamblador llamado
+\emph{gas}\index{gas}. El ensamblador gas usa la sintaxis AT\&T y así el
+compilador produce el código en el formato de gas. Hay varias páginas web
+que discuten las diferencias entre los formatos INTEL y AT\&T. Hay
+también un programa mínimo llamado \emph{a2i}
+(\url{http://www.multimania.com/placr/a2i.html}), que convierte del formato
+AT\&T al formato NASM} (Los compiladores de Borland y Microsoft generan
+un archivo con extensión {\code .asm} usando la sintaxis MASM). La
+Figura~\ref{fig:SimpleAsm} muestra la salida de \emph{DJGPP} convertida a
+la sintaxis de MASM y con comentarios añadidos para clarificar el
+propósito de las instrucciones. En la primera línea, observe que al
+método {\code set\_data} se le asigna la etiqueta manipulada que codifica
+el nombre del método, el nombre de la clase y los parámetros. El nombre
+de la clase se codifica porque otras clases podrían tener un método
+llamado {\code set\_data} y los dos métodos \emph{deben} tener etiqueta
+diferente. Los parámetros se codifican tal que la clase pueda sobrecargar
+el método {\code set\_data} para tomar otros parámetros como es normal en
+las funciones C++. Sin embargo, tal como antes, cada compilador
+codificará esta información diferente en la etiqueta manipulada.
+
+Luego en las líneas~2 y 3, aparece el prólogo típico de la función.  En
+la línea~5 se almacena el primer parámetro de la pila en {\code EAX}.
+Este \emph{no} es el parámetro x, es el parámetro oculto.\footnote{Como
+es normal \emph{nada} está oculto en el código ensamblador} que apunta al
+objeto sobre el cual actúa. La línea~6 almacena el parámetro {\code x} en
+{\code EDX} y la línea~7 almacena {\code EDX} en la palabra doble a la
+que apunta {\code EAX}. Este es el miembro {\code data} del objeto {\code
+Simple} sobre el cual actúa, que es el único dato en la clase, se
+almacena con un desplazamiento cero en la estructura {\code Simple}.
+
+\begin{figure}[tp]
+\begin{lstlisting}[frame=tlrb,language=C++]{}
+class Big_int {
+public:
+   /* 
+   * Parámetros:
+   *   size           - tamaño del entero expresado como el número de 
+   *                     unsigned int normales 
+   *   initial_value  - valor inicial de Big_int como un 
+   *                    unsigned int normal
+   */
+  explicit Big_int( size_t   size,
+                    unsigned initial_value = 0);
+  /*
+   * Parámetros
+   *   size           - tamaño del entero expresado como el número de 
+   *                    unsigned int normales
+   *   initial_value  - valor inicial de Big_int como la cadena que 
+   *                    almacena la representación hexadecimal del valor. 
+   */
+  Big_int( size_t       size,
+           const char * initial_value);
+
+  Big_int( const Big_int & big_int_to_copy);
+  ~Big_int();
+
+  // retorna el tamaño de Big_int (en términos de unsigned int)
+  size_t size() const;
+
+  const Big_int & operator = ( const Big_int & big_int_to_copy);
+  friend Big_int operator + ( const Big_int & op1,
+                              const Big_int & op2 );
+  friend Big_int operator - ( const Big_int & op1,
+                              const Big_int & op2);
+  friend bool operator == ( const Big_int & op1,
+                            const Big_int & op2 );
+  friend bool operator < ( const Big_int & op1,
+                           const Big_int & op2);
+  friend ostream & operator << ( ostream &       os,
+                                 const Big_int & op );
+private:
+  size_t      size_;    // tamaño del arreglo sin signo
+  unsigned *  number_;  // apuntador al arreglo sin singno que 
+                        // almacena el valor
+};
+\end{lstlisting}
+\caption{Definición de la clase Big\_int \label{fig:BigIntClass}}
+\end{figure}
+
+\begin{figure}[tp]
+\begin{lstlisting}[frame=tlrb,language=C++]{}
+// Prototipos para las rutinas en ensamblador 
+extern "C" {
+  int add_big_ints( Big_int &       res, 
+                    const Big_int & op1, 
+                    const Big_int & op2);
+  int sub_big_ints( Big_int &       res, 
+                    const Big_int & op1, 
+                    const Big_int & op2);
+}
+
+inline Big_int operator + ( const Big_int & op1, const Big_int & op2)
+{
+  Big_int result(op1.size());
+  int res = add_big_ints(result, op1, op2);
+  if (res == 1)
+    throw Big_int::Overflow();
+  if (res == 2)
+    throw Big_int::Size_mismatch();
+  return result;
+}
+
+inline Big_int operator - ( const Big_int & op1, const Big_int & op2)
+{
+  Big_int result(op1.size());
+  int res = sub_big_ints(result, op1, op2);
+  if (res == 1)
+    throw Big_int::Overflow();
+  if (res == 2)
+    throw Big_int::Size_mismatch();
+  return result;
+}
+\end{lstlisting}
+\caption{Código de la aritmética de la clase Big\_int\label{fig:BigIntAdd}}
+\end{figure}
+
+\subsubsection{Ejemplo}
+\index{C++!ejemplo Big\_int|(}
+Esta sección usa las ideas del capítulo para crear una clase de C++ que
+representa un entero sin signo de tamaño arbitrario. Ya que el entero
+puede ser de cualquier tamaño, será almacenado en un arreglo de enteros
+sin signo (palabras dobles). Se puede hacer de cualquier tamaño usando
+memoria dinámica. Las palabras dobles se almacenan en orden
+inverso.\footnote{¿Por qué? Porque las operaciones de adición siempre se
+comenzarán a procesar al inicio del arreglo y se moverá hacia adelante.}
+(la palabra doble menos significativa es la palabra doble que está en la
+posición 0).  La Figura~\ref{fig:BigIntClass} muestra la definición de la
+clase {\code Big\_int}.\footnote{Vea los archivos example para el código
+completo de este ejemplo. El texto solo se referirá a alguna parte del
+código.}.  El tamaño de un {\code Big\_int} se mide por el tamaño del
+arreglo {\code sin signo} que es usado para almacenar este dato. El dato
+miembro {\code size\_} de la clase se le asigna un desplazamiento de cero
+y el miembro {\code number\_} se le asigna un desplazamiento de 4.
+
+Para simplificar este ejemplo, sólo se pueden sumar o restar instancias
+objeto con el mismo tamaño 
+
+La clase tiene tres constructores: El primero (línea~9) inicia la
+instancia de la clase usando un entero sin signo normal; el segundo
+(línea 18) inicia la instancia usando una cadena que contiene un valor en
+hexadecimal. El tercer constructor (línea~21) es el \emph{constructor
+copia}.
+\index{constructor copia}
+
+Esta discusión se enfoca en cómo trabajan los operadores de la suma y de
+la resta ya que es allí donde se usa el lenguaje ensamblador.  La
+Figura~\ref{fig:BigIntAdd} muestra las partes relevantes del archivo de
+encabezado para estos operadores. Ellas muestran cómo se usan los
+operadores  para llamar las rutinas en ensamblador. Ya que cada
+compilador usa sus reglas de manipulación de nombres radicalmente
+diferentes para las funciones de los operadores, las funciones en línea
+de los operadores se usan para establecer el encadenamiento de rutinas en
+ensamblador. Esto hace relativamente fácil portar a diferentes
+compiladores y es tan rápido como los llamados directos. Esta técnica
+también elimina la necesidad de lanzar una excepción desde ensamblador.
+
+¿Por qué, a pesar de todo, se usa el ensamblador acá? Recuerde que para
+realizar aritmética de precisión múltiple, el carry se debe mover de una
+palabra doble a la siguiente para sumar. C++ (y C) no le permiten al
+programador acceder a la bandera de carry de la CPU. Para realizar la
+suma con C++ se podría hacerlo recalculando la bandera de carry y
+condicionalmente sumar esto a la siguiente palabra doble. Es mucho más
+eficiente escribir el código en ensamblador donde se puede acceder a la
+bandera de carry y usando la instrucción {\code ADC} que automáticamente
+suma la bandera de carry.
+
+Por brevedad, sólo se discutirá acá la rutina de ensamblador {\code
+add\_big\_ints}. A continuación está el código de esta rutina (de {\code
+big\_math.asm}):
+\begin{AsmCodeListing}[label=big\_math.asm]
+segment .text
+        global  add_big_ints, sub_big_ints
+%define size_offset 0
+%define number_offset 4
+
+%define EXIT_OK 0
+%define EXIT_OVERFLOW 1
+%define EXIT_SIZE_MISMATCH 2
+
+; Parámetros para las rutinas add y sub
+%define res ebp+8
+%define op1 ebp+12
+%define op2 ebp+16
+
+add_big_ints:
+        push    ebp
+        mov     ebp, esp
+        push    ebx
+        push    esi
+        push    edi
+        ;
+        ; primero      esi señala a op1
+        ;              edi señala a op2
+        ;              ebx señala a res
+        mov     esi, [op1]
+        mov     edi, [op2]
+        mov     ebx, [res]
+        ;
+        ; Asegurarse que todos los 3 Big_Int tienen el mismo tamaño
+        ;
+        mov     eax, [esi + size_offset]
+        cmp     eax, [edi + size_offset]
+        jne     sizes_not_equal                 ; op1.size_ != op2.size_
+        cmp     eax, [ebx + size_offset]
+        jne     sizes_not_equal                 ; op1.size_ != res.size_
+
+        mov     ecx, eax                        ; ecx = size of Big_int's
+        ;
+        ; ahora, los registros señalan a sus respectivos arreglos
+        ;      esi = op1.number_
+        ;      edi = op2.number_
+        ;      ebx = res.number_
+        ;
+        mov     ebx, [ebx + number_offset]
+        mov     esi, [esi + number_offset]
+        mov     edi, [edi + number_offset]
+        
+        clc                                     ; borra bandera de carry
+        xor     edx, edx                        ; edx = 0
+        ;
+        ; bucle de suma 
+add_loop:
+        mov     eax, [edi+4*edx]
+        adc     eax, [esi+4*edx]
+        mov     [ebx + 4*edx], eax
+        inc     edx                             ; no altera la bandera de carry
+        loop    add_loop
+
+        jc      overflow
+ok_done:
+        xor     eax, eax                        ; valor de retorno = EXIT_OK
+        jmp     done
+overflow:
+        mov     eax, EXIT_OVERFLOW
+        jmp     done
+sizes_not_equal:
+        mov     eax, EXIT_SIZE_MISMATCH
+done:
+        pop     edi
+        pop     esi
+        pop     ebx
+        leave
+        ret
+\end{AsmCodeListing}
+
+%Con la esperanza que la mayoría del código fuera claro al lector por 
+%ahora. 
+Las líneas 25 a 27 almacenan los apuntadores a los objetos {\code
+Big\_int} pasados a la función en registro. Recuerde que las referencias
+realmente son solo apuntadores. Las líneas 31 a 35 aseguran que los
+tamaños de los 3 objetos de los arreglos sean iguales (Observe que el
+desplazamiento de {\code size\_} se añade al apuntador para acceder al
+dato miembro). Las líneas 44 a 46 ajustan los registros para apuntar al
+arreglo usado por los objetos respectivos en lugar de los objetos en sí
+mismos. (Una vez más, el desplazamiento de {\code number\_} se añade al
+apuntador del objeto).
+
+\begin{figure}[tp]
+\begin{lstlisting}[language=C++, frame=tlrb]{}
+#include "big_int.hpp"
+#include <iostream>
+using namespace std;
+
+int main()
+{
+  try {
+    Big_int b(5,"8000000000000a00b");
+    Big_int a(5,"80000000000010230");
+    Big_int c = a + b;
+    cout << a << " + " << b << " = " << c << endl;
+    for( int i=0; i < 2; i++ ) {
+      c = c + a;
+      cout << "c = " << c << endl;
+    }
+    cout << "c-1 = " << c - Big_int(5,1) << endl;
+    Big_int d(5, "12345678");
+    cout << "d = " << d << endl;
+    cout << "c == d " << (c == d) << endl;
+    cout << "c > d " << (c > d) << endl;
+  }
+  catch( const char * str ) {
+    cerr << "Caught: " << str << endl;
+  }
+  catch( Big_int::Overflow ) {
+    cerr << "Overflow" << endl;
+  }
+  catch( Big_int::Size_mismatch ) {
+    cerr << "Size mismatch" << endl;
+  }
+  return 0;
+}
+\end{lstlisting}
+\caption{ Uso simple de {\code Big\_int} \label{fig:BigIntEx}}
+\end{figure}
+
+El bucle en las líneas~52 a 57 suma los enteros almacenados en los
+arreglos sumando primero la palabra doble menos significativa, luego la
+siguiente palabra doble y así sucesivamente. La suma debe realizarse en
+esta secuencia para la aritmética de precisión extendida (vea la
+Sección~\ref{sec:ExtPrecArith}). La línea 59 examina el desborde, si hay
+desborde la bandera de carry se debería fijar con la última suma de la
+palabra doble más significativa. Ya que las palabras dobles en el arreglo
+se almacenan en el orden de little endian, el bucle comienza en el inicio
+del arreglo y se mueve adelante hasta el final.
+
+La Figura~\ref{fig:BigIntEx} muestra un corto ejemplo del uso de la clase
+{\code Big\_int}. Observe que las constantes {\code Big\_int} se deben
+declarar explícitamente como en la línea 16. Esto es necesario por dos
+razones. Primero, no hay un construcctor de conversión que convierta un
+unsigned int en un {\code Big\_int}.  Segundo, solo se pueden sumar
+{\code Big\_Int} del mismo tamaño, esto  hace la conversión problemática
+ya que podría ser difícil conocer a qué tamaño convertir. Una
+implementación más sofisticada de la clase debería permitir sumar objetos
+de cualquier tamaño. El autor no desea complicar este ejemplo
+implementandolo acá. (Sin embargo exhorta al lector a hacer esto).
+\index{C++!ejemplo Big\_int|)}
+
+\begin{figure}[tp]
+\begin{lstlisting}[language=C++, frame=tlrb]{}
+#include <cstddef>
+#include <iostream>
+using namespace std;
+
+class A {
+public:
+  void __cdecl m() { cout << "A::m()" << endl; }
+  int ad;
+};
+
+class B : public A {
+public:
+  void __cdecl m() { cout << "B::m()" << endl; }
+  int bd;
+};
+
+void f( A * p )
+{
+  p->ad = 5;
+  p-em();
+}
+
+int main()
+{
+  A a;
+  B b;
+  cout << "Tamaño de a: " << sizeof(a)
+       << " Desplazamiento de ad: " << offsetof(A,ad) << endl;
+  cout << "Tamaño de  b: " << sizeof(b)
+       << " Desplazamiento de ad: " << offsetof(B,ad)
+       << " Desplazamiento de bd: " << offsetof(B,bd) << endl;
+  f(&a);
+  f(&b);
+  return 0;
+}
+\end{lstlisting}
+\caption{ Herencia simple \label{fig:SimpInh}}
+\end{figure}
+
+
+\subsection{Herencia y polimorfismo\index{C++!herencia|(}}
+
+
+\begin{figure}[tp]
+\begin{AsmCodeListing}
+_f__FP1A:                       ; nombre de la función manipulada
+      push   ebp
+      mov    ebp, esp
+      mov    eax, [ebp+8]       ; eax apunta al objeto
+      mov    dword [eax], 5     ; usar desplazamiento 0 para ad
+      mov    eax, [ebp+8]       ; pasar la dirección del objeto a A::m()
+      push   eax
+      call   _m__1A             ; nombre del método manipulado para  A::m()
+      add    esp, 4
+      leave
+      ret
+\end{AsmCodeListing}
+\caption{Código en ensamblador para la herencia simple\label{fig:FAsm1}}
+\end{figure}
+
+La \emph{herencia} le permite a una clase heredar los datos y métodos de
+otra.  Por ejemplo consider el código de la Figura~\ref{fig:SimpInh}.
+Ella muestra dos clases {\code A} y {\code B}, donde la clase {\code B}
+hereda de {\code A}. La salida del programa es:
+\begin{verbatim}
+Tamaño de a: 4 Desplazamiento de ad: 0
+Tamaño de b: 8 Desplazamiento de ad: 0 Desplazamiento de bd: 4
+A::m()
+A::m()
+\end{verbatim}
+Observe que los miembros {\code ad} de ambas clases ({\code B} hereda de
+{\code A}) están a la misma distancia. Esto es importante ya que la
+función {\code f} puede ser pasada como un apuntador, a un objeto {\code
+A} a cualquier tipo derivado de A.  La Figura~\ref{fig:FAsm1} muestra el
+código asm (editado) para la función (generada por \emph{gcc}).
+
+\begin{figure}[tp]
+\begin{lstlisting}[language=C++, frame=tlrb]{}
+class A {
+public:
+  virtual void __cdecl m() { cout << "A::m()" << endl; }
+  int ad;
+};
+
+class B : public A {
+public:
+  virtual void __cdecl m() { cout << "B::m()" << endl; }
+  int bd;
+};
+\end{lstlisting}
+\caption{ Herencia polimórfica\label{fig:VirtInh}}
+\end{figure}
+
+\index{C++!polimorfismo|(}
+Observe que en la salida del método {\code m} de {\code A} fue llamado
+por los objetos {\code a} y {\code b}. Desde ensamblador, uno puede ver
+que el llamado a {\code A::m()} está empotrado en la función. Para la
+programación realmente orientada a objetos, el método llamado dependería
+de qué tipo de objeto se pasa a la función.  Esto es conocido como {\code
+polimorfismo}. C++ tiene esta característica apagada por omisión. Uno usa
+la palabra clave \emph{virtual}\index{virtual} para habilitarla. La
+Figura~\ref{fig:VirtInh} muestra cómo las dos clases serían cambiadas.
+Nada del otro código necesita ser cambiado. El polimorfismo puede
+implementarse de muchas maneras.  Desafortunadamente la implementación de
+{\code gcc} está en transición al momento de escribir esto y es
+significativamente más complicada que la implementación inicial.
+Interesado en simplificar esta discusión, el autor solo cubrirá la
+implementación del polimorfismo que usan los compiladores de Windows,
+Microsoft y Borland. Esta implementación no ha cambiado en muchos años y
+probablemente no cambie en el futuro cercano.
+
+Con estos cambios, la salida del programa cambia:
+\begin{verbatim}
+Tamaño de a: 8 Desplazamiento de ad: 4
+Tamaño de b: 12 Desplazamiento de ad: 4 Desplazamiento de bd: 8
+A::m()
+B::m()
+\end{verbatim}
+
+
+\begin{figure}[tp]
+\begin{AsmCodeListing}[commentchar=!]
+?f@@YAXPAVA@@@Z:
+      push   ebp
+      mov    ebp, esp
+
+      mov    eax, [ebp+8]
+      mov    dword [eax+4], 5  ; p->ad = 5;
+
+      mov    ecx, [ebp + 8]    ; ecx = p
+      mov    edx, [ecx]        ; edx = apuntador a vtable
+      mov    eax, [ebp + 8]    ; eax = p
+      push   eax               ; empuja apuntador "this" 
+      call   dword [edx]       ; llama primera función en vtable 
+      add    esp, 4            ; limpia la pila
+
+      pop    ebp
+      ret
+\end{AsmCodeListing}
+\caption{Código en ensamblador para la función {\code f()}\label{fig:FAsm2}}
+\end{figure}
+
+\begin{figure}[tp]
+\begin{lstlisting}[language=C++, frame=tlrb]{}
+class A {
+public:
+  virtual void __cdecl m1() { cout << "A::m1()" << endl; }
+  virtual void __cdecl m2() { cout << "A::m2()" << endl; }
+  int ad;
+};
+
+class B : public A {    // B hereda de A  m2()
+public:
+  virtual void __cdecl m1() { cout << "B::m1()" << endl; }
+  int bd;
+};
+/* imprime la vtable de un objeto dado */
+void print_vtable( A * pa )
+{
+  // p ve a pa como un arreglo de palabras dobles
+  unsigned * p = reinterpret_cast<unsigned *>(pa);
+  // vt ve la vtable como un arreglo de apuntadores
+  void ** vt = reinterpret_cast<void **>(p[0]);
+  cout << hex << "Dirección de la vtable = " << vt << endl;
+  for( int i=0; i < 2; i++ )
+    cout << "dword " << i << ": " << vt[i] << endl;
+
+  // llamado a funciones virtuales de una manera 
+  // EXTREMADAMENTE no  portable
+  void (*m1func_pointer)(A *);   // function pointer variable
+  m1func_pointer = reinterpret_cast<void (*)(A*)>(vt[0]);
+  m1func_pointer(pa);            // Llama al método m1 a través de un 
+                                 // apuntador a una función 
+  void (*m2func_pointer)(A *);   // function pointer variable
+  m2func_pointer = reinterpret_cast<void (*)(A*)>(vt[1]);
+  m2func_pointer(pa);            // llamado al método  m2 a través de 
+                                 // un apuntador a función
+}
+
+int main()
+{
+  A a;   B b1;  B b2;
+  cout << "a: " << endl;   print_vtable(&a);
+  cout << "b1: " << endl;  print_vtable(&b);
+  cout << "b2: " << endl;  print_vtable(&b2);
+  return 0;
+}
+\end{lstlisting}
+\caption{Un ejemplo más complicado\label{fig:2mEx}}
+\end{figure}
+
+
+\begin{figure}[tp]
+\centering
+%\epsfig{file=vtable}
+%%%%%%%%%%%%% hacer la figurita %%%%%%%%%%%%%%%%%%%
+%\input{vtable.latex}
+\caption{Representación interna de {\code b1}\label{fig:vtable}}
+\end{figure}
+
+Ahora el segundo llamado a {\code f} invoca el método {\code B::m()}
+porque es pasado a un objeto {\code B}. Esto no es lo único que cambia.
+El tamaño de {\code A} es ahora 8 (y {\code B} es 12).  También el
+desplazamiento de {\code ad} es 4 no es 0. ¿Qué es un desplazamiento de
+cero? La respuesta a esta pregunta está relacionada en cómo es la
+implementación del polimorfismo.
+
+\index{C++!vtable|(} Una clase C++ que tiene cualquier método virtual 
+se le da un campo oculto extra que es un apuntador a un arreglo de
+apuntadores a métodos.\footnote{Para las clases sin métodos virtuales los
+compiladores de C++ siempre hacen la clase compatible con una estructura
+normal de C con los mismos miembros.}.  Esta tabla se llama a menudo
+\emph{vtable}. Para las clases {\code A} y {\code B} este apuntador se
+almacena con un desplazamiento 0.  Los compiladores de Windows siempre
+colocan este apuntador al inicio de la clase, en el tope del árbol de
+herencia. Mirando en el código ensamblador (Figura~\ref{fig:FAsm2})
+generado para la función {\code f} (de la Figura~\ref{fig:SimpInh}) para
+el método virtual del programa, uno puede ver que la llamada al método
+{\code m} no es a una etiqueta. La línea 9 encuentra la dirección de la
+vtable de objeto.  La dirección del objeto se empuja en la pila en la
+línea 11. La línea 12 llama al método virtual ramificándose en la primera
+dirección en la vtable.\footnote{Claro está, este valor ya está en el
+registro {\code ECX} él fue colocado en la línea 8 y la línea 10 podía
+ser quitado y la próxima línea cambiada para empujar {\code ECX}. El
+código no es muy eficiente porque se genera sin tener activadas las
+optimizaciones del compilador.}.  Esta llamada no usa una etiqueta, salta
+a la dirección de código apuntada por {\code EDX}. Este tipo de llamadas
+es un ejemplo de \emph{vínculo tardío} \index{C++!vínculo tardío}. El
+vínculo tardío retraza la decisión de qué método llamar hasta que el
+código se esté ejecutando. Esto le permite al código llamar el método
+apropiado para el objeto. El caso normal (Figura~\ref{fig:FAsm1}) fija
+una llamada a cierto método  es llamado \emph{primer
+vínculo}\index{C++!primer vínculo} ya que aquí el método está atado en el
+tiempo de compilación.
+
+El lector atento se sorprenderá por qué los métodos de la clase en la
+Figura~\ref{fig:VirtInh} están declarados explícitamente para usar la
+conveción de llamado de usando la plabra clave {\code \_\_cdecl}.  Por
+omisión, Microsoft usa una convención de llamado diferente a la
+convención normal de C para los métodos de las clases de C++. Él pasa un
+apuntador al objeto sobre el que actúa el método en el registro {\code
+ECX} en lugar de usar la pila. La pila se sigue usando para los otros
+parámetros explícitos del método.  El modificador {\code \_\_cdecl} le
+dice que use la convención de llamado estándar de C. Borland   C++ usa la
+convención de llamado de C por omisión.
+
+\begin{figure}[tp]
+\fbox{ \parbox{\textwidth}{\code
+a: \\
+vtable address = 004120E8\\
+dword 0: 00401320\\
+dword 1: 00401350\\
+A::m1()\\
+A::m2()\\
+b1:\\
+vtable address = 004120F0\\
+dword 0: 004013A0\\
+dword 1: 00401350\\
+B::m1()\\
+A::m2()\\
+b2:\\
+vtable address = 004120F0\\
+dword 0: 004013A0\\
+dword 1: 00401350\\
+B::m1()\\
+A::m2()\\
+} }
+\caption{Salida del programa de la Figura~\ref{fig:2mEx} \label{fig:2mExOut}}
+\end{figure}
+
+Ahora miraremos un ejemplo un poco más complicado
+(Figura~\ref{fig:2mEx}).  En él, las clases {\code A} y {\code B} cada
+una tiene dos métodos {\code m1} y {\code m2}. Recuerde que ya que la
+clase {\code B} no define su propio método {\code m2}, hereda el método
+de la clase {\code A}. La Figura~\ref{fig:vtable} muestra como un objeto
+{\code b} se ve en memoria. La Figura~\ref{fig:2mExOut} muestra la salida
+del programa. Primero observe la dirección de vtable para cada objeto.
+Las dos direcciones de los objetos {\code B} son iguales y así, ellos
+comparten la misma vtable. Una vtable es una propiedad de la clase no un
+objeto (como un miembro {\code static}). Ahora mire en las direcciones en
+las vtables. Mirando la salida en ensamblador uno puede determinar que el
+apuntador al método {\code m1} es un desplazamiento cero (o palabra doble
+0) y {\code m2} es un desplazamiento de 4 (palabra doble 1). Los
+apuntadores al método {\code m2}  son los mismos vtables de las clases
+{\code A} y {\code B} porque la clase {\code B} hereda el método {\code
+m2} de la clase {\code A}.
+
+Las líneas~25 a 32 muestran como uno podría llamar a una función virtual
+leyendo su dirección de la vtable para el objeto.\footnote{Recuerde que
+este código solo trabaja con los compiladores de Borland y MS, no para
+\emph{gcc}.}. La dirección del método se almacena en un apuntador a
+función de tipo C con un apuntador explícito \emph{this}. De la salida en
+la Figura~\ref{fig:2mExOut}, uno puede ver que esto trabaja. Sin embargo,
+por favor \emph{no} escriba código como este. Es solo para ilustrar cómo
+los métodos virtuales usan la vtable.
+
+%Looking at the output of Figure~\ref{fig:2mExOut} does demonstrate several
+%features of the implementation of polymorphism.  The {\code b1} and {\code b2}
+%variables have the same vtable address; however the {\code a} variable
+%has a different vtable address. The vtable is a property of the class not
+%a variable of the class. All class variables share a common vtable. The two
+%{\code dword} values in the table are the pointers to the virtual methods.
+%The first one (number 0) is for {\code m1}. Note that it is different for the
+%{\code A} and {\code B} classes. This makes sense since the A and B classes
+%have different {\code m1} methods. However, the second method pointer is 
+%the same for both classes, since class {\code B} inherits the {\code m2}
+%method from its base class, {\code A}.
+
+Hay algunas lecciones prácticas para aprender de esto. Un hecho
+importante es que uno tendría que tener mucho cuidado cuando lee y
+escribe variables de una clase a un archivo binario. Uno no puede sóo
+usar una lectura o escritura binaria en un objeto completo ya que esto
+podría leer o escribir la apuntador vtable al archivo. Este es un
+apuntador que señala a donde la vtable reside en la memoria del programa
+y variará de programa a programa. Este mismo problema puede ocurrir con
+estructuras, pero en C, las estructuras sólo tienen apuntadores en ellas
+si el programador las coloca explícitamente en ellas. No hay apuntadores
+obvios definidos en las clases {\code A} o {\code B}.
+
+Otra vez, es importante tener en cuenta que cada compilador implementa
+los métodos virtuales a su manera. En Windows, los objetos de las clases
+COM (Component Object Model)\index{COM} usan las vtables para implementar
+interfaces COM\footnote{Las clases COM también usan la convención de
+llamado {code \_\_stdcall} \index{convención de llamado!stdcall} no la
+normal de C.}. Sólo los compiladores que implementan métodos virtuales
+como Microsoft pueden crear clases COM. Esta es la razón por la cual
+Borland usa la misma implementación que Microsoft y una de las
+principales razones por las cuales \emph{gcc} no se puede usar para crear
+clases COM.
+
+El código para el método virtual parece exáctamente como un método no
+virtual. Sólo el código que llama es diferente. Si el compilador puede
+estar absolutamente seguro de qué método virtual será llamado, puede
+ignorar la vtabley llamar el método directamente, (usando el primer
+vínculo). 
+\index{C++!vtable|)}
+\index{C++!polimorfismo|)}
+\index{C++!herencia|)}
+\index{C++!clases|)}
+\index{C++|)}
+
+\subsection{Otras características de C++}
+
+Las otras características de C++ (información en tiempo de ejecución,
+manejo de excepciones y herencia múltiple) están más allá del alcance de
+este texto. Si el lector desea avanzar más, un buen punto de partida es
+\emph{The Annotated C++ Reference Manual} por Ellis and Stroustrup y
+\emph{The Design and Evolution of C++} por Stroustrup.
+
