@@ -1,0 +1,1019 @@
+% -*-latex-*-
+\chapter{结构体与C++}
+
+\section{结构体\index{结构体|(}}
+
+\subsection{简介}
+
+在C语言中的结构体用来将相关的数据集合到一个组合变量中。这项技术有几个优点：
+\begin{enumerate}
+\item 通过展示定义在结构体内的数据是紧密相联的来使代码变得清晰明了。
+\item 它使传递数据给函数变得简单。代替单独地传递多个变量，它通过传递一个单元来传递多个变量。
+\item 它增加了代码的 \index{局部性}\emph{局部性}\footnote{可以看任何操作系统书中关于虚拟内存管理中的讨论这个术语的部分。} 。
+\end{enumerate}
+
+从汇编语言的观点看，结构体可以认为是拥有\emph{不同}大小的元素的数组。而真正的数组的元素的大小和类型总是一样的。如果你知道数组的起始地址，每个元素的大小和需要的元素的下标，有这个特性就能计算出这个元素的地址。
+
+结构体中的元素的大小并不一定要是一样的(而且通常情况下是不一样的)。因为这个原因，结构体中的每个元素必须清楚地指定而且需要给每个元素一个\emph{标号}(或者名称)，而不是给一个数字下标。
+
+在汇编语言中，结构体中的元素可以通过和访问数组中的元素一样的方法来访问。为了访问一个元素，你必须知道结构体的起始地址和这个元素相对于结构体的\emph{相对偏移地址}。但是，和数组不一样的是：不可以通过元素的下标来计算该偏移地址，结构体的元素的地址需要通过编译器来赋值。
+
+例如，考虑下面的结构体：
+\lstset{escapeinside=`',language=Pascal,%
+}
+\begin{lstlisting}[stepnumber=0]{}
+struct S {
+  short int x;    /* `2个字节的整形' */
+  int       y;    /* `4个字节的整形' */
+  double    z;    /* `8个字节的浮点数' */
+};
+\end{lstlisting}
+
+\begin{figure}
+\centering
+\begin{tabular}{r|c|}
+\multicolumn{1}{c}{偏移地址} & \multicolumn{1}{c}{ 元素 } \\
+\cline{2-2}
+0 & {\code x} \\
+\cline{2-2}
+2 & \\
+  & {\code y} \\
+\cline{2-2}
+6 & \\
+  & \\
+  & {\code z} \\
+  & \\
+\cline{2-2}
+\end{tabular}
+\caption{结构体S \label{fig:structPic1}}
+\end{figure}
+
+图~\ref{fig:structPic1}展示了一个{\code S}结构体变量在电脑内存中是如何储存的。ANSI C标准规定结构体中的元素在内存中储存的顺序和在{\code struct}定义中的顺序是一样的。它同样规定第一个元素需恰好在结构体的起始地址中(\emph{也就是说}偏移地址为0)。它同样在{\code stddef.h}头文件中定义了另一个有用的宏{\code offsetof()}。\index{结构体!offsetof()}这个宏用来计算和返回结构体中任意元素的偏移地址。这个宏携带两个参数，第一个是结构体\emph{类型}的变量名，第二个是需要得到偏移地址的元素名。因此，图~\ref{fig:structPic1}中的，{\code offsetof(S, y)}的结果将是2。
+
+%TODO: talk about definition of offsetof() ??
+
+\subsection{内存地址对齐}
+
+\begin{figure}
+\centering
+\begin{tabular}{r|c|}
+\multicolumn{1}{c}{偏移地址} & \multicolumn{1}{c}{ 元素 } \\
+\cline{2-2}
+0 & {\code x} \\
+\cline{2-2}
+2 & \emph{unused} \\
+\cline{2-2}
+4 & \\
+  & {\code y} \\
+\cline{2-2}
+8 & \\
+  & \\
+  & {\code z} \\
+  & \\
+\cline{2-2}
+\end{tabular}
+\caption{结构体S \label{fig:structPic2}}
+
+\end{figure}
+\index{结构体!地址对齐|(}
+如果在\emph{gcc}编译器中你使用{\code offsetof}宏来得到{\code y}的偏移地址，那么它们将找到并返回4，而不是2！为什么呢？\MarginNote{回想一下一个地址如果除以了4以后，地址是处在双字界上的。} 因此\emph{gcc}(和其它许多编译器)，在缺省情况下，变量是对齐在双字界上的。在32位保护模式下，如果数据是从双字界开始储存的，那么CPU能快速地读取内存。图~\ref{fig:structPic2}展示了如果使用\emph{gcc}，那么{\code S}结构体在内存中是如何储存的。编译器在结构体中插入了两个没有使用的字节，用来将{\code y}(和{\code z})对齐在双字界上。这就表明了在C中定义的结构体，使用{\code offsetof}计算偏移来代替元素自己来计算自己的偏移为什么是一个好的想法。
+
+当然，如果只是在汇编程序中使用结构体，程序员可以自己决定偏移地址。但是，如果你需要使用C和汇编的接口技术，那么在汇编代码和C代码中约定好如何计算结构体元素的偏移地址是非常重要的！一个麻烦的地方是不同的C编译器给出的元素的偏移地址是不同的。例如：就像我们已经知道的，
+\emph{gcc}编译器创建结构体{\code S}如图~\ref{fig:structPic2}；但是，Borland的编译器将创建结构体如图~\ref{fig:structPic1}。C编译器提供了指定数据对齐的方法。但是，ANSI C标准并没有指定它们该如何完成，因此不同的编译器使用不同的方法来完成内存地址对齐。
+
+
+
+%Borland's compiler has a flag, {\code -a}, that can be
+%used to define the alignment used for all data. Compiling with {\code -a 4}
+%tells \emph{bcc} to use double word alignment. Microsoft's compiler
+%provides a {\code \#pragma pack} directive that can be used to set
+%the alignment (consult Microsoft's documentation for details). Borland's
+%compiler also supports Microsoft's pragma
+
+\emph{gcc}\index{编译器!gcc!\_\_attribute\_\_}编译器有一个灵活但是复杂的方法来指定地址对齐。它允许你使用特殊的语法来指定任意类型的地址对齐。例如，下面一行：
+\begin{lstlisting}[stepnumber=0]{}
+  typedef short int unaligned_int __attribute__((aligned(1)));
+\end{lstlisting}
+\noindent定义了一个名为{\code unaligned\_int}的新类型，它采用的是字节界对齐方式。(是的，所以在{\code
+\_\_attribute\_\_}后面的括号都是需要的！){\code aligned}的参数1可以用其它的2的乘方值来替代，用来表示采用的是其它对齐方式。(2为字边界，4表示双字界，
+\emph{等等。})如果结构体里的{\code y}元素改为{\code unaligned\_int}类型，那么\emph{gcc}给出的{\code y}的偏移地址为2.但是，{\code z}依然处在偏移地址8的位置，因为双精度类型的缺省对齐方式为双字对齐。要想{\code z}的偏移地址为6，那么还要改变它的类型定义。
+
+\begin{figure}[t]
+\lstset{escapeinside=`',language=Pascal,%
+}
+\begin{lstlisting}[frame=tlrb,stepnumber=0]{}
+struct S {
+  short int x;    /* `2个字节的整形' */
+  int       y;    /* `4个字节的整形' */
+  double    z;    /* `8个字节的浮点数'   */
+} __attribute__((packed));
+\end{lstlisting}
+\caption{使用\emph{gcc}的压缩结构体 \label{fig:packedStruct}\index{编译器!gcc!\_\_attribute\_\_}}
+\end{figure}
+
+\emph{gcc}编译器同样允许你\emph{压缩}一个结构体。它告诉编译器使用尽可能小的空间来储存这个结构体。图~\ref{fig:packedStruct}展示了{\code S}如何以这种方法来定义。这种形式下的{\code S}将使用可能的最少的字节数，14个字节。
+
+Microsoft和Borland的编译器都支持使用{\code \#pragma}指示符的方法来指定对齐方式。\index{编译器!Microsoft!pragma pack}
+\begin{lstlisting}[stepnumber=0]{}
+#pragma pack(1)
+\end{lstlisting}
+上面的指示符告诉编译器采用字节界的对齐方式来压缩结构体中的元素。(\emph{也就是说}，没有额外的填充空间)。其中的1可以用2，4，8或16代替，分别用来指定对齐方式为字边界，双字界，四字界和节边界。这个指示符在被另一个指示符置为无效之前保持有效。这就可能会导致一些问题，因为这些指示符通常使用在头文件中。如果这个头文件在包含结构体的其它头文件之前被包含到程序中，那么这些结构体的放置方式将和它们缺省的放置方式不同。这将导致非常严重的查找错误。程序中的不同模块将会将结构体元素\emph{放置}在不同的地方。
+
+\begin{figure}[t]
+\lstset{escapeinside=`',language=Pascal,%
+}
+\begin{lstlisting}[frame=tlrb,stepnumber=0]{}
+#pragma pack(push)    /* `保存对齐方式的状态值' */
+#pragma pack(1)       /* `设置为字节界'   */
+
+struct S {
+  short int x;    /* `2个字节的整形' */
+  int       y;    /* `4个字节的整形' */
+  double    z;    /* `8个字节的浮点数'   */
+};
+
+#pragma pack(pop)     /* `恢复原始的对齐方式' */
+\end{lstlisting}
+\caption{使用Microsoft或Borland的压缩结构体 \label{fig:msPacked}\index{编译器!Microsoft!pragma pack}}
+\end{figure}
+
+有一个方法来避免这个问题。Microsoft和Borland都支持这个方法：保存当前对齐方式状态值和随后恢复它。图~\ref{fig:msPacked}展示了如何使用这种方法。
+\index{结构体!地址对齐|)}
+
+\subsection{位域s\index{结构体!位域|(}}
+
+\begin{figure}[t]
+\lstset{escapeinside=`',language=Pascal,%
+}
+\begin{lstlisting}[frame=tlrb,stepnumber=0]{}
+struct S {
+  unsigned f1 : 3;   /* `3个位域'  */
+  unsigned f2 : 10;  /* `10个位域' */
+  unsigned f3 : 11;  /* `11个位域' */
+  unsigned f4 : 8;   /* `8个位域'  */
+};
+\end{lstlisting}
+\caption{关于位域的例子 \label{fig:bitStruct}}
+\end{figure}
+
+位域允许你指定结构体中的成员的大小为只使用指定的比特位数。比特位数的大小并不一定要是8的倍数。一个位域成员的定义和\lstinline|unsigned int|或\lstinline|int|的成员定义是一样，只是在定义的后面增加了冒号和位数的大小。图~\ref{fig:bitStruct}展示了一个例子。它定义了一个32位的变量，它由下面的几部分组成：
+\begin{center}
+\begin{tabular}{|c|c|c|c|}
+\multicolumn{1}{c}{8个比特} & \multicolumn{1}{c}{11个比特} &
+\multicolumn{1}{c}{10个比特} & \multicolumn{1}{c}{3个比特} \\
+\hline \hspace{2em} f4 \hspace{2em} & \hspace{3em} f3 \hspace{3em}
+& \hspace{3em} f2 \hspace{3em} & f1 \\
+\hline
+\end{tabular}
+\end{center}
+第一个位域被指定到此双字的最低有效位处。\footnote{实际上，ANSI/ISO C标准在实际上如何放置比特位方面给了编译器少许灵活性。但是，普遍的C编译器(\emph{gcc}，\emph{Microsoft}和
+\emph{Borland})都将像这样放置比特位域。}
+
+但是，如果你看了这些比特位实际上在内存中是如何储存的，你就会发现格式并不是如此简单。难点发生在当位域跨越字节界时。因为在little endian处理器上的字节将以相反的顺序储存到内存中。例如，{\code S}结构体在内存中将如下所示：
+\begin{center}
+\begin{tabular}{|c|c||c|c||c||c|}
+\multicolumn{1}{c}{5个比特} & \multicolumn{1}{c}{3个比特} &
+\multicolumn{1}{c}{3个比特} & \multicolumn{1}{c}{5个比特} &
+\multicolumn{1}{c}{8个比特} & \multicolumn{1}{c}{8个比特} \\ \hline
+f2l & f1 &  f3l  & f2m & \hspace{1em} f3m \hspace{1em}
+& \hspace{1.5em} f4 \hspace{1.5em} \\
+\hline
+\end{tabular}
+\end{center}
+\emph{f2l}变量表示\emph{f2}位域的末尾五个比特位(\emph{也就是}，五个最低有效位)。\emph{f2m}变量表示\emph{f2}的五个最高有效位。双垂直线的地方表示字节界。如果你将所有的字节反向，\emph{f2}和\emph{f3}位域将重新结合到正确的位置。
+
+\begin{figure}[t]
+\centering
+\begin{tabular}{|c*{8}{|p{1.3em}}|}
+\hline 字节 $\backslash$ 位 & 7 & 6 & 5 & 4 & 3 & 2 & 1 & 0 \\
+\hline 0 & \multicolumn{8}{c|}{操作码(08h) } \\ \hline 1 &
+\multicolumn{3}{c|}{逻辑单元 \# } & \multicolumn{5}{c|}{LBA的msb} \\
+\hline 2 & \multicolumn{8}{c|}{逻辑块地址的中间部分} \\
+\hline 3 & \multicolumn{8}{c|}{逻辑块地址的lsb} \\
+\hline 4 & \multicolumn{8}{c|}{传递的长度} \\
+\hline 5 & \multicolumn{8}{c|}{控制字} \\ \hline
+\end{tabular}
+\caption{SCSI读命令格式\label{fig:scsi-read}}
+\end{figure}
+
+\begin{figure}[t]
+\lstset{escapeinside=`',language=Pascal,%
+}
+\begin{lstlisting}[frame=lrtb]{}
+#define MS_OR_BORLAND (defined(__BORLANDC__) \
+                        || defined(_MSC_VER))
+
+#if MS_OR_BORLAND
+#  pragma pack(push)
+#  pragma pack(1)
+#endif
+
+struct SCSI_read_cmd {
+  unsigned opcode : 8;
+  unsigned lba_msb : 5;
+  unsigned logical_unit : 3;
+  unsigned lba_mid : 8;    /* `中间的比特位' */
+  unsigned lba_lsb : 8;
+  unsigned transfer_length : 8;
+  unsigned control : 8;
+}
+#if defined(__GNUC__)
+   __attribute__((packed))
+#endif
+;
+
+#if MS_OR_BORLAND
+#  pragma pack(pop)
+#endif
+\end{lstlisting}
+\caption{SCSI读命令格式的结构\label{fig:scsi-read-struct}\index{编译器!gcc!\_\_attribute\_\_}
+         \index{编译器!Microsoft!pragma pack}}
+\end{figure}
+
+物理内存的放置方式通常并不是很重要，除非有数据需要传送到程序中或从程序中传出(实际上这和位域是非常相同的)。硬件设备的接口使用奇数的比特位是非常普遍的，此时使用位域来描述是非常有用的。
+
+\begin{figure}[t]
+\centering
+\begin{tabular}{|c||c||c||c||c|c||c|}
+\multicolumn{1}{c}{8个比特} & \multicolumn{1}{c}{8个比特} &
+\multicolumn{1}{c}{8个比特} & \multicolumn{1}{c}{8个比特} &
+\multicolumn{1}{c}{3个比特} & \multicolumn{1}{c}{5个比特} &
+\multicolumn{1}{c}{8个比特} \\ \hline 控制字 & 传输的长度 & lba\_lsb
+& lba\_mid &
+logical\_unit  & lba\_msb & opcode \\
+\hline
+\end{tabular}
+\caption{{\code SCSI\_read\_cmd}的位域图 \label{fig:scsi-read-map}}
+\end{figure}
+\index{SCSI|(}
+SCSI\footnote{Small Computer Systems Interface，小型计算机系统接口，一个硬盘，\emph{等等}的工业标准}就是一个例子。SCSI设备的直接读命令被指定为传送一个六个字节的信息到设备，格式指定为图~\ref{fig:scsi-read}中的格式。使用位域来描述这个的难点是
+\emph{逻辑区块地址(logical block address)}，它在此命令中跨越了三个不同的字节。从图~\ref{fig:scsi-read}中，你可以看到数据是以big endian的格式储存的。图~\ref{fig:scsi-read-struct}展示了一个试图在所有编译器中工作的定义。前两行定义了一个宏，如何代码是由Microsoft或Borland编译器来编译时，则它就为真。可能比较混乱的部分是11行到14行。首先，你可能会想为什么\lstinline|lba_mid|和
+\lstinline|lba_lsb|位域要分开被定义，而不是定义成一个16位的域？原因是数据是以big endian顺序储存的。而编译器将把一个16位的域以little endian顺序来储存。其次，\lstinline|lba_msb|和 \lstinline|logical_unit|位域看起来似乎方向反了；但是，情况并不是这样。它们必须得以这样的顺序来摆放。图~\ref{fig:scsi-read-map}展示了作为一个48位的实体，它的位域图是怎样的。(字节界同样是以双垂直线来表示。)当它在内存中是以little endian的格式来储存，那么比特位将以要求的格式来排列。
+(图~\ref{fig:scsi-read}).
+
+\begin{figure}[t]
+\lstset{escapeinside=`',language=Pascal,%
+}
+\begin{lstlisting}[frame=lrtb]{}
+struct SCSI_read_cmd {
+  unsigned char opcode;
+  unsigned char lba_msb : 5;
+  unsigned char logical_unit : 3;
+  unsigned char lba_mid;    /* `中间的比特位' */
+  unsigned char lba_lsb;
+  unsigned char transfer_length;
+  unsigned char control;
+}
+#if defined(__GNUC__)
+   __attribute__((packed))
+#endif
+;
+\end{lstlisting}
+\caption{另一种SCSI读命令格式的结构\label{fig:scsi-read-struct2}
+         \index{编译器!gcc!\_\_attribute\_\_}\index{编译器!Microsoft!pragma pack}}
+\end{figure}
+
+考虑得复杂一点，我们知道\lstinline|SCSI_read_cmd|的定义在Microsoft
+C编译器中不能完全正确工作。如果\lstinline|sizeof(SCSI_read_cmd)|表达式被赋值了，
+Microsoft
+C将返回8,而不是6！这是因为Microsoft编译器使用位域的类型来决定如何绘制比特图。因为所有的位域都被定义为\lstinline|unsigned|类型，所以编译器在结构体的末尾加了两个字节使得它成为一个双字类型的整数。这个问题可以通过用\lstinline|unsignedshort|替代所有的位域定义类型来修正。现在，Microsoft编译器不需要增加任何的填充字节，因为六个字节是两个字节字类型的整数。\footnote{混乱的不同类型的位域将导致非常混乱的行为！读者需要自己去实验。}有了这个改变，其它的编译器也能正确工作。图~\ref{fig:scsi-read-struct2}展示了另外一种定义，能在所有的三种编译器上工作。它通过使用\lstinline|unsignedchar|避免了除2位的域以外的所有位域的问题。
+\index{SCSI|)}
+
+如果发现前面的讨论非常混乱的读者，请不要气馁。它本来就是混乱的！通过经常完全地避免使用位域而采用位操作来手动地检查和修改比特位，作者发现能避免一些混乱。
+
+\index{结构体!位域|)}
+
+%TODO:discuss alignment issues and struct size issues
+
+\subsection{在汇编语言中使用结构体}
+
+就像上面讨论，在汇编语言中访问结构体就类似于访问数组。作为一个简单的例子，考虑一下你如何写这样一个汇编程序：将0写入到{\code S}结构体的{\code y}中。假定这个程序的原型是这样的：
+\begin{lstlisting}[stepnumber=0]{}
+void zero_y( S * s_p );
+\end{lstlisting}
+\noindent 汇编程序如下：
+\begin{AsmCodeListing}
+%define      y_offset  4
+_zero_y:
+      enter  0,0
+      mov    eax, [ebp + 8]      ; 从堆栈中得到s_p(结构体的指针)
+      mov    dword [eax + y_offset], 0
+      leave
+      ret
+\end{AsmCodeListing}
+
+C语言允许你把一个结构体当作数值传递给函数；但是，通常这都是一个坏主意。当以数值来传递时，在结构体中的所有数据都必须复制到堆栈中，然后在程序中再拿出来使用。用一个结构体指针来替代能有更高的效率。
+
+C语言同样允许一个结构体类型作为一个函数的返回值。很明显，一个结构体不能通过储存到{\code EAX}寄存器中来返回。不同的编译器处理这种情况的方法也不同。一个编译器普遍使用的解决方法是在内部重写函数，让它携带一个结构体指针参数。这个指针用来将返回值放入到结构体中，这个结构体是在调用的程序外面定义的。
+
+大多数汇编器(包括NASM)都有在你的汇编代码中定义结构体的内置支持。查阅你的资料来得到更详细的信息。
+
+% add section on structure return values for functions
+
+\index{结构体|)}
+
+\section{汇编语言和C++\index{C++|(}}
+
+C++编程语言是C语言的一种扩展形式。许多C语言和汇编语言接口的基本规则同样适用于C++。但是，有一些规则需要修正。同样，拥有一些汇编语言的知识，你能很容易理解C++中的一些扩展部分。这一节假定你已经有一定的C++基础知识。
+
+\subsection{重载函数和名字改编\index{C++!名字改编|(}}
+\label{subsec:mangling}
+\begin{figure}
+\centering
+\begin{lstlisting}[frame=tlrb]{}
+#include <stdio.h>
+
+void f( int x )
+{
+  printf("%d\n", x);
+}
+
+void f( double x )
+{
+  printf("%g\n", x);
+}
+\end{lstlisting}
+\caption{两个名为{\code f()}的函数\label{fig:twof}}
+\end{figure}
+
+C++允许不同的函数(和类成员函数)使用同样的函数名来定义。当不止一个函数共享同一个函数名时，这些函数就称为\emph{重载函数}。在C语言中，如果定义的两个函数使用的函数名是一样，那么连接器将产生一个错误，因为在它连接的目标文件中，一个符号它将找到两个定义。例如，考虑图~\ref{fig:twof}中的代码。等价的汇编代码将定义两个名为{\code \_f}的标号，而这明显是错误的。
+
+C++使用和C一样的连接过程，但是通过执行\emph{名字改编}或修改用来标记函数的符号来避免这个错误。在某种程序上，C也早已经使用了名字改编。当创建函数的标号时，它在C函数名上增加了一条下划线。但是，C语言将以同样的方法来改编图~\ref{fig:twof}中的两个函数名，那么将会产生一个错误。C++使用一个更高级的改编过程：为这些函数产生两个不同的标号。例如：图~\ref{fig:twof}中的第一个函数将由DJGPP指定为标号{\code \_f\_\_Fi}，而第二个函数，指定为{\code \_f\_\_Fd}。这样就避免了任何的连接错误。
+% check to make sure that DJGPP does still but an _ at beginning for C++
+
+不幸的是，关于在C++中如何改编名字并没有一个标准，而且不同的编译器改编的名字也不一样。例如，Borland C++将使用标号{\code @f\$qi}和{\code @f\$qd}来表示图~\ref{fig:twof}中的两个函数。但是，规则并不是完全任意的。改编后的名字编码成函数的\emph{签名}。一个函数的签名是通过它携带的参数的顺序和类型来定义的。注意，，携带了一个{\code int}参数的函数在它的改编名字的末尾将有一个\emph{i}(对于DJGPP 和Borland都是一样)，而携带了一个{\code double}参数的函数在它的改编名字的末尾将有一个\emph{d}。如果有一个名为{\code f}的函数，它的原型如下：
+\begin{lstlisting}[stepnumber=0]{}
+  void f( int x, int y, double z);
+\end{lstlisting}
+\noindent DJGPP将会把它的名字改编成{\code \_f\_\_Fiid}而Borland将会把它改编成
+{\code @f\$qiid}。
+
+函数的返回类型并\emph{不是}函数签名的一部分，因此它也不会编码到它的改编名字中。这个事实解释了在C++中的一个重载规则。只有签名唯一的函数才能重载。就如你能看到的，如果在C++中定义了两个名字和签名都一样的函数，那么它们将得到同样的签名，而这将产生一个连接错误。缺省情况下，所有的C++函数都会进行名字改编，甚至是那些没有重载的函数。它编译一个文件时，编译器并没有方法知道一个特定的函数重载与否，所以它将所有的名字改编。事实上，和函数签名的方法一样，编译器同样通过编码变量的类型来改编全局变量的变量名。因此，如果你在一个文件中定义了一个全局变量为某一类型然后试图在另一个文件中用一个错误的类型来使用它，那么将产生一个连接错误。C++这个特性被称为\emph{类型安全连接}。
+\index{C++!类型安全连接}它同样暴露出另一种类型的错误：原型不一致。当在一个模块中函数的定义和在另一个模块使用的函数原型不一致时，就发生这种错误。在C中，这是一个非常难调试出来的问题。C并不能捕捉到这种错误。程序将被编译和连接，但是将会有未定义的操作发生，就像调用的代码会将和函数期望不一样的类型压入栈中一样。在C++中，它将产生一个连接错误。
+
+当C++编译器语法分析一个函数调用时，它通过查看传递给函数的参数的类型来寻找匹配的函数\footnote{这个匹配并不一定要是精确匹配，编译器将通过强制转型参数来考虑匹配。这个过程的规则超出了本书的范围。查阅一本C++的书来得到更详细的信息。}。如果它找到了一个匹配的函数，那么通过使用编译器的名字改编规则，它将创建一个{\code CALL}来调用正确的函数。
+
+因为不同的编译器使用不同的名字改编规则，所以不同编译器编译的C++代码可能不可以连接到一起。当考虑使用一个预编译的C++库时，这个事实是非常重要的！如果有人想写出一个能在C++代码中使用的汇编程序，那么他必须知道要使用的C++编译器使用的名字改编规则(或使用下面将解释的技术)。
+
+机敏的学生可能会询问在图~\ref{fig:twof}中的代码到底能不能如预期般工作。因为C++改编了所有函数的函数名，那么
+{\code printf}将被改编，而编译器将不会产生一个到标号{\code \_printf}处的{\code CALL}调用。这是一个非常正确的担忧！如果{\code printf}的原型被简单地放置在文件的开始部分，那么这就将发生。原型为：
+\begin{lstlisting}[stepnumber=0]{}
+  int printf( const char *, ...);
+\end{lstlisting}
+\noindent DJGPP将会把它改编为{\code
+\_printf\_\_FPCce}。({\code F}表示\emph{function，函数}，{\code P}表示\emph{pointer，指针}，{\code C}表示\emph{const，常量}， {\code c}表示
+\emph{char}而{\code e}表示省略号。)那么它将不会调用正规C库中的{\code printf}函数！当然，必须有一种方法让C++代码用来调用C代码。这是非常重要的，因为到处都有\emph{许多}非常有用的旧的C代码。除了允许你调用遗留的C代码外，C++同样允许你调用使用了正规的C改编约定的汇编代码。
+
+\index{C++!extern ""C""|(}
+C++扩展了{\code extern}关键字，允许它用来指定它修饰的函数或全局变量使用的是正规C约定。在C++术语中，称这些函数或全局变量使用了\emph{C链接}。例如，为了声明{\code printf}为C链接，需使用下面的原型：
+\begin{lstlisting}[language=C++,stepnumber=0]{}
+extern "C" int printf( const char *, ... );
+\end{lstlisting}
+\noindent 这就告诉编译器不要在这个函数上使用C++的名字改编规则，而使用C规则来替代。但是，如果这样做了，那么{\code printf}将不可以重载。这就提供了一个简易的方法用在C++和汇编程序接口上：使用C链接定义一个函数，然后再使用C调用约定。
+
+为了方便，C++同样允许定义函数或全局变量块的C链接。通常函数或全局变量块用卷曲花括号表示。
+\lstset{escapeinside=`',language=Pascal,%
+}
+\begin{lstlisting}[stepnumber=0,language=C++]{}
+extern "C" {
+  /* `C链接的全局变量和函数原型' */
+}
+\end{lstlisting}
+
+如果你检查了当今的C/C++编译器中的ANSI C头文件，你会发现在每个头文件上面都有下面这个东西：
+\begin{lstlisting}[stepnumber=0,language=C++]{}
+#ifdef __cplusplus
+extern "C" {
+#endif
+\end{lstlisting}
+\noindent 而且在底部有一个包含闭卷曲花括号的同样的结构。C++编译器定义了宏{\code \_\_cplusplus}(有\emph{两条}领头的下划线)。上面的代码片断如果用C++来编译，那么整个头文件就被一个{\code extern~"C"}块围起来了，但是如果使用C来编译，就不会执行任何操作
+(因为对于{\code extern~"C"}，C编译器将产生一个语法错误)。程序员可以使用同样的技术用来在汇编程序中创建一个能被C或C++使用的头文件。
+\index{C++!extern ""C""|)}
+\index{C++!名字改编|)}
+
+\begin{figure}
+\lstset{escapeinside=`',language=Pascal,%
+}
+\begin{lstlisting}[language=C++,frame=tlrb]{}
+void f( int & x )     // `\&表示是一个引用参数' { x++; }
+
+int main()
+{
+  int y = 5;
+  f(y);               // `传递了引用y，注意这里没有\&!'
+  printf("%d\n", y);  // `显示6!'
+  return 0;
+}
+\end{lstlisting}
+\caption{引用的例子\label{fig:refex}}
+\end{figure}
+
+\subsection{引用\index{C++!引用|(}}
+
+\emph{引用}是C++的另一个新特性。它允许你传递参数给函数，而不需要明确使用指针。例如，考虑图~\ref{fig:refex}中的代码。事实上，引用参数是非常简单，实际上它们就是指针。只是编译器对程序员隐藏它而已(正如Pascal编译器把{\code
+var}参数当作指针来执行)。当编译器产生此函数调用的第7行代码的汇编语句时，它将{\code
+y}的\emph{地址}传递给函数。如果有人是用汇编语言书写的{\code
+f}函数，那么他们操作的情况，就好像原型如下似的：\footnote{当然，他们可能想使用C链接来声明函数，用来避免名字改编，就像小节~\ref{subsec:mangling}中讨论的}：
+\begin{lstlisting}[stepnumber=0]{}
+  void f( int * xp);
+\end{lstlisting}
+
+引用是非常方便的，特别是对于运算符重载来说是非常有用的。运算符重载又是C++的另一个特性，它允许你在对结构体或类类型进行操作时赋予普通运算符另一种功能。例如，一个普遍的使用是赋予加号({\code +})运算符能将字符串对象连接起来的功能。因此，如果{\code a}和{\code
+b}是字符串，那么{\code a~+~b}将得到{\code a}和{\code b}连接后的字符串。实际上，C++可以调用一个函数来做这件事(事实上，上面的表达式可以用函数的表示法来重写为：{\code operator~+(a,b)})。为了提高效率，有人可能会希望传递字符串的地址来代替传递他们的值。若没有引用，那么将需要这样做：{\code
+operator~+(\&a,\&b)}，但是若要求你以运算符的语法来书写应为：{\code \&a~+~\&b}。这是非常笨拙而且混乱的。但是，通过使用引用，你可以像这样书写：{\code a~+~b}，这样就看起来非常自然。
+\index{C++!引用|)}
+
+\subsection{内联函数\index{C++!内联函数|(}}
+
+到目前为止，\emph{内联函数}又是C++的另一个特性\footnote{
+C编译器通常支持这种特性，把它当作ANSI C的扩展。}。内联函数照道理应该可以取代容易犯错误的，携带参数的，基于预处理程序的宏。回想一下在C中，书写一个求数的平方的宏可以是这样的：
+\begin{lstlisting}[stepnumber=0]{}
+#define SQR(x) ((x)*(x))
+\end{lstlisting}
+\noindent 因为预处理程序不能理解C而采用简单的替换操作，在大多数情况下，圆括号里要求是能正确计算出来的值。但是，即使是这个版本也不能给出{\code SQR(x++)}的正确答案。
+
+\begin{figure}
+\begin{lstlisting}[language=C++,frame=tlrb]{}
+inline int inline_f( int x )
+{ return x*x; }
+
+int f( int x )
+{ return x*x; }
+
+int main()
+{
+  int y, x = 5;
+  y = f(x);
+  y = inline_f(x);
+  return 0;
+}
+\end{lstlisting}
+\caption{内联函数的例子 \label{fig:InlineFun}}
+\end{figure}
+
+
+宏之所以被使用是因为它除去了进行一个简单函数的函数调用的额外时间开支。就像子程序那一章描述的，执行一个函数调用包括好几步。对于一个非常简单的函数来说，用来进行函数调用的时间可能比实际上执行函数里的操作的时间还要多！内联函数是一个更为友好的用来书写代码的方法，让代码看起来象一个标准的函数，但是它并\emph{不是}{\code CALL}指令能调用的普通代码块。出现内联函数的调用表达式的地方将被执行函数的代码替换。C++允许通过在函数定义前加上{\code inline}关键字来使函数成为内联函数。如果，考虑在图~\ref{fig:InlineFun}中声明的函数。第10行对{\code f}的调用将执行一个标准的函数调用(在汇编语言中，假定{\code x}的地址为{\code ebp-8}而{\code y}地址为{\code ebp-4})：
+\begin{AsmCodeListing}
+      push   dword [ebp-8]
+      call   _f
+      pop    ecx
+      mov    [ebp-4], eax
+\end{AsmCodeListing}
+但是，第11行对{\code inline\_f}的调用将得到如下结果：
+\begin{AsmCodeListing}
+      mov    eax, [ebp-8]
+      imul   eax, eax
+      mov    [ebp-4], eax
+\end{AsmCodeListing}
+
+这种情况下，使用内联函数有两个优点。首先，内联函数更快。没有参数需要压入栈中，也不需要创建和毁坏堆栈帧，也不需要进行分支。其次，内联函数调用使用的代码是非常少！后面一点对这个例子来说是正确的，但是并不是在所有情况下都是正确的。
+
+内联函数的主要优点是内联代码不需要连接，所以对于使用内联函数的\emph{所有}源文件来说，内联函数的代码都必须有效。前面的汇编代码的例子展示了这一点。对于非内联函数的调用，只要求知道参数，返回值类型，调用约定和函数的函数名。所有的这些信息都可以从函数的原型中得到。但是，使用内联函数调用，就必须知道这个函数的所有代码。这就意味着如果改变了一个内联函数中的任何部分，那么\emph{所有}使用了这个函数的源文件必须重新编译。回想一下对于非内联函数，如果函数原型没有改变，通常使用这个函数的源文件就不需要重新编译。由于所有的这些原因，内联函数的代码通常放置在头文件中。这样做违反了在C语言中标准的稳定和快速准则：执行的代码语句\emph{决不能}放置在头文件中。
+\index{C++!内联函数|)}
+
+\begin{figure}[t]
+\lstset{escapeinside=`',language=Pascal,%
+}
+\begin{lstlisting}[language=C++,frame=tlrb]{}
+class Simple {
+public:
+  Simple();                // `缺省的构造函数'
+  ~Simple();               // `析构函数'
+  int get_data() const;    // `函数成员'
+  void set_data( int );
+private:
+  int data;                // `数据成员'
+};
+
+Simple::Simple()
+{ data = 0; }
+
+Simple::~Simple()
+{ /* `空程序体' */ }
+
+int Simple::get_data() const
+{ `返回值'; }
+
+void Simple::set_data( int x )
+{ data = x; }
+\end{lstlisting}
+\caption{一个简单的C++类\label{fig:SimpleClass}}
+\end{figure}
+
+\subsection{类\index{C++!类|(}}
+
+C++中的类描述了一个\emph{对象}类型。一个对象包括数据成员(data member)和函数成员(function member)\footnote{在C++中，通常称之为\emph{成员函数(member
+function)}或者更为普遍地称之为\emph{方法(method)}\index{方法}。}。换句话说就是，它是由跟它相关联的数据和函数组成的一个{\code struct}结构体。考虑在图~\ref{fig:SimpleClass}中定义的那个简单的类。一个{\code Simple}类型的变量非常类似于包含一个{\code int}成员的标准C{\code struct}结构体。\MarginNote{事实上，C++使用{\code this}关键字从成员函数内部来访问指向此函数能起作用的对象的指针。}这些函数并\emph{不会}储存到指定结构体的内存中。但是，成员函数和其它函数是不一样的。它们传递了一个\emph{隐藏}的参数。这个参数是一个指向成员函数能起作用的对象的指针。
+
+\begin{figure}[t]
+\begin{lstlisting}[stepnumber=0]{}
+void set_data( Simple * object, int x )
+{
+  object->data = x;
+}
+\end{lstlisting}
+\caption{Simple::set\_data()的C版本\label{fig:SimpleCVer}}
+\end{figure}
+
+
+\begin{figure}[t]
+\begin{AsmCodeListing}
+_set_data__6Simplei:           ; 改编后的名字
+      push   ebp
+      mov    ebp, esp
+
+      mov    eax, [ebp + 8]   ; eax = 指向对象的指针(this)
+      mov    edx, [ebp + 12]  ; edx = 整形参数
+      mov    [eax], edx       ; data在偏移地址0处
+
+      leave
+      ret
+\end{AsmCodeListing}
+\caption{编译Simple::set\_data( int )的输出 \label{fig:SimpleAsm}}
+\end{figure}
+
+
+例如，考虑图~\ref{fig:SimpleClass}中的{\code Simple}类的成员函数{\code set\_data}。如果用C语言来书写此函数，这个函数将像这样：明确传递一个指向成员函数能起作用的对象的指针，如图~\ref{fig:SimpleCVer}所示。使用\emph{DJGPP}编译器加上{\code -S}选项(\emph{gcc}和Borland编译器也是一样)来告诉编译器输出一个包含此代码产生的等价的汇编语言代码的源文件。对于\emph{DJGPP}和\emph{gcc}编译器，此汇编源文件是以{\code .s}扩展名结尾的，但是不幸的是使用的语法是AT\&T汇编语言语法，这种语法和NASM和MASM语法区别非常大\footnote{\emph{gcc}编译系统包含了一个属于自己的称为\emph{gas}\index{gas}的汇编器。
+\emph{gas}汇编器使用AT\&T语法，因此编译器以\emph{gas}的格式来输出代码。网页中有好几页用来讨论INTEL和AT\&T语法的区别。同时有一个名为{\code a2i}的免费程序
+({http://www.multimania.com/placr/a2i.html})，此程序将AT\&T格式转换成了NASM格式。}。(Borland和MS编译器产生一个以{\code .asm}扩展名结尾的源文件，使用的是MASM语法。)
+图~\ref{fig:SimpleAsm}展示了将\emph{DJGPP}的输出转换成NASM语法后的代码，增加了阐明语句目的的注释。在第一行中，注意成员函数{\code set\_data}的函数名被指定为一个改编后的标号，此标号是通过编码成员函数名，类名和参数后得到的。类名被编码进去的是因为其它类中可能也有名为{\code set\_data}的成员函数，而这两个成员函数\emph{必须}使用不同的标号。参数之所以被编码进去是为了类能通过携带其它参数来重载成员函数{\code set\_data}，正如标准的C++函数。但是，和以前一样，不同的编译器在改编标号时编码信息的方式也不同。
+
+下面的第2和第3行，出现了熟悉的函数的开始部分。在第5行，把堆栈中的第一个参数储存到{\code
+EAX}中了。这并\emph{不是}参数{\code x}！替代它的是那个隐藏的参数\footnote{像平常一样，\emph{没有东西}能隐藏在汇编代码中！} ，它是指向此函数能起作用的对象的指针。第6行将参数{\code x}储存到{\code EDX}中了，而第7行又将{\code EDX}储存到了{\code EAX}指向的双字中。它是{\code Simple}对象中的{\code data}成员，也是这个类中的唯一的数据，它储存在{\code Simple}结构体中偏移地址为0的地方。
+
+\begin{figure}[tp]
+\lstset{escapeinside=`',language=Pascal,%
+}
+\begin{lstlisting}[frame=tlrb,language=C++]{}
+class Big_int {
+public:
+   /*
+   * Parameters:
+   *   size           - `表示成正常无符号整数的整形大小'
+   *
+   *   initial_value  - `将Big\_int的值初始化为一个正常的无符号整形'
+   */
+  explicit Big_int( size_t   size,
+                    unsigned initial_value = 0);
+  /*
+   * Parameters:
+   *   size           - `表示成正常无符号整数的整形大小'
+   *
+   *   initial_value  - `将Big\_int的值初始化为一个包含一个以十六进制表示的值的字符串'
+   *
+   */
+  Big_int( size_t       size,
+           const char * initial_value);
+
+  Big_int( const Big_int & big_int_to_copy);
+  ~Big_int();
+
+  // `返回Big\_int的大小 (以无符号整形的形式)'
+  size_t size() const;
+
+  const Big_int & operator = ( const Big_int & big_int_to_copy);
+  friend Big_int operator + ( const Big_int & op1,
+                              const Big_int & op2 );
+  friend Big_int operator - ( const Big_int & op1,
+                              const Big_int & op2);
+  friend bool operator == ( const Big_int & op1,
+                            const Big_int & op2 );
+  friend bool operator < ( const Big_int & op1,
+                           const Big_int & op2);
+  friend ostream & operator << ( ostream &       os,
+                                 const Big_int & op );
+private:
+  size_t      size_;    // `无符号数组的大小'
+  unsigned *  number_;  // `指向拥有数值的无符号数组的指针'
+};
+\end{lstlisting}
+\caption{Big\_int类的定义\label{fig:BigIntClass}}
+\end{figure}
+
+\begin{figure}[tp]
+\lstset{escapeinside=`',language=Pascal,%
+}
+\begin{lstlisting}[frame=tlrb,language=C++]{}
+// `汇编程序的原型'
+extern "C" {
+  int add_big_ints( Big_int &       res,
+                    const Big_int & op1,
+                    const Big_int & op2);
+  int sub_big_ints( Big_int &       res,
+                    const Big_int & op1,
+                    const Big_int & op2);
+}
+
+inline Big_int operator + ( const Big_int & op1, const Big_int & op2)
+{
+  Big_int result(op1.size());
+  int res = add_big_ints(result, op1, op2);
+  if (res == 1)
+    throw Big_int::Overflow();
+  if (res == 2)
+    throw Big_int::Size_mismatch();
+  return result;
+}
+
+inline Big_int operator - ( const Big_int & op1, const Big_int & op2)
+{
+  Big_int result(op1.size());
+  int res = sub_big_ints(result, op1, op2);
+  if (res == 1)
+    throw Big_int::Overflow();
+  if (res == 2)
+    throw Big_int::Size_mismatch();
+  return result;
+}
+\end{lstlisting}
+\caption{Big\_int类的算术代码\label{fig:BigIntAdd}}
+\end{figure}
+
+\subsubsection{样例}
+\index{C++!Big\_int样例|(}
+这一节使用了这章中的思想创建了一个C++类：用来描述任意大小的无符号整形。因为要描述任意大小的整形，所以它需要储存到一个无符号整形的数组(双字的)中。可以使用动态分配来实现任意大小的整形。双字是以相反的方向储存的\footnote{为什么呢？因为加法运算将从数组的开始处开始逐渐向前进行操作。}  (\emph{也就是说}，双字的最低有效位的下标为0)。图~\ref{fig:BigIntClass}展示了{\code Big\_int}类的定义\footnote{查阅样例源代码来得到这个例子的全部的代码。本文中将只引用部分代码。}。{\code Big\_int}的大小是通过测量{\code unsigned}数组的大小得到的，用来储存它的数据。此类中的{\code size\_}数据成员的偏移地址为0，而{\code number\_}成员的偏移为4。
+
+为了简单化这些例子，只有拥有大小相同的数组的对象实例才可以相互进行加减操作。
+
+这个类有三个构造函数(constructor)：第一个构造函数(第9行)使用了一个正常的无符号整形来初始化类实例；第二个构造函数(第18行)使用了一个包含一个十六进制值的字符串来初始化类实例。第三个构造函数(第21行)是\emph{拷贝构造函数(copy
+constructor)}\index{C++!拷贝构造函数}。
+
+因为这里使用的是汇编语言，所以讨论的焦点在于加法和减法运算符如何工作。图~\ref{fig:BigIntAdd}展示了与这些运算符相关的部分头文件。它们展示了如何创建运算符来调用汇编程序。因为不同的编译器使用完全不同的名字改编规则来改编运算符函数，所以创建了内联的运算符函数来调用C链接汇编程序。这就使得在不同编译器间的移植变得相对容易些，而且和直接调用速度一样快。这项技术同样免去了从汇编中抛出异常的必要！
+
+为什么在这里使用的全部是汇编语言呢？回想一下，在执行多倍精度运算时，进位必须从一个双字移去与下一个有效的双字进行加法操作。C++(和 C)并不允许程序员访问CPU的进位标志位。只有通过让C++独立地重新计算出进位标志位后有条件地与下一个双字进行加法操作，才能执行这个加法操作。使用汇编语言来书写代码会更有效，因为它可以访问进位标志位，可以使用{\code ADC}指令来自动将进位标志位加上，这样做更有道理。
+
+为了简化，只有{\code add\_big\_ints}的汇编程序将在这讨论。下面是这个程序的代码(来自{\code big\_math.asm})：
+\begin{AsmCodeListing}[label=big\_math.asm]
+segment .text
+        global  add_big_ints, sub_big_ints
+%define size_offset 0
+%define number_offset 4
+
+%define EXIT_OK 0
+%define EXIT_OVERFLOW 1
+%define EXIT_SIZE_MISMATCH 2
+
+; 加法和减法程序的参数
+%define res ebp+8
+%define op1 ebp+12
+%define op2 ebp+16
+
+add_big_ints:
+        push    ebp
+        mov     ebp, esp
+        push    ebx
+        push    esi
+        push    edi
+        ;
+        ; 首先设置：esi指向op1
+        ;           edi指向op2
+        ;           ebx指向res
+        mov     esi, [op1]
+        mov     edi, [op2]
+        mov     ebx, [res]
+        ;
+        ; 要保证所有3个Big_int类型数有同样的大小
+        ;
+        mov     eax, [esi + size_offset]
+        cmp     eax, [edi + size_offset]
+        jne     sizes_not_equal                 ; op1.size_ != op2.size_
+        cmp     eax, [ebx + size_offset]
+        jne     sizes_not_equal                 ; op1.size_ != res.size_
+
+        mov     ecx, eax                        ; ecx = Big_int的大小
+        ;
+        ; 现在，让寄存器指向它们各自的数组
+        ;      esi = op1.number_
+        ;      edi = op2.number_
+        ;      ebx = res.number_
+        ;
+        mov     ebx, [ebx + number_offset]
+        mov     esi, [esi + number_offset]
+        mov     edi, [edi + number_offset]
+
+        clc                                     ; 清进位标志位
+        xor     edx, edx                        ; edx = 0
+        ;
+        ; 加法循环
+add_loop:
+        mov     eax, [edi+4*edx]
+        adc     eax, [esi+4*edx]
+        mov     [ebx + 4*edx], eax
+        inc     edx                             ; 不要改变进位标志位
+        loop    add_loop
+
+        jc      overflow
+ok_done:
+        xor     eax, eax                        ; 返回值 = EXIT_OK
+        jmp     done
+overflow:
+        mov     eax, EXIT_OVERFLOW
+        jmp     done
+sizes_not_equal:
+        mov     eax, EXIT_SIZE_MISMATCH
+done:
+        pop     edi
+        pop     esi
+        pop     ebx
+        leave
+        ret
+\end{AsmCodeListing}
+
+希望，到此刻为止读者能明白大部分这里的代码。第25行到27行将{\code Big\_int}对象传递的指针储存到寄存器中。记住引用的仅仅是指针。第31行到35行检查保证三个对象数组的大小是一样的。(注意，
+{\code size\_}的偏移被加到指针中了，为了访问数据成员。)第44行和第46行调整寄存器，让它们指向被各自对象使用的数组，用来替代使用对象本身。(同样，{\code number\_}的偏移被加到对象指针中了。)
+
+\begin{figure}[tp]
+\begin{lstlisting}[language=C++, frame=tlrb]{}
+#include "big_int.hpp"
+#include <iostream>
+using namespace std;
+
+int main()
+{
+  try {
+    Big_int b(5,"8000000000000a00b");
+    Big_int a(5,"80000000000010230");
+    Big_int c = a + b;
+    cout << a << " + " << b << " = " << c << endl;
+    for( int i=0; i < 2; i++ ) {
+      c = c + a;
+      cout << "c = " << c << endl;
+    }
+    cout << "c-1 = " << c - Big_int(5,1) << endl;
+    Big_int d(5, "12345678");
+    cout << "d = " << d << endl;
+    cout << "c == d " << (c == d) << endl;
+    cout << "c > d " << (c > d) << endl;
+  }
+  catch( const char * str ) {
+    cerr << "Caught: " << str << endl;
+  }
+  catch( Big_int::Overflow ) {
+    cerr << "Overflow" << endl;
+  }
+  catch( Big_int::Size_mismatch ) {
+    cerr << "Size mismatch" << endl;
+  }
+  return 0;
+}
+\end{lstlisting}
+\caption{ {\code Big\_int}的简单应用 \label{fig:BigIntEx}}
+\end{figure}
+
+在第52行到57行的循环中，将储存在数组里的整形一起相加，首先加的是最低有效的双字，然后是下一最低有效的双字，\emph{等等。}多倍精度运算必须以这样的顺序来完成(看小节~\ref{sec:ExtPrecArith})。第59行用来检查溢出，一旦溢出，进位标志位将由最后进行加法运算的最高有效位置位。因为数组里的双字是以little endian顺序储存的，所以循环从数组的开始处开始，依次向前直到结束。
+
+图~\ref{fig:BigIntEx}展示了{\code Big\_int}的简单应用的简短的例子。注意，{\code Big\_int}常量必须明确声明，如第16行。这有两个原因。首先，没有转换构造函数来将一个无符号整形转换成{\code Big\_int}类型。其次，只有相同大小的{\code Big\_int}数才能用来进行相加操作。这里进行类型转换是有问题的，因为要知道需转换的大小是非常困难的。此类的一个更高级的实现将允许任意大小的数之间的相加。作者不打算因为要实现任意大小的数的相加而把这个例子弄得过度复杂。(但是，鼓励读者来实现它。)
+\index{C++!Big\_int样例|)}
+
+\begin{figure}[tp]
+\begin{lstlisting}[language=C++, frame=tlrb]{}
+#include <cstddef>
+#include <iostream>
+using namespace std;
+
+class A {
+public:
+  void __cdecl m() { cout << "A::m()" << endl; }
+  int ad;
+};
+
+class B : public A {
+public:
+  void __cdecl m() { cout << "B::m()" << endl; }
+  int bd;
+};
+
+void f( A * p )
+{
+  p->ad = 5;
+  p->m();
+}
+
+int main()
+{
+  A a;
+  B b;
+  cout << "Size of a: " << sizeof(a)
+       << " Offset of ad: " << offsetof(A,ad) << endl;
+  cout << "Size of b: " << sizeof(b)
+       << " Offset of ad: " << offsetof(B,ad)
+       << " Offset of bd: " << offsetof(B,bd) << endl;
+  f(&a);
+  f(&b);
+  return 0;
+}
+\end{lstlisting}
+\caption{简单继承\label{fig:SimpInh}}
+\end{figure}
+
+
+\subsection{继承和多态\index{C++!继承|(}}
+
+
+\begin{figure}[tp]
+\begin{AsmCodeListing}
+_f__FP1A:                       ; 改编后的函数名
+      push   ebp
+      mov    ebp, esp
+      mov    eax, [ebp+8]       ; eax指向对象
+      mov    dword [eax], 5     ; ad的偏移为0
+      mov    eax, [ebp+8]       ; 将对象的地址传递给A::m()
+      push   eax
+      call   _m__1A             ; A::m()改编后的成员函数名
+      add    esp, 4
+      leave
+      ret
+\end{AsmCodeListing}
+\caption{简单继承的汇编代码 \label{fig:FAsm1}}
+\end{figure}
+
+\emph{继承(Inheritance)}允许一个类继承另一个类的数据和成员函数。例如，考虑图~\ref{fig:SimpInh}中的代码。它展示了两个类，{\code A}和{\code B}，其中类{\code B}是通过继承类{\code A}得到的。程序的输出如下：
+\begin{verbatim}
+Size of a: 4 Offset of ad: 0
+Size of b: 8 Offset of ad: 0 Offset of bd: 4
+A::m()
+A::m()
+\end{verbatim}
+注意，两个类的数据成员{\code ad}({\code B}通过继承{\code A}得到的)在相同的偏移处。这是非常重要的，因为{\code f}函数将传递一个指针到一个
+{\code A}对象或任意一个由{\code A}派生(\emph{也就是}，通过继承得到)的对象类型中。图~\ref{fig:FAsm1}展示了此函数的(编辑过的)汇编代码(\emph{gcc}得到的)。
+
+\begin{figure}[tp]
+\begin{lstlisting}[language=C++, frame=tlrb]{}
+class A {
+public:
+  virtual void __cdecl m() { cout << "A::m()" << endl; }
+  int ad;
+};
+
+class B : public A {
+public:
+  virtual void __cdecl m() { cout << "B::m()" << endl; }
+  int bd;
+};
+\end{lstlisting}
+\caption{ 多态继承 \label{fig:VirtInh}}
+\end{figure}
+
+\index{C++!多态|(}
+注意在输出中，{\code a}和{\code b}对象调用的都是{\code A}的成员函数{\code m}。从汇编程序中，我们可以看到对{\code A::m()}的调用被硬编码到函数中了。对于真正的面向对象编程，成员函数的调用取决于传递给函数的对象类型是什么。这就是所谓的\emph{多态}。缺省情况下，C++关掉了这个特性。你可以使用\emph{virtual} \index{C++!virtual}关键字来激活它。图~\ref{fig:VirtInh}展示了如何修改这两个类。其它代码不需要修改。多态可以用许多方法来实现。不幸的是，当在以这种方法书写的时候，\emph{gcc}的实现方法正处在改变中，而且与它最初的实现方法相比，明显变得更复杂了。为了简单化讨论的目的，作者只涉及基于Microsoft和Borland编译器Windows使用的多态的实现方法。这种实现方法很多年没有改变了，而且可能在未来几年也不会改变。
+
+有了这些改变，程序的输出如下：
+\begin{verbatim}
+Size of a: 8 Offset of ad: 4
+Size of b: 12 Offset of ad: 4 Offset of bd: 8
+A::m()
+B::m()
+\end{verbatim}
+
+
+\begin{figure}[tp]
+\begin{AsmCodeListing}[commentchar=!]
+?f@@YAXPAVA@@@Z:
+      push   ebp
+      mov    ebp, esp
+
+      mov    eax, [ebp+8]
+      mov    dword [eax+4], 5  ; p->ad = 5;
+
+      mov    ecx, [ebp + 8]    ; ecx = p
+      mov    edx, [ecx]        ; edx = 指向vtable
+      mov    eax, [ebp + 8]    ; eax = p
+      push   eax               ; 将"this"指针压入栈中
+      call   dword [edx]       ; 调用在vtable里的第一个程序
+      add    esp, 4            ; 清理堆栈
+
+      pop    ebp
+      ret
+\end{AsmCodeListing}
+\caption{{\code f()}函数的汇编代码 \label{fig:FAsm2}}
+\end{figure}
+
+\begin{figure}[tp]
+\lstset{escapeinside=`',language=Pascal,%
+}
+\begin{lstlisting}[language=C++, frame=tlrb]{}
+class A {
+public:
+  virtual void __cdecl m1() { cout << "A::m1()" << endl; }
+  virtual void __cdecl m2() { cout << "A::m2()" << endl; }
+  int ad;
+};
+
+class B : public A {    // `B继承了A的m2()'
+public:
+  virtual void __cdecl m1() { cout << "B::m1()" << endl; }
+  int bd;
+};
+/* `显示给定的对象的vtable' */
+void print_vtable( A * pa ) {
+  // `p把pa看作是一个双字数组'
+  unsigned * p = reinterpret_cast<unsigned *>(pa);
+  // `vt把vtable看作是一个指针数组'
+  void ** vt = reinterpret_cast<void **>(p[0]);
+  cout << hex << "vtable address = " << vt << endl;
+  for( int i=0; i < 2; i++ )
+    cout << "dword " << i << ": " << vt[i] << endl;
+
+  // `用极端的没有权限的方法来调用虚函数!'
+  void (*m1func_pointer)(A *);   // `函数指针变量'
+  m1func_pointer = reinterpret_cast<void (*)(A*)>(vt[0]);
+  m1func_pointer(pa);            // `通过函数指针调用成员函数m1'
+
+  void (*m2func_pointer)(A *);   // `函数指针变量'
+  m2func_pointer = reinterpret_cast<void (*)(A*)>(vt[1]);
+  m2func_pointer(pa);            // `通过函数指针调用成员函数m2'
+}
+
+int main()
+{
+  A a;   B b1;  B b2;
+  cout << "a: " << endl;   print_vtable(&a);
+  cout << "b1: " << endl;  print_vtable(&b);
+  cout << "b2: " << endl;  print_vtable(&b2);
+  return 0;
+}
+\end{lstlisting}
+\caption{ 更复杂的例子 \label{fig:2mEx}}
+\end{figure}
+
+
+\begin{figure}[tp]
+\centering
+%\epsfig{file=vtable}
+\input{vtable.latex}
+\caption{{\code b1}的内部表示\label{fig:vtable}}
+\end{figure}
+
+现在，对{\code f}的第二次调用调用了{\code B::m()}的成员函数，因为它传递了对象{\code B}。但是，这并不是唯一的修改的地方。{\code A}的大小现在为8(而{\code B}为12)。同样，{\code
+ad}的偏移为4,不是0。在偏移0处是的什么呢？这个问题的答案与如何实现多态相关。
+
+\index{C++!vtable|(} 含有任意虚成员函数的C++类有一个额外的隐藏的域，它是一张指向成员函数指针数组的指针表。\footnote{对于没有虚成员函数的类，C++编译器通过一个包含同样数据成员的标准C结构体来对这种类进行兼容。}。这个表通常称为\emph{vtable}。对于
+{\code A}和{\code B}类，指针表储存在偏移地址0处。Windows编译器总是把此指针表放到继承树顶部的类的开始处。从拥有虚成员函数的程序版本(源自图~\ref{fig:SimpInh})中的{\code f}函数产生的汇编代码(图~\ref{fig:FAsm2})中，你可以看到对成员函数{\code m}的调用不是使用一个标号。第9行来查找对象的vtable的地址。对象的地址在第11行中被压入堆栈。第12行通过分支到vtable里的第一个地址处来调用虚成员函数。
+\footnote{当然，这个值已经在{\code ECX}寄存器中了。它是在第8行放置到该寄存器的，并且可以移除第10行，再把下一行改变为push {\code ECX}。这些代码并不十分有效，因为它是在没有开启优化编译选项的情况下产生的。}。这次调用并不使用一个标号，它分支到{\code EDX}指向的代码地址处。这种类型的调用是一个
+\emph{晚绑定(late binding)}的例子\index{C++!晚绑定}。晚绑定将调用哪个成员函数的判定延迟到代码运行时。这就允许代码为对象调用恰当的成员函数。标准的案例(图~\ref{fig:FAsm1})硬编码某个成员函数的调用，也称为\emph{早绑定(early binding)}\index{C++!早绑定}
+(因为这儿成员函数被早绑定了，在编译的时候。)。
+
+用心的读者将会觉得奇怪为什么在图~\ref{fig:VirtInh}中的类的成员函数通过使用{\code \_\_cdecl}关键字来明确声明使用的是C调用约定。缺省情况下，Microsoft对于C++类成员函数使用的是不同的调用约定，而不是标准C调用约定。此调用约定将指向成员函数能起作用的对象的指针传递到{\code ECX}寄存器，而不是使用堆栈。成员函数的其它明确的参数仍然使用堆栈。修改为{\code \_\_cdecl}告诉编译器使用标准C调用约定。Borland C++缺省情况下使用的是C调用约定。
+
+\begin{figure}[tp]
+\fbox{ \parbox{\textwidth}{\code
+a: \\
+vtable address = 004120E8\\
+dword 0: 00401320\\
+dword 1: 00401350\\
+A::m1()\\
+A::m2()\\
+b1:\\
+vtable address = 004120F0\\
+dword 0: 004013A0\\
+dword 1: 00401350\\
+B::m1()\\
+A::m2()\\
+b2:\\
+vtable address = 004120F0\\
+dword 0: 004013A0\\
+dword 1: 00401350\\
+B::m1()\\
+A::m2()\\
+} }
+\caption{图~\ref{fig:2mEx}中程序的输出 \label{fig:2mExOut}}
+\end{figure}
+
+
+下面我们再看一个稍微复杂一点的例子。
+(图~\ref{fig:2mEx})。在这个例子中，类{\code A}和{\code B}都有两个成员函数：{\code m1}和{\code m2}。记住因为类{\code B}并没有定义自己的成员函数{\code m2}，它继承了{\code A}类的成员函数。图~\ref{fig:vtable}展示了对象{\code b}在内存中如何储存。图~\ref{fig:2mExOut}展示了此程序的输出。首先，看看每个对象的vtable的地址。两个{\code B}对象的vtable地址是一样的，因此他们共享同样的vtable。一张vtable表是类的属性而不是一个对象(就如一个{\code static}数据成员)。其次，看看在vtable里的地址。从汇编程序的输出中，你可以确定成员函数{\code m1}指针在偏移地址~0处
+(或双字~0)而{\code m2}在偏移地址~4处(双字~1)。{\code m2}成员函数指针在类{\code A}和{\code B}的vtable中是一样的，因为类{\code B}从类{\code A}继承了成员函数{\code m2}。
+
+第25行到32行展示了你可以通过从对象的vtable读地址的方法来调用一个虚函数\footnote{记住这些代码只能在MS和Borland编译器下运行，\emph{gcc}不行。}。成员函数地址通过一个清楚的\emph{this}指针储存到了一个C类型函数指针中了。从图~\ref{fig:2mExOut}的输出中，你可以看到它确实可以运行。但是，请\emph{不要}像这样写代码！这只是用来举例说明虚成员函数如何使用vtable。
+
+%Looking at the output of Figure~\ref{fig:2mExOut} does demonstrate several
+%features of the implementation of polymorphism.  The {\code b1} and {\code b2}
+%variables have the same vtable address; however the {\code a} variable
+%has a different vtable address. The vtable is a property of the class not
+%a variable of the class. All class variables share a common vtable. The two
+%{\code dword} values in the table are the pointers to the virtual methods.
+%The first one (number 0) is for {\code m1}. Note that it is different for the
+%{\code A} and {\code B} classes. This makes sense since the A and B classes
+%have different {\code m1} methods. However, the second method pointer is
+%the same for both classes, since class {\code B} inherits the {\code m2}
+%method from its base class, {\code A}.
+
+从这里我们可以学到一些实践的教训。一个重要的事实是当你读或写类变量到一个二进制源文件中时，你必须非常小心。你不可以在整个对象中仅仅使用一个二进制读或写，因为可能会读或写源文件之外的vtable指针！这是一个指向留在程序内存中的vtable的指针，而且不同的程序将不同。 同样的问题会发生在C语言的结构中，但是在C语言中，结构体只有当程序员明确将指针放到结构体中时，结构体内部才有指针。类{\code A}或类{\code B}中，并没有明显地定义过指针。
+
+
+再次，认识到不同的编译器实现虚成员函数的方法是不一样的是非常重要的。在In Windows中，COM(组件对象模型，Component Object Model)
+\index{COM}类对象使用vtable来实现COM接口\footnote{COM类同样使用{\code \_\_stdcall}
+\index{调用约定!stdcall}调用约定，而不是标准C调用约定。}。只有像Microsoft一样用来实现虚成员函数的编译器才可以创建COM类。这也是为什么Borland采用和Microsoft一样的实现方法的原因，也是为什么不可以用\emph{gcc}来创建COM类的原因之一。
+
+虚成员函数的代码和非常虚的成员函数的代码非常相像。只是调用它们的代码是不同的。如果汇编器能绝对保证调用哪个虚成员函数，那么它可以忽略vtable，直接调用成员函数。(\emph{例如}，使用早绑定)。
+\index{C++!vtable|)}
+\index{C++!多态|)}
+\index{C++!继承|)}
+\index{C++!类|)}
+\index{C++|)}
+
+\subsection{C++的其它特性}
+
+C++其它特性的工作方式(\emph{例如}，除了处理继承和多继承，还有运行时类型识别)不属于本书的范围。如果读者希望走得更远一些，一个好的起点是Ellis
+和Stroustrup写的\emph{The Annotated C++ Reference
+Manual}和Stroustrup写的\emph{The Design and Evolution of C++}。

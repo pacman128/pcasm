@@ -1,0 +1,877 @@
+% -*-latex-*-
+\chapter{数组}
+\index{数组|(}
+\section{介绍}
+
+一组\emph{数组}是内存中的一个连续数据列表块。在这个列表中的每个元素必须是同一种类型而且使用恰好同样大小的内存字节来储存。因为这些特性，数组允许通过数据在数组里的位置(或下标)来对它进行有效的访问。如果知道了下面三个细节，任何元素的地址都可以计算出来：
+\begin{itemize}
+\item 数组第一个元素的地址
+\item 每个元素的字节数
+\item 这个元素的下标
+\end{itemize}
+
+0(正如在C中)作为数组的第一个元素的下标是非常方便的。使用其它值作为第一个下标也是可能的，但是这将把计算弄得很复杂。
+
+\subsection{定义数组\index{数组!定义|(}}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+segment .data
+; 定义10个双字的数组并初始化为1,2,..,10
+a1           dd 1, 2, 3,4, 5, 6, 7, 8, 9, 10
+; 定义10个字的数组并初始化为0
+a2           dw 0, 0, 0, 0,0, 0, 0, 0, 0, 0
+; 像以前一样使用TIMES
+a3           times 10 dw 0
+;定义一个字节数组,其中包含200个0和100个1
+a4           times 200 db 0
+             times 100 db 1
+
+segment .bss
+; 定义10个双字的数组，示未始化
+a5           resd  10
+;定义10了个字的数组，示未始化
+a6           resw  100
+\end{AsmCodeListing}
+\caption{定义数组\label{fig:DataArrays}}
+\end{figure}
+
+\subsubsection{在{\code data}和{\code bss}段中定义数组
+               \index{数组!定义!静态}}
+
+在{\code data}段定义一个初始化了的数组，可以使用标准的{\code db}，{\code dw}，\emph{等等}
+\index{指示符!D\emph{X}}指示符。NASM同样提供了一个有用的指示符，称为{\code TIMES} \index{指示符!TIMES}，它可以用来反复重复一条语句，而不需要你手动来复制它。图~\ref{fig:DataArrays}展示关于这些的几个例子。
+
+在{\code bss}段定义一个示初始化的数组，可以使用
+{\code resb}，{\code resw}，\emph{等等} \index{指示符!RES\emph{X}}
+指示符。记住，这些指示符包含一个指定保留多少个内存单元的操作数。图~\ref{fig:DataArrays}同样展示了关于这种类型定义的几个例子。
+
+\begin{figure}[t]
+\centering
+\begin{tabular}{l|c|ll|c|}
+\cline{2-2} \cline{5-5}
+EBP - 1  & char    & \hspace{2em} &           & \\
+\cline{2-2}
+         & unused  &              &           & \\
+\cline{2-2}
+EBP - 8  & dword 1 &              &           & \\
+\cline{2-2}
+EBP - 12 & dword 2 &              &           & word \\
+\cline{2-2}
+         &         &              &           & array \\
+         &         &              &           & \\
+         & word    &              &           & \\
+         & array   &              & EBP - 100 & \\
+\cline{5-5}
+         &         &              & EBP - 104 & dword 1 \\
+\cline{5-5}
+         &         &              & EBP - 108 & dword 2 \\
+\cline{5-5}
+         &         &              & EBP - 109 & char \\
+\cline{5-5}
+EBP - 112 &        &              &           & unused \\
+\cline{2-2} \cline{5-5}
+\end{tabular}
+\caption{堆栈上的数组排列\label{fig:StackLayouts}}
+\end{figure}
+
+\subsubsection{以局部变量的方式在堆栈上定义数组\index{数组!定义!局部变量}}
+
+在堆栈上定义一个局部数组变量没有直接的方法。像以前一样，你可以首先计算出\emph{所有}局部变量需要的全部字节，包括数组，然后再用ESP减去这个数值(或者直接使用{\code
+ENTER}指令)。例如，如果一个函数需要一个字符变量，两个双字整形和一个包含50个元素的字数组，你将需要$1
++ 2 \times 4 + 50 \times 2 =
+109$个字节。但是，为了保持ESP在双字的边界上，被ESP减的数值必须是4的倍数(这个例子中是112。)图~\ref{fig:StackLayouts}展示了两种可能的方法。第一种排序的未使用部分用来保持双字在双字边界上，这样可以加速内存的访问。
+\index{数组!定义|)}
+
+\subsection{访问数组中的元素\index{数组!访问|(}}
+
+跟C不同的是，在汇编语言中没有{\code [ ]}运算符。要访问数组中的一个元素，必须将它的地址计算出来。考虑下面两个数组的定义：
+\begin{AsmCodeListing}[frame=none, numbers=none]
+array1       db     5, 4, 3, 2, 1     ; 字节数组
+array2       dw     5, 4, 3, 2, 1     ; 字数组
+\end{AsmCodeListing}
+下面是使用这些数组的例子：
+\begin{AsmCodeListing}[frame=none]
+      mov    al, [array1]             ; al = array1[0]
+      mov    al, [array1 + 1]         ; al = array1[1]
+      mov    [array1 + 3], al         ; array1[3] = al
+      mov    ax, [array2]             ; ax = array2[0]
+      mov    ax, [array2 + 2]         ; ax = array2[1] (不是array2[2]!)
+      mov    [array2 + 6], ax         ; array2[3] = ax
+      mov    ax, [array2 + 1]         ; ax = ??
+\end{AsmCodeListing}
+在第5行，引用了字数组中的元素1,而不是元素2。为什么？因为字是两个字节的单元，所以移动到字数组的下一元素，你必须向前移动两个字节，而不是一个。第7行将从第一个元素中读取一个字节再从第二个元素中读取一个字节。在C中，编译器会根据一个指针的类型来决定使用指针运算的表达式需移动多少字节，而程序员就不需要管这些了。然而，在汇编语言中，当需要从一个元素移动到另一个元素时，它取决于程序员认为的数组元素的大小。
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single,commandchars=\\\{\}]
+      mov    ebx, array1           ; ebx = array1的地址
+      mov    dx, 0                 ; dx将储存总数
+      mov    ah, 0                 ; ?
+      mov    ecx, 5
+lp:
+      mov    al, [ebx]             ; al = *ebx
+      add    dx, ax                ; dx += ax (不是al!) \label{line:SumArray1}
+      inc    ebx                   ; bx++
+      loop   lp
+\end{AsmCodeListing}
+\caption{对一组数组的元素求和(版本1)\label{fig:SumArray1}}
+\end{figure}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single,commandchars=\\\{\}]
+      mov    ebx, array1           ; ebx = array1的地址
+      mov    dx, 0                 ; dx将储存总数
+      mov    ecx, 5
+lp:
+\textit{      add    dl, [ebx]             ; dl += *ebx}
+\textit{      jnc    next                  ; 若没有进位，则跳转到next}
+\textit{      inc    dh                    ; inc dh}
+\textit{next:}
+      inc    ebx                   ; bx++
+      loop   lp
+\end{AsmCodeListing}
+\caption{对一组数组的元素求和(版本2)\label{fig:SumArray2}}
+\end{figure}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single,commandchars=\\\{\}]
+      mov    ebx, array1           ; ebx = array1的地址
+      mov    dx, 0                 ; dx将储存总数
+      mov    ecx, 5
+lp:
+\textit{      add    dl, [ebx]             ; dl += *ebx}
+\textit{      adc    dh, 0                 ; dh += carry flag + 0}
+      inc    ebx                   ; bx++
+      loop   lp
+\end{AsmCodeListing}
+\caption{对一组数组的元素求和(版本3)\label{fig:SumArray3}}
+\end{figure}
+
+图~\ref{fig:SumArray1}展示了一个代码片段：对前面样例代码中的数组{\code array1}中的元素进行了求和。第~\ref{line:SumArray1}行，AX与DX相加。为什么不是AL？首先，{\code ADD}指令的两个操作数必须为同样的大小。其次，这样做对于对字节求和后得到一个太大以致不能匹配一个字节的总数是非常容易的。通过使用DX，达到65,535的总数是允许。然而，认识到AH同样被相加了是非常重要的。这就是第3行为什么AH被置为0的缘故了。\footnote{置AH为0隐含地表示AL是一个无符号数值。如果它是有符号的，恰当的操作是在第6行和第7行之间插入一条{\code CBW}指令。}
+
+图~\ref{fig:SumArray2}和图\ref{fig:SumArray3}展示了两种可以替换的方法来计算总数。斜体字的行替换了图~\ref{fig:SumArray1}中的第6行和第7行。
+
+\subsection{更高级的间接寻址\index{间接寻址!数组|(}}
+
+不要惊讶，间接寻址经常与数组一起使用。最普遍的间接内存引用格式为：
+\begin{center}
+{\code [ \emph{base reg(基址寄存器)} + \emph{factor(系数)}*\emph{index reg(变址寄存器)} +
+      \emph{constant(常量)}]}
+\end{center}
+其中：
+\begin{description}
+\item[基址寄存器]可以是EAX，EBX，ECX，EDX，EBP，ESP，ESI或EDI寄存器。
+\item[系数]可以是1，2，4或8。(如果是1，系数是可以省略的。)
+\item[变址寄存器]可以是EAX，EBX，ECX，EDX，EBP，ESI或EDI寄存器。
+                 (注意ESP并不可以。)
+\item[常量]为一个32位的常量。这个常量可以是一个变量(或变量表达式)。
+\end{description}
+
+\subsection{例子}
+这有一个使用数组并将它传递给函数的例子。它使用
+{\code array1c.c}程序(下面列出的)作为驱动程序，而不是
+{\code driver.c}程序。 \index{array1.asm|(}
+\begin{AsmCodeListing}[label=array1.asm]
+%define ARRAY_SIZE 100
+%define NEW_LINE 10
+
+segment .data
+FirstMsg        db   "First 10 elements of array", 0
+Prompt          db   "Enter index of element to display: ", 0
+SecondMsg       db   "Element %d is %d", NEW_LINE, 0
+ThirdMsg        db   "Elements 20 through 29 of array", 0
+InputFormat     db   "%d", 0
+
+segment .bss
+array           resd ARRAY_SIZE
+
+segment .text
+        extern  _puts, _printf, _scanf, _dump_line
+        global  _asm_main
+_asm_main:
+        enter   4,0     ; 在EBP - 4处的局部双字变量
+        push    ebx
+        push    esi
+
+; 将数组初始化为100，99，98，97， ...
+
+        mov     ecx, ARRAY_SIZE
+        mov     ebx, array
+init_loop:
+        mov     [ebx], ecx
+        add     ebx, 4
+        loop    init_loop
+
+        push    dword FirstMsg         ; 显示FirstMsg
+        call    _puts
+        pop     ecx
+
+        push    dword 10
+        push    dword array
+        call    _print_array           ; 显示数组的前10个元素
+        add     esp, 8
+
+; 提示用户输入元素下标
+Prompt_loop:
+        push    dword Prompt
+        call    _printf
+        pop     ecx
+
+        lea     eax, [ebp-4]      ; eax = 局部双字变量的地址
+        push    eax
+        push    dword InputFormat
+        call    _scanf
+        add     esp, 8
+        cmp     eax, 1               ; eax = scanf的返回值
+        je      InputOK
+
+        call    _dump_line  ; 转储当前行的剩余部分并重新开始
+        jmp     Prompt_loop          ; 如果输入无效
+
+InputOK:
+        mov     esi, [ebp-4]
+        push    dword [array + 4*esi]
+        push    esi
+        push    dword SecondMsg      ; 显示元素的值
+        call    _printf
+        add     esp, 12
+
+        push    dword ThirdMsg       ; 显示元素20-29
+        call    _puts
+        pop     ecx
+
+        push    dword 10
+        push    dword array + 20*4     ; array[20]的地址
+        call    _print_array
+        add     esp, 8
+
+        pop     esi
+        pop     ebx
+        mov     eax, 0            ; 返回到C中
+        leave
+        ret
+
+;
+; 程序_print_array
+; 调用的C程序把双字数组的元素当作有符号整形来显示。
+; C函数原型:
+; void print_array( const int * a, int n);
+; 参数：
+;   a - 指向需要显示的数组的指针(堆栈上ebp+8处)
+;   n - 需要显示的整数个数(堆栈上ebp+12处)
+
+segment .data
+OutputFormat    db   "%-5d %5d", NEW_LINE, 0
+
+segment .text
+        global  _print_array
+_print_array:
+        enter   0,0
+        push    esi
+        push    ebx
+
+        xor     esi, esi                  ; esi = 0
+        mov     ecx, [ebp+12]             ; ecx = n
+        mov     ebx, [ebp+8]              ; ebx = 数组的地址
+print_loop:
+        push    ecx                       ; printf将会改变ecx!
+
+        push    dword [ebx + 4*esi]       ; 将array[esi]压入堆栈
+        push    esi
+        push    dword OutputFormat
+        call    _printf
+        add     esp, 12                   ; 移除参数(留下ecx!)
+
+        inc     esi
+        pop     ecx
+        loop    print_loop
+
+        pop     ebx
+        pop     esi
+        leave
+        ret
+\end{AsmCodeListing}
+
+\LabelLine{array1c.c}
+\lstset{escapeinside=`',language=Pascal,%
+}
+\begin{lstlisting}{}
+#include <stdio.h>
+
+int asm_main( void );
+void dump_line( void );
+
+int main()
+{
+  int ret_status;
+  ret_status = asm_main();
+  return ret_status;
+}
+
+/*`
+ * 函数dump\_line
+ * 转储输入缓冲区中当前行的所有字符
+ '*/
+void dump_line()
+{
+  int ch;
+
+  while( (ch = getchar()) != EOF && ch != '\n')
+    /*`空程序体'*/ ;
+}
+\end{lstlisting}
+\LabelLine{array1c.c}
+\index{array1.asm|)}
+\index{间接寻址!数组|)}
+\index{数组!访问|)}
+
+\subsubsection{再看一下{\code LEA}指令\index{LEA|(}}
+
+{\code LEA}指令不仅仅可以用来计算地址，也可以用作其它目的。一个相当普遍的目的是快速计算。考虑下面的代码：
+\begin{AsmCodeListing}[numbers=none,frame=none]
+      lea    ebx, [4*eax + eax]
+\end{AsmCodeListing}
+这条代码有效地将$5 \times \mathtt{EAX}$的值储存到EBX中。相比于使用{\code MUL}\index{MUL}指令，使用{\code LEA}既简单又快捷。但是，你必须认识到在方括号里的表达式\emph{必须}是一个合法的间接地址。因此，例如，这个指令就不可以用来快速乘6。
+\index{LEA|)}
+
+
+\subsection{多维数组\index{数组!多维|(}}
+
+多维数组和已经讨论的普遍的一维数组相比，差异并不是很大。事实上，在内存中，它们的描述方法和普遍的一维数组是一样的。
+
+\subsubsection{二维数组\index{数组!多维!二维|(}}
+不要感到意外，最简单的多维数组就是二维数组。一个二维数组通常以网格的形式来表示元素。每个元素通过两个下标来确定。按照惯例，第一个下标用来确定元素的行值，而第二下标用来确定元素的列值。
+
+考虑一个三行二列的数组，像这样定义：
+\begin{lstlisting}[stepnumber=0]{}
+  int a[3][2];
+\end{lstlisting}
+C编译器将为这个数组保留6($= 2 \times 3$)个整形数的空间，而且像下面一样来映射元素：
+
+\parbox{\textwidth}{
+\vspace{0.5em}
+\centering
+\begin{tabular}{||l|c|c|c|c|c|c||}
+\hline
+下标 & 0 & 1 & 2 & 3 & 4 & 5 \\
+\hline
+元素 & a[0][0] & a[0][1] & a[1][0] & a[1][1] & a[2][0] & a[2][1]  \\
+\hline
+\end{tabular}
+\vspace{0.5em}
+}
+\noindent 这张表试图展示的是{\code a[0][0]}引用的元素储存在6个元素的一维数组的开始。元素{\code a[0][1]}储存在下一个位置(下标~1)，以此类推。在内存中，二维数组的各个行都是连续储存的。一行的最后一个元素后面紧跟着下一行的第一个元素。这就是所谓的数组
+\emph{依行}表示法，这也是C/C++编译器表示数组的表示方法。
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[]
+   mov    eax, [ebp - 44]          ; ebp - 44是i的位置
+   sal    eax, 1                   ; i乘以2
+   add    eax, [ebp - 48]          ; 加上j
+   mov    eax, [ebp + 4*eax - 40]  ; ebp - 40是a[0][0]的地址
+   mov    [ebp - 52], eax          ; 将结果储存到x中(在ebp - 52中)
+\end{AsmCodeListing}
+\caption{\lstinline|x = a[i][j]|的汇编语言表示法 \label{fig:aij}}
+\end{figure}
+
+在依行表示法中，编译器如何确定{\code a[i][j]}出现在哪？一个简单的公式将通过{\code i}和{\code j}来计算下标。在这个例子中，公式为$2i + j$。并不难看出如何得到这个公式。每一行有两个元素大小；所以行$i$的第一个元素的位置为$2i$。然后该行的$j$列的位置可以通过$j$和 $2i$相加得到。这个分析同样展示了如何产生{\code N}列数组的公式：$N \times i + j$。注意，这个公式并\emph{不}依赖于行的总数。
+
+作为一个例子，我们来看看\emph{gcc}如何编译下面的代码(使用上面定义的数组{\code a})：
+\begin{lstlisting}[stepnumber=0]{}
+  x = a[i][j];
+\end{lstlisting}
+图~\ref{fig:aij}展示了这条语句翻译成的汇编语言。因此编译器实质上将代码转换成：
+\begin{lstlisting}[stepnumber=0]{}
+  x = *(&a[0][0] + 2*i + j);
+\end{lstlisting}
+而且事实上，程序员可以以这种方法来书写，也可以得到同样的结果。
+
+选择依行的数组表示法并没有什么魔力。依列的表示法同样可以工作：
+
+\parbox{\textwidth}{
+\vspace{0.5em}
+\centering
+\begin{tabular}{||l|c|c|c|c|c|c||}
+\hline
+下标 & 0 & 1 & 2 & 3 & 4 & 5 \\
+\hline
+元素 & a[0][0] & a[1][0] & a[2][0] & a[0][1] & a[1][1] & a[2][1]  \\
+\hline
+\end{tabular}
+\vspace{0.5em} } \noindent
+在依列表示法中，各列被连续储存。元素{\code [i][j]}储存在$i +
+3j$位置中。其它语言
+(例如：FORTRAN)使用依列表示法。当与多种语言进行代码接口时，这是非常重要的。
+\index{数组!多维!二维|)}
+
+\subsubsection{大于二维}
+对于大于二维的数组，应用了同样原理的想法。考虑一个三维数组：
+\begin{lstlisting}[stepnumber=0]{}
+  int b[4][3][2];
+\end{lstlisting}
+在内存中，这个数组将被当作四个大小为{\code [3][2]}的二维数组被连续储存。下面的表展示了它如何运作：
+
+\parbox{\textwidth}{
+\vspace{0.5em}
+\centering
+\begin{tabular}{||l|c|c|c|c|c|c||}
+\hline
+下标 & 0 & 1 & 2 & 3 & 4 & 5  \\
+\hline
+元素 & b[0][0][0] & b[0][0][1]  & b[0][1][0] & b[0][1][1] & b[0][2][0]
+&  b[0][2][1]  \\
+\hline
+\hline
+下标 & 6 & 7 & 8 & 9 & 10 & 11 \\
+\hline
+元素 & b[1][0][0] & b[1][0][1] & b[1][1][0] & b[1][1][1]  & b[1][2][0]
+& b[1][2][1] \\
+\hline
+\end{tabular}
+\vspace{0.5em}
+}
+\noindent 计算{\code b[i][j][k]}的位置的公式是$6i + 2j + k$。其中6由{\code [3][2]}数组的大小决定。一般来说，对于维数为{\code
+a[L][M][N]}的数组，元素{\code a[i][j][k]}的位置将是$M\times N\times i
++ N \times j + k$。再次需要注意的是，第一个维的元素个数({\code L})并没有出现在公式中。
+
+对于更高维的数组，可以通过推广来做同样的处理。对于一个从$D_1$到$D_n$的$n$数组，下标为$i_1$到$i_n$的元素的位置可以由下面这个公式得到：
+\begin{displaymath}
+D_2 \times D_3 \cdots \times D_n \times i_1 + D_3 \times D_4 \cdots \times D_n
+\times i_2 + \cdots + D_n \times i_{n-1} + i_n
+\end{displaymath}
+或者对于超级的数学技客，它可以用更简洁地书写为：
+\begin{displaymath}
+\sum_{j=1}^{n} \: \left( \prod_{k=j+1}^{n} D_k \right) \: i_j
+\end{displaymath}
+\MarginNote{这里你可以断定作者是物理专业的。(或者说是引用了FORTRANO语言的一个免费样品？)}
+第一维$D_1$，并没有出现在公式中。
+
+对于依列表示法，普遍的公式将是：
+\begin{displaymath}
+i_1 + D_1 \times i_2 + \cdots + D_1 \times D_2 \times \cdots \times D_{n-2}
+\times i_{n-1} + D_1 \times D_2 \times \cdots \times D_{n-1} \times i_n
+\end{displaymath}
+或表示为超级数学技客的书写方法：
+\begin{displaymath}
+\sum_{j=1}^{n} \: \left( \prod_{k=1}^{j-1} D_k \right) \: i_j
+\end{displaymath}
+在这种情况下，是最后一维$D_n$，不出现在公式中。
+
+\subsubsection{在C语言中，传递多维数组参数\index{数组!多维!参数|(}}
+
+多维数组的依列表示法在C编程有一个直接的效果。对于一维的数组，当任何具体的元素被放置到内存中时，数组的大小并不需要计算出来。但这对于多维数组是不正确的。为了访问这些数组的元素，除了第一维的元素个数，编译器必须知道其它所有维数的元素个数。当一个函数的原型带有一个多维数组参数时，这就变得很明显了。下面的代码将不会被编译：
+\lstset{escapeinside=`',language=Pascal,%
+}
+\begin{lstlisting}[stepnumber=0]{}
+  void f( int a[ ][ ] );  /* `没有维数信息' */
+\end{lstlisting}
+但是，下面的代码就会被编译：
+\begin{lstlisting}[stepnumber=0]{}
+  void f( int a[ ][2] );
+\end{lstlisting}
+任何有两列的二维数组可以传递给这个函数。第一维的元素个数是不需要的\footnote{它可以在这里指定，但是会被编译器忽略。}。
+
+不要被这类函数的原型搞混了：
+\begin{lstlisting}[stepnumber=0]{}
+  void f( int * a[ ] );
+\end{lstlisting}
+它定义了一个一维的整形指针数组。(它可以附带用来创建一个像二维数组一样运作的数组。)
+
+对于更高维的数组，除了第一维的元素个数，数组参数的其它维数的必须指定。例如，一个四维的数组参数可以像这样被传递：
+\begin{lstlisting}[stepnumber=0]{}
+  void f( int a[ ][4][3][2] );
+\end{lstlisting}
+\index{数组!多维!参数|)}
+\index{数组!多维|)}
+
+\section{数组/串处理指令}
+\index{串处理指令|(}
+
+80x86家族的处理器提供了几条与数组一起使用的指令。这些指令称为
+\emph{串处理指令}。它们使用变址寄存器(ESI和EDI)来执行一个操作，然后这两个寄存器自动地进行增1或减1操作。FLAGS寄存器里的\emph{方向标志位}(DF) \index{寄存器!FLAGS!DF}决定了这些变址寄存器是增加还是减少。有两条指令用来修改方向标志位：
+\begin{description}
+\item[CLD] \index{CLD} 清方向标志位。这种情况下，变址寄存器是自动增加的。
+\item[STD] \index{STD} 置方向标志位。这种情况下，变址寄存器是自动减少的。
+\end{description}
+80x86编程中的一个\emph{非常}普遍的错误就是忘记了把方向标志位明确地设置为正确的状态。这就经常导致代码大部分情况下能正常工作(当方向标志位恰好就是所需要的状态时)，但并不能正常工作在\emph{所有}情况下。
+
+\begin{figure}[t]
+\centering
+{\code
+\begin{tabular}{|lp{1.5in}|lp{1.5in}|}
+\hline
+LODSB & AL = [DS:ESI]\newline ESI = ESI $\pm$ 1 &
+STOSB & [ES:EDI] = AL\newline EDI = EDI $\pm$ 1 \\
+\hline
+LODSW & AX = [DS:ESI]\newline ESI = ESI $\pm$ 2 &
+STOSW & [ES:EDI] = AX\newline EDI = EDI $\pm$ 2 \\
+\hline
+LODSD & EAX = [DS:ESI]\newline ESI = ESI $\pm$ 4 &
+STOSD & [ES:EDI] = EAX\newline EDI = EDI $\pm$ 4 \\
+\hline
+\end{tabular}
+}
+\caption{从串取和存入串指令\label{fig:rwString}
+         \index{LODSB} \index{STOSB} \index{LODSW} \index{LODSD} \index{STOSD}}
+\end{figure}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+segment .data
+array1  dd  1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+
+segment .bss
+array2  resd 10
+
+segment .text
+      cld                   ; 别忘记这个！
+      mov    esi, array1
+      mov    edi, array2
+      mov    ecx, 10
+lp:
+      lodsd
+      stosd
+      loop  lp
+\end{AsmCodeListing}
+\caption{从串取和存入串的例子\label{fig:lodEx}}
+\end{figure}
+
+\subsection{读写内存}
+
+最简单的串处理指令是读或写内存或同时读写内存。它们可以每次读或写一个字节，一个字或一个双字。图~\ref{fig:rwString}中的小段伪码展示了这些指令的作用。这有点需要注意的。首先，ESI是用来读的，而EDI是用来写的。如果你能记得SI代表\emph{Source Index，源变址寄存器}和DI代表\emph{Destination Index，目的变址寄存器}，那么这个就很容易记住了。\index{寄存器!ESI} \index{寄存器!EDI}其次，注意包含数据的寄存器是固定的(AL，AX或
+EAX)。最后，注意存入串指令使用ES来决定需要写的段，而不是DS。在保护模式下，这通常不是问题，因为它只有一个数据段，而ES应自动地初始化为引用DS(和DS一样)。但是，在实模式下，将ES初始化为正确的段值\index{寄存器!段}对于程序员来说是非常重要的\footnote{另一复杂的地方是你不可以直接使用一条{\code MOV}指令来将DS寄存器中的值复制到ES寄存器中。取而代之的是，你需要使用两条{\code MOV}指令，先把DS寄存器的值复制到一个通用寄存器(比如：AX)中，然后再把这个通用寄存器的值复制到ES中。}。图~\ref{fig:lodEx}展示了一个使用这些指令将一个数组复制到另一数组的例子。
+
+\begin{figure}[t]
+\centering
+{\code
+\begin{tabular}{|lp{2.5in}|}
+\hline
+MOVSB & byte [ES:EDI] = byte [DS:ESI] \newline ESI = ESI $\pm$ 1 \newline
+        EDI = EDI $\pm$ 1 \\
+\hline
+MOVSW & word [ES:EDI] = word [DS:ESI] \newline ESI = ESI $\pm$ 2 \newline
+        EDI = EDI $\pm$ 2 \\
+\hline
+MOVSD & dword [ES:EDI] = dword [DS:ESI] \newline ESI = ESI $\pm$ 4 \newline
+        EDI = EDI $\pm$ 4 \\
+\hline
+\end{tabular}
+}
+\caption{串传送指令\label{fig:movString} \index{MOVSB}
+         \index{MOVSW} \index{MOVSD}}
+\end{figure}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+segment .bss
+array  resd 10
+
+segment .text
+      cld                   ; 别忘记这个！
+      mov    edi, array
+      mov    ecx, 10
+      xor    eax, eax
+      rep stosd
+\end{AsmCodeListing}
+\caption{零数组的例子\label{fig:zeroArrayEx}}
+\end{figure}
+
+{\code LODSx}和{\code STOSx}指令的联合使用(如图~\ref{fig:lodEx}中的13和14行)是非常普遍的。事实上，一条{\code MOVSx}串处理指令可以用来完成这个联合使用的功能。图~\ref{fig:movString}描述了这些指令执行的操作。图~\ref{fig:lodEx}的第13和14行可以用{\code MOVSD}指令来替代，能得到同样的效果。唯一的区别就是在循环时EAX寄存器根本就不会被使用。
+
+\subsection{{\code REP}前缀指令\index{REP|(}}
+
+80x86家族提供了一个特殊的前缀指令\footnote{前缀指令并不是一个指令，它是放置在串处理指令前面的一个特殊的字节，用来修改指令的行为。其它前缀同样可以用来进行跨段内存访问}，称为{\code REP}，它可以与上面的串处理指令一同使用。这个前缀告诉CPU重复执行下条串处理指令一个指定的次数。ECX寄存器用来计算重复的次数
+(和在{\code LOOP}指令中的使用是一样的)。使用{\code REP}前缀，在图~\ref{fig:lodEx}中的12到15行的循环体可以替换成一行：
+\begin{AsmCodeListing}[frame=none, numbers=none]
+      rep movsd
+\end{AsmCodeListing}
+图~\ref{fig:zeroArrayEx}展示了另一个例子：得到一个零数组。
+\index{REP|)}
+
+\begin{figure}[t]
+\centering
+{\code
+\begin{tabular}{|lp{3.5in}|}
+\hline CMPSB & 比较字节[DS:ESI]和[ES:EDI] \newline ESI = ESI $\pm$ 1
+        \newline EDI = EDI $\pm$ 1 \\
+\hline CMPSW & 比较字[DS:ESI]和[ES:EDI] \newline ESI = ESI $\pm$ 2
+        \newline EDI = EDI $\pm$ 2 \\
+\hline CMPSD & 比较双字[DS:ESI]和[ES:EDI] \newline ESI = ESI $\pm$ 4
+        \newline EDI = EDI $\pm$ 4 \\
+\hline
+SCASB & 比较AL和[ES:EDI] \newline EDI $\pm$ 1 \\
+\hline
+SCASW & 比较AX和[ES:EDI] \newline EDI $\pm$ 2 \\
+\hline
+SCASD & 比较EAX和[ES:EDI] \newline EDI $\pm$ 4 \\
+\hline
+\end{tabular}
+}
+\caption{串比较指令\label{fig:cmpString}
+         \index{CMPSB} \index{CMPSW} \index{CMPSD} \index{SCASB}
+         \index{SCASW} \index{SCASD}}
+\end{figure}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single,commandchars=\\\{\}]
+segment .bss
+array        resd 100
+
+segment .text
+      cld
+      mov    edi, array    ; 指向数组开始部分的指针
+      mov    ecx, 100      ; 元素的个数
+      mov    eax, 12       ; 需扫描的个数
+lp:
+      scasd    \label{line:scasdSrchStrEx}
+      je     found
+      loop   lp
+ ; 若没有找到，执行的代码
+      jmp    onward
+found:
+      sub    edi, 4         ; edi现在指向数组中的12\label{line:subSrchStrEx}
+ ; 若找到了，执行的代码
+onward:
+\end{AsmCodeListing}
+\caption{查找的例子\label{fig:srchStrEx}}
+\end{figure}
+
+\subsection{串比较指令}
+
+图~\ref{fig:cmpString}展示了几个新的串处理指令：它们可以用来比较内存和内存或内存和寄存器。在比较和查找数组方面，它们是很有用的。它们会像{\code CMP}指令一样设置FLAGS寄存器。{\code CMPSx}
+\index{CMPSB} \index{CMPSW} \index{CMPSD}指令比较相应的内存空间，而{\code SCASx} \index{SCASB}
+\index{SCASW} \index{SCASD}根据一指定的值扫描内存空间。
+
+图~\ref{fig:srchStrEx}展示了一个代码小片断：在一个双字数组中查找数字12。行~\ref{line:scasdSrchStrEx}里的{\code SCASD}指令总是对EDI进行加4操作，即使找到了需要的数值。因此，如果你想得到数组中数12的地址，就必须用EDI减去4(正如
+行~\ref{line:subSrchStrEx}所做的)。
+
+\begin{figure}[t]
+\centering
+\begin{tabular}{|l|p{4in}|}
+\hline
+{\code REPE}, {\code REPZ} & 当ZF标志位为1或重复次数不超过ECX时，重复执行指令\\
+\hline
+{\code REPNE}, {\code REPNZ} & 当ZF标志为0或重复次数不超过ECX时，重复执行指令\\
+\hline
+\end{tabular}
+\caption{{\code REPx}前缀指令\label{fig:repx} \index{REPE}
+          \index{REPNE}}
+\end{figure}
+
+\begin{figure}
+\begin{AsmCodeListing}[frame=single,commandchars=\\\{\}]
+segment .text
+      cld
+      mov    esi, block1        ; block1的地址
+      mov    edi, block2        ; block2的地址
+      mov    ecx, size          ; block以字节表示的大小
+      repe   cmpsb              ; 当ZF为1时，重复执行
+      je     equal              ; 如果ZF为1,跳转到equal \label{line:cmpBlocksEx}
+   ; 如果block不相等，执行的代码
+      jmp    onward
+equal:
+   ; 如果相等，执行的代码
+onward:
+\end{AsmCodeListing}
+\caption{比较内存块\label{fig:cmpBlocksEx}}
+\end{figure}
+
+\subsection{{\code REPx}前缀指令}
+
+还有其它可以用在串比较指令中的，像{\code REP}一样的前缀指令。图~\ref{fig:repx}展示了两个新的前缀并描述了它们的操作。{\code REPE} \index{REPE}和
+{\code REPZ}作用是一样的({\code REPNE} \index{REPNE}
+和{\code REPNZ}也是一样)。如果重复的串比较指令因为比较的结果而终止了，变址寄存器同样会进行增量操作而ECX也会进行减1操作；但是FLAGS寄存器将仍然保持着重复终止时的状态。
+\MarginNote{在重复比较之后，为什么你不能单单看ECX是否等于0？}因此，使用ZF标志位来确定重复的比较是因为一次比较而结束，还是因为ECX等于0而结束是可能的。
+
+图~\ref{fig:cmpBlocksEx}展示了一个样例子代码片断：确定两个内存块是否相等。例子中行~\ref{line:cmpBlocksEx}中的{\code JE}指令是用来检查前面指令的结果。如果重复的比较是因为它找到了两个不相等的字节而终止，那么ZF标志位就为0,也就不会执行分支；但是，如果比较是因为ECX等于0而结束，那么ZF标志位就为1,而且代码将分支到{\code equal}标号处。
+
+\subsection{样例}
+
+这一节包含了一个汇编源文件，源文件中包含了几个应用串处理指令进行数组操作的函数。其中大部分都是C语言库中的常见函数的复制品。
+
+\index{memory.asm|(}
+\begin{AsmCodeListing}[label=memory.asm]
+global _asm_copy, _asm_find, _asm_strlen, _asm_strcpy
+
+segment .text
+; 函数 _asm_copy
+; 复制内存块
+; C原型
+; void asm_copy( void * dest, const void * src, unsigned sz);
+; 参数:
+;   dest - 指向复制操作的目的缓冲区的指针
+;   src  - 指向复制操作的源缓冲区的指针
+;   sz   - 需要复制的字节数
+
+; 下面，定义了一些有用的变量
+
+%define dest [ebp+8]
+%define src  [ebp+12]
+%define sz   [ebp+16]
+_asm_copy:
+        enter   0, 0
+        push    esi
+        push    edi
+
+        mov     esi, src        ; esi = 复制操作的源缓冲区的地址
+        mov     edi, dest       ; edi = 复制操作的目的缓冲区的地址
+        mov     ecx, sz         ; ecx = 需要复制的字节数
+
+        cld                     ; 清方向标志位
+        rep     movsb           ; 执行movsb操作ECX次
+
+        pop     edi
+        pop     esi
+        leave
+        ret
+
+
+; 函数 _asm_find
+; 根据一给定的字节值查找内存
+; void * asm_find( const void * src, char target, unsigned sz);
+; 参数:
+;   src    - 指向需要查找的缓冲区的指针
+;   target - 需要查找的字节值
+;   sz     - 在缓冲区中的字节总数
+; 返回值:
+;   如果找到了target，返回指向在缓冲区中第一次出现target的地方的指针
+;   否则
+;     返回NULL
+; 注意: target是一个字节值，但是被当作一个双字压入栈中。
+;       字节值储存在低8位上。
+;
+%define src    [ebp+8]
+%define target [ebp+12]
+%define sz     [ebp+16]
+
+_asm_find:
+        enter   0,0
+        push    edi
+
+        mov     eax, target     ; al包含需查找的值
+        mov     edi, src
+        mov     ecx, sz
+        cld
+
+        repne   scasb           ; 扫描直到ECX == 0或[ES:EDI] == AL才停止
+
+        je      found_it        ; 如果ZF为1,则找到了相应的值
+        mov     eax, 0          ; 如果没有找到，返回NULL指针
+        jmp     short quit
+found_it:
+        mov     eax, edi
+        dec     eax              ; 如果找到了，则返回(DI - 1)
+quit:
+        pop     edi
+        leave
+        ret
+
+
+; 函数 _asm_strlen
+; 返回字符串的大小
+; unsigned asm_strlen( const char * );
+; 参数:
+;   src - 指向字符串的指针
+; 返回值:
+;   字符串中的字符数(以0结束，若碰到0,则不再计数) (储存在EAX中)
+
+%define src [ebp + 8]
+_asm_strlen:
+        enter   0,0
+        push    edi
+
+        mov     edi, src        ; edi = 指向字符串的指针
+        mov     ecx, 0FFFFFFFFh ; 使用可能的ECX的最大值
+        xor     al,al           ; al = 0
+        cld
+
+        repnz   scasb           ; 扫描终止符0
+
+;
+; repnz将会多执行一步，所以ECX的大小是FFFFFFFE，
+; 而不是FFFFFFFF
+;
+        mov     eax,0FFFFFFFEh
+        sub     eax, ecx        ; 大小 = 0FFFFFFFEh - ecx
+
+        pop     edi
+        leave
+        ret
+
+; 函数 _asm_strcpy
+; 复制一个字符串
+; void asm_strcpy( char * dest, const char * src);
+; 参数:
+;   dest - 指向进行复制操作的目的字符串
+;   src  - 指向进行复制操作的源字符串
+;
+%define dest [ebp + 8]
+%define src  [ebp + 12]
+_asm_strcpy:
+        enter   0,0
+        push    esi
+        push    edi
+
+        mov     edi, dest
+        mov     esi, src
+        cld
+cpy_loop:
+        lodsb                   ; 载入AL & inc si
+        stosb                   ; 储存AL & inc di
+        or      al, al          ; 设置条件标志位
+        jnz     cpy_loop        ; 如果没到终止符0,则继续
+
+        pop     edi
+        pop     esi
+        leave
+        ret
+\end{AsmCodeListing}
+
+\LabelLine{memex.c}
+\lstset{escapeinside=`',language=Pascal,%
+}
+\begin{lstlisting}{}
+#include <stdio.h>
+
+#define STR_SIZE 30
+/* `原型' */
+
+void asm_copy( void *, const void *, unsigned ) __attribute__((cdecl));
+void * asm_find( const void *,
+                 char target, unsigned ) __attribute__((cdecl));
+unsigned asm_strlen( const char * ) __attribute__((cdecl));
+void asm_strcpy( char *, const char * ) __attribute__((cdecl));
+
+int main()
+{
+  char st1[STR_SIZE] = "test string";
+  char st2[STR_SIZE];
+  char * st;
+  char   ch;
+
+  asm_copy(st2, st1, STR_SIZE);   /* `复制源字符串的所有30个字符到目的字符串' */
+  printf("%s\n", st2);
+
+  printf("Enter a char: ");  /* `在字符串中查找一字节值' */
+  scanf("%c%*[^\n]", &ch);
+  st = asm_find(st2, ch, STR_SIZE);
+  if ( st )
+    printf("Found it: %s\n", st);
+  else
+    printf("Not found\n");
+
+  st1[0] = 0;
+  printf("Enter string:");
+  scanf("%s", st1);
+  printf("len = %u\n", asm_strlen(st1));
+
+  asm_strcpy( st2, st1);     /* `复制源字符串的有效字符到目的字符串' */
+  printf("%s\n", st2 );
+
+  return 0;
+}
+\end{lstlisting}
+\LabelLine{memex.c}
+\index{memory.asm|)}
+\index{串处理指令|)}
+\index{数组|)}

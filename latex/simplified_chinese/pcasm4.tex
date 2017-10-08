@@ -1,0 +1,1036 @@
+%-*- latex -*-
+\chapter{子程序}
+
+本章主要着眼于使用子程序来构成模块化程序和得到与高级语言(比如说C)的接口。函数和进程是高级语言中子程序的例子。
+
+调用了一个子程序的代码和这个子程序必须协商它们之间的数据如何传输。数据如何传输的这些规则称为\emph{调用约定}。\index{调用约定}这一章的很大一部分都是在讨论使用在汇编子程序和C程序接口上的标准C调用约定。这个约定(和其它约定)通常都是通过传递数据的地址(\emph{也就是}指针)来允许子程序访问内存中的数据。
+
+\section{间接寻址\index{间接寻址|(}}
+
+间接寻址允许寄存器像指针变量一样运作。要指出寄存器像一个指针一样被间接使用，需要用方括号({\code []})将它括起来。例如：
+\begin{AsmCodeListing}[frame=none]
+      mov    ax, [Data]     ; 一个字的标准的直接内存地址
+      mov    ebx, Data      ; ebx = & Data
+      mov    ax, [ebx]      ; ax = *ebx
+\end{AsmCodeListing}
+因为AX可以容纳一个字，所以第三行代码从EBX储存的地址开始读取一个字。如果用AL替换AX，那么只有一个字节会被读取。认识到寄存器不像在C中的变量一样有类型是非常重要的。到底EBX具体指向什么完全取决于使用了什么指令。而且，甚至EBX是一个指针这个事实都完全取决于使用的指令。如果EBX错误地使用了，通常不会有编译错误；但是，程序将不会正确运行。这就是为什么相比于高级语言汇编程序较容易犯错的原因之一。
+
+所有的32位通用寄存器(EAX， EBX， ECX， EDX)和指针寄存器(ESI, EDI)都可以用来间接寻址。一般来说，16位或8位的寄存器是不可以的。
+\index{间接寻址|)}
+
+\section{子程序的简单例子\index{子程序|(}}
+
+子程序是代码中的一个的独立的单元，它可以使用在程序的不同的地方。换句话说，一个子程序就像一个C中的函数。可以使用跳转来调用子程序，但是返回会是一个问题。如果子程序要求能使用在程序中的任何地方，它必须要返回到调用它的代码段处。因此，子程序的跳转返回最好不要硬编码为标号。下面的代码展示了如何使用{\code
+JMP}指令的间接方式来做这件事。此指令方式使用一个寄存器的值来决定跳转到哪(因此，这个寄存器与C中的\emph{函数指针}非常相似。)
+下面使用子程序的方法来重写第一章中的第一个程序。
+\begin{AsmCodeListing}[label=sub1.asm]
+; file: sub1.asm
+; 子程序的简单例子
+%include "asm_io.inc"
+
+segment .data
+prompt1 db    "Enter a number: ", 0       ; 不要忘记空结束符
+prompt2 db    "Enter another number: ", 0
+outmsg1 db    "You entered ", 0
+outmsg2 db    " and ", 0
+outmsg3 db    ", the sum of these is ", 0
+
+segment .bss
+input1  resd 1
+input2  resd 1
+
+segment .text
+        global  _asm_main
+_asm_main:
+        enter   0,0               ; 程序开始运行
+        pusha
+
+        mov     eax, prompt1      ; 显示提示信息
+        call    print_string
+
+        mov     ebx, input1       ; 储存input1的地址到ebx中
+        mov     ecx, ret1         ; 储存返回地址到ecx中
+        jmp     short get_int     ; 读整形
+ret1:
+        mov     eax, prompt2      ; 输出提示信息
+        call    print_string
+
+        mov     ebx, input2
+        mov     ecx, $ + 7        ; ecx = 当前地址 + 7
+        jmp     short get_int
+
+        mov     eax, [input1]     ; eax = 在input1中的双字
+        add     eax, [input2]     ; eax += 在input2中的双字
+        mov     ebx, eax          ; ebx = eax
+
+        mov     eax, outmsg1
+        call    print_string      ; 输出第一条信息
+        mov     eax, [input1]
+        call    print_int         ; 输出input1
+        mov     eax, outmsg2
+        call    print_string      ; 输出第二条信息
+        mov     eax, [input2]
+        call    print_int         ; 输出input2
+        mov     eax, outmsg3
+        call    print_string      ; 输出第三条信息
+        mov     eax, ebx
+        call    print_int         ; 输出总数(ebx)
+        call    print_nl          ; 换行
+
+        popa
+        mov     eax, 0            ; 返回到C中
+        leave
+        ret
+; 子程序 get_int
+; 参数:
+;   ebx - 储存整形双字的地址
+;   ecx - 返回指令的地址
+; 注意：
+;   eax的值被已经被破坏掉了
+get_int:
+        call    read_int
+        mov     [ebx], eax         ; 储存输入到内存中
+        jmp     ecx                ; 返回到调用处
+\end{AsmCodeListing}
+
+子程序{\code get\_int}使用了一个简单，基于寄存器的调用约定。它认为EBX寄存器中存的是输入双字的储存地址而ECX寄存器中存的是跳转返回指令的地址。25行到28行，使用了{\code ret1}标号来计算返回地址。在32行到34行，使用了{\code \$}运算子来计算返回的地址。{\code \$}运算子返回出现\$这一行的当前地址。{\code \$ + 7}表达式计算在36行的{\code MOV}指令的地址。
+
+这两种计算返回地址的方法都是不方便的。第一种方法要求为每一次子程序调用定义一个标号。第二种方法不需要标号，但是需要仔细的思量。如果使用了近跳转来替代短跳转，那么与{\code \$}相加的数就不会是7！幸运的是，有一个更简单的方法来调用子程序。这种方法使用\emph{堆栈}。
+
+\section{堆栈\index{堆栈|(}}
+
+许多CPU都支持内置堆栈。堆栈是一个先进后出(\emph{LIFO})的队列。它是以这种方式组织的一块内存区域。{\code
+PUSH}指令添加一个数据到堆栈中而 {\code
+POP}指令从堆栈中移除数据。移除的数据就是最后入栈的数据(这就是称为先进后出队列的缘故)。
+
+SS段寄存器指定包含堆栈的段(通常它与储存数据的段是一样)。ESP寄存器包含将要移除出栈数据的地址。这个数据也被称为栈顶。数据只能以双字的形式入栈。也就是说，你不可以将一个字节推入栈中。
+
+{\code
+PUSH}指令通过把ESP减4来向堆栈中插入一个双字\footnote{实际上，多字入栈也是可以的，但是在32位保护模式下，在堆栈上最好只操作单个双字。}，然后把双字储存到{\code
+[ESP]}中。 {\code POP}指令从{\code
+[ESP]}中读取双字，然后再把ESP加4.下面的代码演示了这些指令如何工作，假定在ESP初始值为{\code
+1000H}。
+\begin{AsmCodeListing}[frame=none]
+      push   dword 1    ; 1储存到0FFCh中，ESP = 0FFCh
+      push   dword 2    ; 2储存到0FF8h中， ESP = 0FF8h
+      push   dword 3    ; 3储存到0FF4h中， ESP = 0FF4h
+      pop    eax        ; EAX = 3， ESP = 0FF8h
+      pop    ebx        ; EBX = 2， ESP = 0FFCh
+      pop    ecx        ; ECX = 1， ESP = 1000h
+\end{AsmCodeListing}
+
+堆栈可以方便地用来临时储存数据。它同样可以用来形成子程序调用和传递参数和局部变量。
+
+80x86同样提供一条{\code PUSHA}指令来把EAX， EBX， ECX， EDX， ESI，
+EDI\\和EBP寄存器的值推入栈中(不是以这个顺序)。 {\code
+POPA}指令可以用来将它们移除出栈。 \index{堆栈|)}
+
+\section{CALL和RET指令\index{子程序!调用|(}}
+\index{CALL|(}
+\index{RET|(}
+80x86提供了两条使用堆栈的指令来使子程序调用变得快速而简单。CALL指令执行一个跳到子程序的无条件跳转，同时将下一条指令的地址\emph{推入}栈中。RET指令\emph{弹出}一个地址并跳转到这个地址去执行。使用这些指令的时候，正确处理堆栈以便RET指令能弹出正确的数值是非常重要的！
+
+前面的例子可以使用这些新的指令来重写。把25行到34行改成：
+\begin{AsmCodeListing}[numbers=none]
+      mov    ebx, input1
+      call   get_int
+
+      mov    ebx, input2
+      call   get_int
+\end{AsmCodeListing}
+同时把子程序{\code get\_int}改成:
+\begin{AsmCodeListing}[numbers=none]
+get_int:
+      call   read_int
+      mov    [ebx], eax
+      ret
+\end{AsmCodeListing}
+
+CALL和RET指令有几个优点：
+\begin{itemize}
+\item 它们很简单！
+\item 它们使子程序嵌套变得简单。注意：子程序
+{\code get\_int}调用了{\code read\_int}。这个调用将另一个地址压入到堆栈中了。在{\code read\_int}代码的末尾是一条弹出返回地址的RET指令，通过执行指令重新回到{\code get\_int}代码中去执行。然后，当
+{\code get\_int}的RET指令被执行时，它弹出跳回到{\code asm\_main}的返回地址。这个之所以能正确运行，是因此堆栈的LIFO特性。
+\end{itemize}
+
+记住弹出压入到堆栈的所有数据是非常重要的。例如，考虑下面的代码：
+\begin{AsmCodeListing}[frame=none]
+get_int:
+      call   read_int
+      mov    [ebx], eax
+      push   eax
+      ret                  ; 弹出EAX的值，没有返回地址！！
+\end{AsmCodeListing}
+这个代码将不会正确返回！
+\index{RET|)}
+\index{CALL|)}
+
+\section{调用约定\index{调用约定|(}}
+
+当调用了一个子程序，调用的代码和子程序(\emph{被调用的代码})必须协商好在它们之间如何传递数据。高级语言有标准传递数据的方法称为\emph{调用约定}。要让高级语言接口于汇编语言，汇编语言代码就一定要使用与高级语言一样的约定。不同的编译器有不同的调用约定或者说不同的约定可能取决于代码如何被编译。(\emph{例如：}是否进行了优化)。一个广泛的约定是：使用一条{\code CALL}指令来调用代码再通过{\code RET}指令返回。
+
+所有PC的C编译器支持的调用约定将在本章的后续部分阶段进行描述。这些约定允许你创建\emph{可重入的}子程序。一个可重入的子程序可以在程序中的任意一点被安全调用(甚至在子程序内部)。
+
+\subsection{在堆栈上传递参数\index{堆栈|(}\index{堆栈!参数|(}}
+
+给子程序的参数需要在堆栈中传递。它们在{\code CALL}指令之前就已经被压入栈中了。和在C中是一样的，如果参数被子程序改变了，那么需要传递的是数据的\emph{地址}，而不是\emph{值}。如果参数的大小小于双字，它就需要在压入栈之前转换成双字。
+
+在堆栈里的参数并没有由子程序弹出，取而代之的是：它们自己从堆栈中访问本身。为什么？
+\begin{itemize}
+\item 因为它们在{\code CALL}指令之前被压入栈中，所以返回时首先弹出的是返回地址(然后修改堆栈指针使其指向参数入栈以前的值)。
+\item 参数往往将会使用在子程序中几个的地方。通常在整个程序中，它们不可以保存在一个寄存器中，而应该储存在内存中。把它们留在堆栈里就相当于把数据复制到了内存中，这样就可以在子程序的任意一点访问数据。
+\end{itemize}
+
+\begin{figure}
+\centering
+\begin{tabular}{l|c|}
+\cline{2-2}
+&  \\ \cline{2-2}
+ESP + 4 & 参数 \\ \cline{2-2}
+ESP &返回地址\\ \cline{2-2}
+& \\ \cline{2-2}
+\end{tabular}
+\caption{}
+\label{fig:stack1}
+\end{figure}
+考虑\MarginNote{当使用了间接寻址，80x86通过看间接寻址表达式里使用了什么寄存器来决定访问哪不同的段。ESP(和EBP)使用堆栈段，而
+EAX，EBX，ECX和\\EDX使用数据段。但是，这个对于保护模式通常是不重要的，因为对于保护模式数据段和堆栈段是同一段。}
+通过堆栈传递了一个参数的子程序。当子程序被调用了，堆栈状态如图~\ref{fig:stack1}。这个参数可以通过间接寻址访问到。({\code
+[ESP+4]}
+\footnote{使用间接寻址时，寄存器加上一个常量是合法的。许多更复杂的表达式也是合法的。这个话题将在下一章中介绍。})。
+\begin{figure}
+\centering
+\begin{tabular}{l|c|}
+\cline{2-2}
+&  \\ \cline{2-2}
+ESP + 8 & 参数 \\ \cline{2-2}
+ESP + 4 & 返回地址 \\ \cline{2-2}
+ESP     & 子程序数据 \\ \cline{2-2}
+\end{tabular}
+\caption{}
+\label{fig:stack2}
+\end{figure}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+subprogram_label:
+      push   ebp           ; 把EBP的原始值保存在堆栈中
+      mov    ebp, esp      ; 新EBP的值 = ESP
+; subprogram code
+      pop    ebp           ; 恢复EBP的原始值
+      ret
+\end{AsmCodeListing}
+\caption{子程序的一般格式 \label{fig:subskel1}}
+\end{figure}
+
+如果在子程序内部使用了堆栈储存数据，那么与ESP相加的数将要改变。例如：
+图~\ref{fig:stack2}展示了如果一个双字压入栈中后堆栈的状态。现在参数在{\code ESP + 8}中，而不在{\code
+ESP + 4}中。因此，引用参数时若使用ESP就很容易犯错了。为了解决这个问题，80386提供使用另外一个寄存器：EBP。这个寄存器的唯一目的就 是引用堆栈中的数据。C调用约定要求子程序首先把EBP的值保存到堆栈中，然后再使EBP的值等于ESP。当数据压入或弹出堆栈时，这就允许ESP值被改变的同时EBP不会被改变。在子程序的结束处，EBP的原始值必须恢复出来
+(这就是为什么它在子程序的开始处被保存的缘故。)图~\ref{fig:subskel1}展示了遵循这些约定的子程序的一般格式。
+
+\begin{figure}[t]
+\centering
+\begin{tabular}{ll|c|}
+\cline{3-3} &  & \\ \cline{3-3}
+ESP + 8 & EBP + 8 & 参数 \\ \cline{3-3}
+ESP + 4 & EBP + 4 & 返回地址 \\ \cline{3-3}
+ESP     & EBP     & 保存的EBP值 \\ \cline{3-3}
+\end{tabular}
+\caption{}
+\label{fig:stack3}
+\end{figure}
+
+
+图~\ref{fig:subskel1}中的第2行和第3行组成了一个子程序的大体上的\emph{开始部分}。第5行和第6行组成了\emph{结束部分}。图~\ref{fig:stack3}展示了刚执行完开始部分之后堆栈的状态。现在参数可以在子程序中的任何地方通过{\code [EBP + 8]}来访问，而不用担心在子程序中有什么数据压入到堆栈中了。
+
+执行完子程序之后，压入栈中的参数必须移除掉。C调用约定\index{调用约定!C}规定调用的代码必须做这件事。其它约定可能不同。例如：Pascal 调用约定
+\index{调用约定!Pascal}规定子程序必须移除参数。(RET\index{RET}指令的另一种格式可以很容易做这件事。)一些C编译器同样支持这种约定。关键字{\code pascal}用在函数的原型和定义中来告诉编译器使用这种约定。事实上，MS Windows API的C函数使用的{\code stdcall}调用约定\index{调用约定!stdcall}同样以这种方式运作。这种方式有什么优点？它比C调用约定更有效一点。那为什么所有的C函数都使用C调用约定呢？一般说来，C允许一个函数的参数为变化的个数(\emph{例如}：{\code printf}和{\code scanf}函数)。对于这种类型的函数，将参数移除出栈的操作在这次函数调用中和下次函数调用中是不同的。C调用约定能使指令简单地执行这种不同的操作。Pascal和stdcall调用约定执行这种操作是非常困难的。因此，
+Pascal调用约定(和Pascal语言一样)不允许有这种类型的函数。MS Windows只有当它的API函数不可以携带变化个数的参数时才可以使用这种约定。
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+      push   dword 1        ; 传递参数1
+      call   fun
+      add    esp, 4         ; 将参数移除出栈
+\end{AsmCodeListing}
+\caption{子程序调用示例 \label{fig:subcall}}
+\end{figure}
+
+图~\ref{fig:subcall}展示了一个将被调用的子程序如何使用C调用约定。第3行通过直接操作堆栈指针将参数移除出栈。同样可以使用{\code POP}指令来做这件事，但是常常使用在要求将无用的结果储存到一个寄存器的情况下。实际上，对于这种情况，许多编译器常常使用一条{\code POP ECX}来移除参数。编译器会使用{\code
+POP}指令来代替{\code ADD}指令，因为{\code ADD}指令需要更多的字节。但是，{\code POP}会改变ECX的值。下面是一个有两个子程序的例子，它们使用了上面讨论的C调用约定。54行(和其它行)展示了多个数据和文本段可以在同一个源文件中声明。进行连接处理时，它们将会组合成单一的数据段和文本段。把数据和文本段分成单独的几段就允许数据定义在子程序代码附近，这也是子程序经常做的。
+\index{堆栈!参数|)}
+
+\begin{AsmCodeListing}[label=sub3.asm]
+%include "asm_io.inc"
+
+segment .data
+sum     dd   0
+
+segment .bss
+input   resd 1
+
+;
+; 伪码算法
+; i = 1;
+; sum = 0;
+; while( get_int(i, &input), input != 0 ) {
+;   sum += input;
+;   i++;
+; }
+; print_sum(num);
+segment .text
+        global  _asm_main
+_asm_main:
+        enter   0,0               ; 程序开始运行
+        pusha
+
+        mov     edx, 1            ; edx就是伪码里的i
+while_loop:
+        push    edx               ; 保存i到堆栈中
+        push    dword input       ; 把input的地址压入堆栈
+        call    get_int
+        add     esp, 8            ; 将i和&input移除出栈
+
+        mov     eax, [input]
+        cmp     eax, 0
+        je      end_while
+
+        add     [sum], eax        ; sum += input
+
+        inc     edx
+        jmp     short while_loop
+
+end_while:
+        push    dword [sum]       ; 将总数压入堆栈
+        call    print_sum
+        pop     ecx               ; 将[sum]移除出栈
+
+        popa
+        leave
+        ret
+
+; 子程序get_int
+; 参数(顺序压入栈中)
+;   输入的个数(储存在[ebp + 12]中)
+;   储存输入字的地址(储存在[ebp + 8]中)
+; 注意:
+;   eax和ebx的值被毁掉了
+segment .data
+prompt  db      ") Enter an integer number (0 to quit): ", 0
+
+segment .text
+get_int:
+        push    ebp
+        mov     ebp, esp
+
+        mov     eax, [ebp + 12]
+        call    print_int
+
+        mov     eax, prompt
+        call    print_string
+
+        call    read_int
+        mov     ebx, [ebp + 8]
+        mov     [ebx], eax         ; 将输入储存到内存中
+
+        pop     ebp
+        ret                        ; 返回到调用代码
+
+; 子程序print_sum
+; 输出总数
+; 参数:
+;   需要输出的总数(储存在[ebp+8]中)
+; 注意: eax的值被毁掉了
+;
+segment .data
+result  db      "The sum is ", 0
+
+segment .text
+print_sum:
+        push    ebp
+        mov     ebp, esp
+
+        mov     eax, result
+        call    print_string
+
+        mov     eax, [ebp+8]
+        call    print_int
+        call    print_nl
+
+        pop     ebp
+        ret
+\end{AsmCodeListing}
+
+
+\subsection{堆栈上的局部变量\index{堆栈!局部变量|(}}
+
+堆栈可以方便地用来储存局部变量。这实际上也是C储存普通变量(或C
+lingo中的\emph{自动变量})的地方。如果你希望子程序是可重入的，那么使用堆栈存储变量是非常重要的。一个可重入的子程序不管在任何地方被调用都能正常运行，包括子程序本身。换句话说，可重入子程序可以\emph{嵌套}调用。储存变量的堆栈同样在内存中。不储存在堆栈里的数据从程序开始到程序结束都使用内存(C称这种类型的变量为
+\emph{全局变量}或\emph{静态变量})。储存在堆栈里的数据只有当定义它们的子程序是活动的时候才使用内存。
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+subprogram_label:
+      push   ebp                ; 保存原始EBP值到堆栈中
+      mov    ebp, esp           ; 新EBP的值 = ESP
+      sub    esp, LOCAL_BYTES   ; = #局部变量需要的字节数
+; subprogram code
+      mov    esp, ebp           ; 释放局部变量
+      pop    ebp                ; 恢复原始EBP值
+      ret
+\end{AsmCodeListing}
+\caption{带有局部变量的子程序的一般格式\label{fig:subskel2}}
+\end{figure}
+
+\begin{figure}[t]
+\begin{lstlisting}[frame=tlrb]{}
+void calc_sum( int n, int * sump )
+{
+  int i, sum = 0;
+
+  for( i=1; i <= n; i++ )
+    sum += i;
+  *sump = sum;
+}
+\end{lstlisting}
+\caption{求总数的C语言版 \label{fig:Csum}}
+\end{figure}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+cal_sum:
+      push   ebp
+      mov    ebp, esp
+      sub    esp, 4               ; 为局部变量sum分配空间
+
+      mov    dword [ebp - 4], 0   ; sum = 0
+      mov    ebx, 1               ; ebx (i) = 1
+for_loop:
+      cmp    ebx, [ebp+8]         ; is i <= n?
+      jnle   end_for
+
+      add    [ebp-4], ebx         ; sum += i
+      inc    ebx
+      jmp    short for_loop
+
+end_for:
+      mov    ebx, [ebp+12]        ; ebx = sump
+      mov    eax, [ebp-4]         ; eax = sum
+      mov    [ebx], eax           ; *sump = sum;
+
+      mov    esp, ebp
+      pop    ebp
+      ret
+\end{AsmCodeListing}
+\caption{求总数的汇编语言版 \label{fig:Asmsum}}
+\end{figure}
+
+在堆栈中，局部变量恰好储存在保存的EBP值之后。它们通过在子程序的开始部分用ESP减去一定的字节数来分配存储空间。
+图~\ref{fig:subskel2}展示了子程序新的骨架。EBP用来访问局部变量。考虑图~\ref{fig:Csum}中的C函数。 图~\ref{fig:Asmsum}
+展示如何用汇编语言编写等价的子程序。
+
+\begin{figure}[t]
+\centering
+\begin{tabular}{ll|c|}
+\cline{3-3}
+ESP + 16 & EBP + 12 & {\code sump} \\ \cline{3-3}
+ESP + 12 & EBP + 8  & {\code n} \\ \cline{3-3}
+ESP + 8  & EBP + 4  & Return address \\ \cline{3-3}
+ESP + 4  & EBP      & saved EBP \\ \cline{3-3}
+ESP      & EBP - 4  & {\code sum} \\ \cline{3-3}
+\end{tabular}
+\caption{}
+\label{fig:SumStack}
+\end{figure}
+
+图~\ref{fig:SumStack}展示了执行完图~\ref{fig:Asmsum}中程序的开始部分后的堆栈状态。这一节的堆栈包含了参数，返回信息和局部变量，这样堆栈称为一个\emph{堆栈帧}。C函数的每一次调用都会在堆栈上创建一个新的堆栈帧。
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+subprogram_label:
+      enter  LOCAL_BYTES, 0     ; = #局部变量需要的字节数
+; subprogram code
+      leave
+      ret
+\end{AsmCodeListing}
+\caption{通过使用{\code ENTER}和{\code LEAVE}指令，带有局部变量的子程序的一般格式
+\label{fig:subskel3}}
+\end{figure}
+
+\MarginNote{尽管{\code ENTER}和{\code
+LEAVE}指令事实上简化了开始部分和结束部分，但是它们并没有经常被使用。这是为什么呢？因为与等价的简单的指令相比，它们执行较慢！当你并不认为执行一队指令序列比执行一条复合的指令要快的时候，这就是一个榜样。}可以使用两条专门的指令来简化一个子程序的开始部分和结束部分，它们是为这个目的而专门设计的。{\code
+ENTER}指令执行开始部分的代码，而 {\code
+LEAVE}指令执行结束部分。{\code
+ENTER}指令携带两个立即数。对于C调用约定，第二个操作数总是为0。第一个操作数是局部变量所需要的字节数。{\code
+LEAVE}指令没有操作数。
+图~\ref{fig:subskel3}展示了如何使用这些指令。注意程序skeleton(图~\ref{fig:skel})同样使用了{\code
+ENTER}和{\code LEAVE}指令。 \index{堆栈!局部变量|)} \index{堆栈|)}
+\index{调用约定|)} \index{子程序!调用|)}
+
+\section{多模块程序\index{多模块程序|(}}
+
+\emph{多模块程序}是由不止一个目标文件组成的程序。这里出现的所有程序都是多模块程序。它们由C驱动目标文件和汇编目标文件(加上C库目标文件)组成。回忆一下连接程序将目标文件组合成一个可执行程序。连接程序必须把在一个模块(\emph{也就是}
+目标文件)中引用的每个变量匹配到定义该变量的模块。
+为了让模块A能使用定义在模块B里的变量，就必须使用{\code
+extern(外部)}指示符。在{\code extern}
+\index{directive!extern}指示符后面是用逗号隔开的变量列表。这个指示符告诉编译器把这些变量视为是模块\emph{外部的}。也就是说，这些变量可以在这个模块中使用，但是却定义在另一模块中。{\code
+asm\_io.inc}文件中就将{\code read\_int}\emph{等}程序定义为外部的。
+
+在编译语言中，缺省情况下变量不可以由外部程序访问。如果一个变量可以被一个模块访问，而这个模块又不是定义它的,那么在定义它的模块中，它一定被声明为\emph{global(全局的)}。{\code
+global} \index{指示符!全局}指示符就可以用来做这件事情。图~\ref{fig:skel}的程序skeleton中的第13行定义了一个全局变量 {\code
+\_asm\_main}。若没有这个声明，就可能会出错。为什么？因为C代码将会找不到\emph{内部的} {\code \_asm\_main}变量。
+
+下面是用两个模块重写的以前例子的代码。子程序({\code get\_int}和{\code print\_sum})在不同的源文件中，而不是在{\code \_asm\_main}程序中。
+
+\begin{AsmCodeListing}[label=main4.asm,commandchars=\\\{\}]
+%include "asm_io.inc"
+
+segment .data
+sum     dd   0
+
+segment .bss
+input   resd 1
+
+segment .text
+        global  _asm_main
+\textit{        extern  get_int, print_sum}
+_asm_main:
+        enter   0,0               ; 程序开始运行
+        pusha
+
+        mov     edx, 1            ; edx就是伪码中的i
+while_loop:
+        push    edx               ; 保存i到堆栈中
+        push    dword input       ; 把input的地址压入堆栈
+        call    get_int
+        add     esp, 8            ; 将i和&input移除出栈
+
+        mov     eax, [input]
+        cmp     eax, 0
+        je      end_while
+
+        add     [sum], eax        ; sum += input
+
+        inc     edx
+        jmp     short while_loop
+
+end_while:
+        push    dword [sum]       ; 将总数压入堆栈
+        call    print_sum
+        pop     ecx               ; 将总数[sum]移除出栈
+
+        popa
+        leave
+        ret
+\end{AsmCodeListing}
+
+\begin{AsmCodeListing}[label=sub4.asm,commandchars=\\\{\}]
+%include "asm_io.inc"
+
+segment .data
+prompt  db      ") Enter an integer number (0 to quit): ", 0
+
+segment .text
+\textit{        global  get_int, print_sum}
+get_int:
+        enter   0,0
+
+        mov     eax, [ebp + 12]
+        call    print_int
+
+        mov     eax, prompt
+        call    print_string
+
+        call    read_int
+        mov     ebx, [ebp + 8]
+        mov     [ebx], eax         ; 将输入储存到内存中
+
+        leave
+        ret                        ; 返回到调用代码
+
+segment .data
+result  db      "The sum is ", 0
+
+segment .text
+print_sum:
+        enter   0,0
+
+        mov     eax, result
+        call    print_string
+
+        mov     eax, [ebp+8]
+        call    print_int
+        call    print_nl
+
+        leave
+        ret
+\end{AsmCodeListing}
+
+上面的例子只有全局的\index{指示符!全局}代码变量；同样，全局数据变量也可以使用一模一样的方法。
+\index{多模块程序|)}
+
+\section{C与汇编的接口技术\index{与C接口|(}\index{调用约定!C|(}}
+
+现今，完全用汇编书写的程序是非常少的。编译器能很好地将高级语言转换成有效的机器代码。因为用高级语言书写代码非常容易，所以高级语言变得很流行。此外，高级语言比汇编语言\emph{更}容易移植！
+
+当使用汇编语言时，我们经常将它使用在代码中的一小部分上。有两种使用汇编语言的方法：在C中调用汇编子程序或内嵌汇编。内嵌汇编允许程序员把汇编语句直接放入到C代码中。这样是非常方便的；但是，内嵌汇编同样存在缺点。汇编语言的书写格式必须是编译器使用的格式。目前没有一个编译器支持NASM格式。不同的编译器要求使用不同的格式。Borland和Microsoft要求使用
+MASM格式。DJGPP和Linux中gcc要求使用GAS\footnote{GAS是所有的GNU编译器使用的汇编程序。它使用AT\&T语法，这是一种完全不同于MASM，TASM 和NASM的语法。}
+格式。在PC机上，调用汇编子程序是更标准的技术。
+
+在C中使用汇编程序通常是因为以下几个原因：
+\begin{itemize}
+\item 需要直接访问计算机的硬件特性，而用C语言很难或不可能做到。
+\item 程序执行必须尽可能地快，而且相比于编译器，程序员手动优化的代码更好。
+\end{itemize}
+
+最后一个原因不像它以前一样有根据。因为这些年编译器技术提高了，而且编译器通常可以产生非常有效的代码
+(特别是当开启编译器优化的时候)。调用汇编程序的缺点：可移植性和可读性减弱了。
+
+绝大部分的C调用约定已经确定了。但是，还需要描述一些额外的特征。
+
+\subsection{保存寄存器\index{调用约定!C!寄存器|(}}
+首先， \MarginNote{关键字{\code
+register}可以使用在一个C变量声明中来暗示编译器：这个变量使用一个寄存器而不是内存空间。这些变量称为寄存器变量。现在的编译器会自动做这件事而不需要给它暗示。}
+C假定子程序保存了下面这几个寄存器的值：EBX，ESI，EDI，\\EBP，CS，DS，SS，ES。这并不意味着不能在子程序内部修改它们。相反，它表示如果子程序改变了它们的值，那么在子程序返回之前必须恢复它们的原始值。EBX，ESI和EDI的值不能被改变，因为C将这些寄存器用于\emph{寄存器变量}。通常都是使用堆栈来保存这些寄存器的原始值。
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+segment .data
+x            dd     0
+format       db     "x = %d\n", 0
+
+segment .text
+...
+      push   dword [x]     ; 将x的值压入栈中
+      push   dword format  ; 将format字符串的地址压入栈中
+      call   _printf       ; 注意下划线!
+      add    esp, 8        ; 从堆栈中移除参数
+\end{AsmCodeListing}
+\caption{调用{\code printf} \label{fig:Cprintf}}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\begin{tabular}{l|c|}
+\cline{2-2}
+EBP + 12 & {\code x}的值 \\ \cline{2-2}
+EBP + 8  & format字符串的地址 \\ \cline{2-2}
+EBP + 4  & 返回地址 \\ \cline{2-2}
+EBP      & 保存的EBP值 \\ \cline{2-2}
+\end{tabular}
+\caption{{\code printf}的堆栈结构\label{fig:CprintfStack}}
+\end{figure}
+\index{调用约定!C!寄存器|)}
+
+\subsection{函数名\index{调用约定!C!函数名|(}}
+大多数C编译器都在函数名和全局或静态变量前附加一个下划线字符。例如，函数名{\code f}将指定为{\code \_f}。因此，如果这是一个汇编程序，那么它必须标记为{\code \_f}，而不是{\code f}。Linux gcc编译器并\emph{不}附加任何字符。
+在可执行的Linux ELF下，对于C函数{\code f}，你只需要简单使用函数名{\code f}即可。但是，
+ DJGPP的gcc却附加了一个下划线。注意，在汇编程序skeleton中
+(图~\ref{fig:skel})，主程序函数名是{\code
+\_asm\_main}。
+\index{调用约定!C!函数名|)}
+
+\subsection{传递参数\index{调用约定!C!参数|(}}
+按照C调用约定，一个函数的参数将以一定顺序压入栈中，这个顺序与它们出现在函数调用里的顺序\emph{相反}。
+
+考虑这条C语句：\verb|printf("x = %d\n",x);|
+图~\ref{fig:Cprintf}展示了如何编译这条语句(用等价的NASM格式)。图~\ref{fig:CprintfStack}展示了执行完{\code printf}函数的开始部分后，堆栈的状态。{\code printf}函数一个可以携带任意个参数的C语言库函数。C调用约定的规则就是专门为允许这些类型的函数而规定的。\MarginNote{没有必要使用汇编语言来处理C中的可变参数函数。可以通过移植{\code stdarg.h}头文件中定义的宏来处理它们。看一本好的C语言的书来得到更详细的信息。} 因为format字符串的地址最后压入堆栈，所以不管有多少参数传递到函数，它在堆栈里的位置将总是
+{\code EBP + 8}。然后{\code printf}代码就可以通过看format字符串的位置来决定需要传递多少参数和在堆栈上如何找到它们。
+
+当然，如果有错误发生， \verb|printf("x = %d\n")|，
+{\code printf}代码仍然会将{\code [EBP + 12]}中的双字值输出，而这并不是{\code x}的值！
+\index{调用约定!C!参数|)}
+
+\subsection{计算局部变量的地址\index{堆栈!局部变量|(}}
+
+找到定义在{\code data}或{\code
+bss}段的变量的地址是非常容易的。基本上，连接程序做的就是这件事情。但是，要计算出在堆栈上的一个局部变量(或参数)的地址就不简单了。可是，当调用子程序的时候，这种需求是非常普通的。考虑传递一个变量(让我们称它为{\code x})的地址到一个函数(让我们称它为
+{\code foo})的情况。如果{\code x}处在堆栈的EBP $-$ 8的位置，你不可以这样使用：
+\begin{AsmCodeListing}[numbers=none,frame=none]
+      mov    eax, ebp - 8
+\end{AsmCodeListing}
+为什么？因为指令{\code
+MOV}储存到EAX里的值必须能由汇编器计算出来(也就是说，它最后必须是一个常量)。但是，有一条指令能做这种需求的计算。它就是\index{LEA|(}
+{\code LEA}  (即\emph{Load Effective
+Address，载入有效地址})。下面的代码就能计算出{\code
+x}的地址并将它储存到EAX中：
+\begin{AsmCodeListing}[numbers=none,frame=none]
+      lea    eax, [ebp - 8]
+\end{AsmCodeListing}
+现在EAX中存有了{\code x}的地址，而且当调用函数{\code foo}的时候，就可以将其压入到栈中。不要搞混了，这条指令看起来是从[EBP\nolinebreak$-$\nolinebreak8]中读数据；然而，这并\emph{不}正确。{\code LEA}指令\emph{永远不会}从内存中读数据。它仅仅计算出一个将会被其它指令使用到的地址，然后将这个地址储存到它的第一个操作数里。因为它并没有实际读内存，所以不指定内存大小(\emph{例如：}
+{\code dword})是必须的或说是允许的。
+
+\index{LEA|)}
+\index{堆栈!局部变量|)}
+
+\subsection{返回值\index{调用约定!C!返回值|(}}
+
+返回值不为空的C函数执行完后会返回一个值。C调用约定规定了这个要如何去做。返回值需通过寄存器传递。所有的整形类型({\code
+char}， {\code int}， {\code enum}，
+\emph{等})通过EAX寄存器返回。如果它们小于32位，那么储存到EAX的时候，它们将被扩展成32位。
+(它们如何扩展取决于是有符号类型还是无符号类型。)
+64位的值通过EDX:EAX\index{寄存器!EDX:EAX}寄存器对返回。浮点数储存在数学协处理器中的ST0寄存器中。
+(这个寄存器将在浮点数这一章来讨论。) \index{调用约定!C!返回值|)}
+\index{调用约定!C|)}
+
+\subsection{其它调用约定\index{调用约定|(}}
+
+所有的80x86
+C编译器中都支持上面描述的标准C调用约定的规则。通常编译器也支持其它调用约定。当与汇编语言进行接口时，知道编译器调用你的函数时使用的是什么调用约定是\emph{非常}重要的。通常，缺省时，使用的是标准的调用约定；但是，并不总是这一种情况\footnote{Watcom
+C\index{编译器!Watcom}编译器就是一个在缺省情况下\emph{不}使用标准调用的例子。看Watcom的样例源文件代码来得到更详细的信息}。
+使用多种约定的编译器通常都拥有可以用来改变缺省约定的命令行开关。它们同样提供扩展的C语法来为单个函数指定调用约定。但是，各个编译器的这些扩展标准可以是不一样的。
+
+GCC编译器允许不同的调用约定。一个函数的调用约定可以通过扩展语法{\code
+\_\_attribute\_\_}
+\index{编译器!gcc!\_\_attribute\_\_}明确指定。例如，要声明一个返回值为空的函数{\code
+f}，它带有一个{\code
+int}参数，使用标准调用约定\index{调用约定!C}，需使用下面的语法来声明它的原型：
+\begin{lstlisting}[stepnumber=0]{}
+void f( int ) __attribute__((cdecl));
+\end{lstlisting}
+GCC同样支持\emph{标准call} \index{调用约定!stdcall}调用约定。通过把{\code cdecl}替换成{\code stdcall}，上面的函数可以指定为使用这种约定。{\code stdcall}约定和{\code cdecl}约定的不同点是
+{\code stdcall}要求子程序将参数移除出栈(和Pascal调用约定一样)。因此，{\code stdcall}调用约定只能使用在带有固定参数的函数上 (\emph{也就是说}，不可以是函数{\code printf}和{\code scanf})。
+
+GCC同样支持称为{\code regparm}
+\index{调用约定!寄存器}的约定，这种约定告诉编译器前3个整形参数通过寄存器传递给函数，而不是通过堆栈。这是许多编译器支持的一个共同的优化模式。
+
+Borland和Microsoft使用一样语法来声明调用约定。它们在C代码中加上关键字{\code \_\_cdecl}\index{调用约定!\_\_cdecl}和 {\code \_\_stdcall}\index{调用约定!\_\_stdcall}。这些关键字用来修饰函数。在原型声明中，它们出现在函数名的前面例如，上面的函数{\code f}用Borland和Microsoft定义如下：
+\begin{lstlisting}[stepnumber=0]{}
+void __cdecl f( int );
+\end{lstlisting}
+
+每种调用约定都有各自的优缺点。{\code cdecl}\index{调用约定!C}调用约定的主要优点是它非常简单而且非常灵活。它可以用于任何类型的C函数和C编译器。使用其它约定会限制子程序的可移植性。它的主要缺点是与其它约定相比它执行较慢而且使用更多的内存(因为函数的每次调用都需要用代码将参数移除出栈。)。
+
+{\code stdcall}\index{调用约定!标准call}调用约定的主要优点是相比于{\code cdecl}它使用较少的内存。在{\code CALL}指令之后 ，不需要清理堆栈。它的主要缺点是它不能使用于可变参数的函数。
+
+使用寄存器传递参数的调用约定的优点是速度非常快。主要缺点是这种约定太复杂。有些参数可能在寄存器中，而另一些可能在堆栈中。
+
+\index{调用约定|)}
+
+\subsection{样例}
+
+下面是一个展示汇编程序如何与C程序接口的例子。(注意：这个程序并没有使用skeleton汇编程序(图~\ref{fig:skel})或driver.c模块。)
+
+\LabelLine{main5.c}
+\lstset{escapeinside=`',language=Pascal,%
+}
+\begin{lstlisting}{}
+#include <stdio.h>
+/* `汇编程序的原型声明' */
+void calc_sum( int, int * ) __attribute__((cdecl));
+
+int main( void )
+{
+  int n, sum;
+
+  printf("Sum integers up to: ");
+  scanf("%d", &n);
+  calc_sum(n, &sum);
+  printf("Sum is %d\n", sum);
+  return 0;
+}
+\end{lstlisting}
+\LabelLine{main5.c}
+
+\begin{AsmCodeListing}[label=sub5.asm, commandchars=\\\%|]
+; 子程序 _calc_sum
+; 求整形1到n的和
+; 参数:
+;   n - 从1加到多少(储存在[ebp + 8])
+;   sump - 指向总数储存地址的整形指针(储存在[ebp + 12])
+; C伪码:
+; void calc_sum( int n, int * sump )
+; {
+;   int i, sum = 0;
+;   for( i=1;i <= n; i++ )
+;     sum += i;
+;   *sump = sum;
+; }
+
+segment .text
+        global  _calc_sum
+;
+; 局部变量:
+;   储存在[ebp-4]里的sum值
+_calc_sum:
+        enter   4,0               ; 在堆栈上为sum分配空间
+        push    ebx               ; 重要! \label%line:pushebx|
+
+        mov     dword [ebp-4],0   ; sum = 0
+        dump_stack 1, 2, 4        ; 输出堆栈中从ebp-8到ebp+16的值 \label%line:dumpstack|
+        mov     ecx, 1            ; ecx是伪码中的i
+for_loop:
+        cmp     ecx, [ebp+8]      ; 比较i和n
+        jnle    end_for           ; 如果i > n,则退出循环
+
+        add     [ebp-4], ecx      ; sum += i
+        inc     ecx
+        jmp     short for_loop
+
+end_for:
+        mov     ebx, [ebp+12]     ; ebx = sump
+        mov     eax, [ebp-4]      ; eax = sum
+        mov     [ebx], eax
+
+        pop     ebx               ; 恢复ebx的值
+        leave
+        ret
+\end{AsmCodeListing}
+
+\begin{figure}[t]
+\begin{Verbatim}[frame=single]
+Sum integers up to: 10
+Stack Dump # 1
+EBP = BFFFFB70 ESP = BFFFFB68
+ +16  BFFFFB80  080499EC
+ +12  BFFFFB7C  BFFFFB80
+  +8  BFFFFB78  0000000A
+  +4  BFFFFB74  08048501
+  +0  BFFFFB70  BFFFFB88
+  -4  BFFFFB6C  00000000
+  -8  BFFFFB68  4010648C
+Sum is 55
+\end{Verbatim}
+\caption{sub5程序的运行示例 \label{fig:dumpstack}}
+\end{figure}
+
+为什么程序{\code sub5.asm}中的第~\ref{line:pushebx}行非常重要？因为C调用约定要求EBX的值不能被调用的函数更改。如果没有做这个，程序很可能不会正确运行。
+
+第~\ref{line:dumpstack}行演示了宏{\code dump\_stack}如何运作。它的第一个参数只是一个数字标号，第二个参数决定需显示EBP以下多少个双字而第三个参数决定需显示EBP以上多少个双字。图~\ref{fig:dumpstack}展示了这个程序的运行示例。对于这次转储，你可以看到储存总数的双字地址是FBFFFFB80 (储存在EBP~+~12)；n值为0000000A
+(储存在EBP~+~8)；程序的返回地址为08048501 (储存在EBP~+~4)；保存的EBP的值为BFFFFB88 (储存在EBP)；局部变量的值为
+0(储存在EBP~-~4)；最后保存的EBX的值为4010648C (储存在EBP~-~8)。
+
+{\code calc\_sum}函数可以这样重写：把sum当作返回值返回，替代使用的指针参数。因为sum是一个整形值，所以应保存到EAX寄存器中。{\code main5.c}文件中的第11行应该改成：
+\begin{lstlisting}[stepnumber=0]{}
+  sum = calc_sum(n);
+\end{lstlisting}
+同样，{\code calc\_sum}的原型也需要改变。下面是修改后的汇编代码：
+\begin{AsmCodeListing}[label=sub6.asm]
+; 子程序 _calc_sum
+; 求整形1到n的和 ; 参数:
+;   n - 从1加到多少(储存在[ebp + 8]
+; 返回值:
+;   sum的值
+; C伪码:
+; int calc_sum( int n )
+; {
+;   int i, sum = 0;
+;   for( i=1; i <= n; i++)
+;     sum += i;
+;   return sum;
+; }
+segment .text
+        global  _calc_sum
+;
+; 局部变量:
+;   储存在[ebp-4]里的sum值
+_calc_sum:
+        enter   4,0               ; 在堆栈上为sum分配空间
+
+        mov     dword [ebp-4],0   ; sum = 0
+        mov     ecx, 1            ; ecx是伪码中的i
+for_loop:
+        cmp     ecx, [ebp+8]      ; 比较i和n
+        jnle    end_for           ; 如果i > n,则退出循环
+
+        add     [ebp-4], ecx      ; sum += i
+        inc     ecx
+        jmp     short for_loop
+
+end_for:
+        mov     eax, [ebp-4]      ; eax = sum
+
+        leave
+        ret
+\end{AsmCodeListing}
+
+\subsection{在汇编程序中调用C函数}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+segment .data
+format       db "%d", 0
+
+segment .text
+...
+      lea    eax, [ebp-16]
+      push   eax
+      push   dword format
+      call   _scanf
+      add    esp, 8
+...
+\end{AsmCodeListing}
+\caption{在汇编程序中调用{\code scanf}函数\label{fig:scanf}}
+\end{figure}
+
+C与汇编接口的一个主要优点是允许汇编代码访问大型C库和用户写的函数。例如，如果你想调用一下{\code
+scanf}函数来从键盘读一个整形，该怎么办？图~\ref{fig:scanf}展示了完成这件事的代码。需要记住的非常重要的一点就是{\code
+scanf}函数遵循字面意义的C调用标准。这就意味着它保存了EBX，ESI和\\EDI寄存器的值；但是，
+EAX，ECX和EDX寄存器的值可能会被修改。事实上，EAX肯定会被修改，因为它将保存{\code
+scanf}调用的返回值。至于与C接口的其它例子，可以看用来产生{\code
+asm\_io.obj}的{\code asm\_io.asm}文件中的代码。 \index{与C接口|)}
+
+\section{可重入和递归子程序\index{递归|(}}
+
+\index{子程序!可重入|(}
+一个可重入子程序必须满足下面几个性质：
+\begin{itemize}
+\item 它不能修改代码指令。在高级语言中，修改代码指令是非常难的；但是在汇编语言中，一个程序要修改自己的代码并不是一件很难的事。例如：
+\begin{AsmCodeListing}[frame=none, numbers=none]
+      mov    word [cs:$+7], 5      ; 将5复制到前面七个字节的字中
+      add    ax, 2                 ; 前面的语句将2改成了5!
+\end{AsmCodeListing}
+这些代码在实模式下可以运行，但是在保护模式下的操作系统上不行，因为代码段被标识为只读。在这些操作系统上，当执行了上面的第一行代码，程序将被终止。这种类型的程序从各个方面来看都非常差。它很混乱，很难维护而且不允许代码共享(看下面)。
+
+\item 它不能修改全局变量(比如在{\code data}和
+{\code bss}段里的数据)。所有的变量应储存在堆栈里。
+
+\end{itemize}
+
+书写可重入性代码有几个好处。
+\begin{itemize}
+\item 一个可重入子程序可以递归调用。
+\item 一个可重入程序可以被多个进程共享。在许多多任务操作系统上，如果一个程序有许多实例正在运行，那么只有\emph{一份}代码的拷贝在内存中。共享库和DLL(\emph{Dynamic Link Libraries，动态链接库})同样使用了这种技术。
+\item 可重入子程序可以运行在\emph{多线程}
+\footnote{一个多线程程序同时有多条线程在执行。也就是说，程序本身是多任务的。} 程序中。 Windows 9x/NT和大多数类
+UNIX操作系统(Solaris， Linux，\emph{等})都支持多线程程序。
+\end{itemize}
+\index{子程序!可重入|)}
+
+\subsection{递归子程序}
+
+这种类型的子程序调用它们自己。递归可以是
+\emph{直接的}或是\emph{间接的}。当一个名为{\code foo}的子程序在{\code foo}内部调用自己就产生直接递归。当一个子程序虽然自己没有直接调用自己，但是其它子程序调用了它，就产生间接递归。例如：子程序{\code foo}可以调用
+{\code bar}且{\code bar}也可以调用{\code foo}。
+
+递归子程序必须有一个\emph{终止条件}。当这个条件为真时，就不再进行递归调用了。如果一个子程序没有终止条件或条件永不为真，那么递归将不会结束(非常像一个无穷循环)。
+
+\begin{figure}
+\begin{AsmCodeListing}[frame=single]
+; 求n!
+segment .text
+      global _fact
+_fact:
+      enter  0,0
+
+      mov    eax, [ebp+8]    ; eax = n
+      cmp    eax, 1
+      jbe    term_cond       ; 如果n <= 1，则终止
+      dec    eax
+      push   eax
+      call   _fact           ; eax = fact(n-1)
+      pop    ecx             ; 结果在eax中
+      mul    dword [ebp+8]   ; edx:eax = eax * [ebp+8]
+      jmp    short end_fact
+term_cond:
+      mov    eax, 1
+end_fact:
+      leave
+      ret
+\end{AsmCodeListing}
+\caption{求n!的递归函数\label{fig:factorial}}
+\end{figure}
+
+\begin{figure}
+\centering
+%\includegraphics{factStack.eps}
+\input{factStack.latex}
+\caption{n!函数的堆栈帧\label{fig:factStack}}
+\end{figure}
+
+图~\ref{fig:factorial}展示了一个递归求n!的函数。在C中它可以这样被调用：
+\begin{lstlisting}[stepnumber=0]{}
+x = fact(3);         /* find 3! */
+\end{lstlisting}
+图~\ref{fig:factStack}展示了上面的函数调用的最深点的堆栈状态。
+
+\begin{figure}[t]
+\begin{lstlisting}[frame=tlrb]{}
+void f( int x )
+{
+  int i;
+  for( i=0; i < x; i++ ) {
+    printf("%d\n", i);
+    f(i);
+  }
+}
+\end{lstlisting}
+\caption{另一个例子(C语言版)\label{fig:rec2C}}
+\end{figure}
+
+\begin{figure}
+\begin{AsmCodeListing}[frame=single]
+%define i ebp-4
+%define x ebp+8          ; useful macros
+segment .data
+format       db "%d", 10, 0     ; 10 = '\n'
+segment .text
+      global _f
+      extern _printf
+_f:
+      enter  4,0           ; 在堆栈上为i分配空间
+
+      mov    dword [i], 0  ; i = 0
+lp:
+      mov    eax, [i]      ; is i < x?
+      cmp    eax, [x]
+      jnl    quit
+
+      push   eax           ; 调用printf
+      push   format
+      call   _printf
+      add    esp, 8
+
+      push   dword [i]     ; 调用f
+      call   _f
+      pop    eax
+
+      inc    dword [i]     ; i++
+      jmp    short lp
+quit:
+      leave
+      ret
+\end{AsmCodeListing}
+\caption{另一个例子(汇编语言版)\label{fig:rec2Asm}}
+\end{figure}
+
+图~\ref{fig:rec2C}展示了另一个更复杂的递归样例的C语言版而\ref{fig:rec2Asm}展示了它的汇编语言版。对于{\code f(3)}，输出是什么？注意：每一次递归调用，{\code ENTER}指令都会在堆栈上给新的{\code i}值分配空间。因此，{\code f}的每一次递归调用都有它自己独立的变量{\code i}。若是在{\code data}段定义{\code i}为一双字，结果就不一样了。
+\index{递归|)}
+
+\subsection{回顾一下C变量的储存类型}
+
+C提供了几种变量储存类型。
+\begin{description}
+\item[global，全局]
+\index{储存类型!全局}
+这些变量定义在任何函数的外面，且储存在固定的内存空间中(在{\code data}或{\code
+bss}段)，而且从程序的开始一直到程序的结束都存在。缺省情况下，它们能被程序中的任何一个函数访问；但是，如果它们被声明为{\code static}，那么只有在同一模块中的函数才能访问它们(\emph{也就是说，} 依照汇编的术语，这个变量是内部的，不是外部的)。
+
+\item[static，静态]
+\index{储存类型!静态}
+在一个函数中，它们是被声明为{\code静态}的\emph{局部}变量。(不幸的是，C使用关键字{\code
+static}有两种目的！)这些变量同样储存在固定的内存空间中(在{\code data}或{\code bss}段)，但是只能被定义它的函数直接访问。
+
+\item[automatic，自动]
+\index{储存类型!自动}
+它是定义在一个函数内的C变量的缺省类型。当定义它们的函数被调用了，这些变量就被分配在堆栈上，而当函数返回了又从堆栈中移除。因此，它们没有固定的内存空间。
+
+\item[register，寄存器]
+\index{储存类型!寄存器}
+这个关键字要求编译器使用寄存器来储存这个变量的数据。这仅仅是一个\emph{要求}。编译器并\emph{不}一定要遵循。如果变量的地址使用在程序的任意的地方，那么就不会遵循(因为寄存器没有地址)。同样，只有简单的整形数据可以是寄存器变量。结构类型不可以；因为它们的大小不匹配寄存器！C编译器通常会自动将普通的自动变量转换成寄存器变量，而不需要程序员给予暗示。
+
+\item[volatile，不稳定]
+\index{储存类型!不稳定}
+这个关键字告诉编译器这个变量值随时都会改变。这就意味着当变量被更改了，编译器不能做出任何推断。通常编译器会将一个变量的值暂时存在寄存器中，而且在出现这个变量的代码部分使用这个寄存器。但是，编译器不能对{\code 不稳定}类型的变量做这种类型的优化。一个不稳定变量的最普遍的例子就是：它可以被多线程程序的两个线程修改。考虑下面的代码：
+\begin{lstlisting}{}
+x = 10;
+y = 20;
+z = x;
+\end{lstlisting}
+如果{\code x}可以被另一个线程修改。那么其它线程可以会在第1行和第3行之间修改{\code x}的值，以致于{\code z}将不会等于10.但是， 如果{\code x}没有被声明为不稳定类型，编译器就会推断{\code x}没有改变，然后再将{\code z}置为10。
+
+{\code 不稳定类型}的另一个使用就是避免编译器为一个变量使用一个寄存器。
+
+\end{description}
+\index{子程序|)}

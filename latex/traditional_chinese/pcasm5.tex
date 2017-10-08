@@ -1,0 +1,878 @@
+% -*-latex-*-
+\chapter{陣列}
+\index{陣列|(}
+\section{介紹}
+
+一組\emph{陣列}是記憶體中的一個連續資料列表塊。在這個列表中的每個元素必須是同一種類型而且使用恰好同樣大小的記憶體位元組來儲存。因為這些特性，陣列允許通過資料在陣列裏的位置(或下標)來對它進行有效的訪問。如果知道了下面三個細節，任何元素的位址都可以計算出來：
+\begin{itemize}
+\item 陣列第一個元素的位址
+\item 每個元素的位元組數
+\item 這個元素的下標
+\end{itemize}
+
+0(正如在C中)作為陣列的第一個元素的下標是非常方便的。使用其他值作為第一個下標也是可能的，但是這將把計算弄得很複雜。
+
+\subsection{定義陣列\index{陣列!定義|(}}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+segment .data
+; 定義10個雙字的陣列並初始化為1,2,..,10
+a1           dd 1, 2, 3,4, 5, 6, 7, 8, 9, 10
+; 定義10個字的陣列並初始化為0
+a2           dw 0, 0, 0, 0,0, 0, 0, 0, 0, 0
+; 像以前一樣使用TIMES
+a3           times 10 dw 0
+;定義一個位元組陣列,其中包含200個0和100個1
+a4           times 200 db 0
+             times 100 db 1
+
+segment .bss
+; 定義10個雙字的陣列，示未始化
+a5           resd  10
+;定義10了個字的陣列，示未始化
+a6           resw  100
+\end{AsmCodeListing}
+\caption{定義陣列\label{fig:DataArrays}}
+\end{figure}
+
+\subsubsection{在{\code data}和{\code bss}段中定義陣列
+               \index{陣列!定義!靜態}}
+
+在{\code data}段定義一個初始化了的陣列，可以使用標準的{\code db}，{\code dw}，\emph{等等}
+\index{指示符!D\emph{X}}指示符。NASM同樣提供了一個有用的指示符，稱為{\code TIMES} \index{指示符!TIMES}，它可以用來反復重複一條語句，而不需要你手動來複製它。圖~\ref{fig:DataArrays}展示關於這些的幾個例子。
+
+在{\code bss}段定義一個示初始化的陣列，可以使用
+{\code resb}，{\code resw}，\emph{等等} \index{指示符!RES\emph{X}}
+指示符。記住，這些指示符包含一個指定保留多少個記憶體單元的運算元。圖~\ref{fig:DataArrays}同樣展示了關於這種類型定義的幾個例子。
+
+\begin{figure}[t]
+\centering
+\begin{tabular}{l|c|ll|c|}
+\cline{2-2} \cline{5-5}
+EBP - 1  & char    & \hspace{2em} &           & \\
+\cline{2-2}
+         & unused  &              &           & \\
+\cline{2-2}
+EBP - 8  & dword 1 &              &           & \\
+\cline{2-2}
+EBP - 12 & dword 2 &              &           & word \\
+\cline{2-2}
+         &         &              &           & array \\
+         &         &              &           & \\
+         & word    &              &           & \\
+         & array   &              & EBP - 100 & \\
+\cline{5-5}
+         &         &              & EBP - 104 & dword 1 \\
+\cline{5-5}
+         &         &              & EBP - 108 & dword 2 \\
+\cline{5-5}
+         &         &              & EBP - 109 & char \\
+\cline{5-5}
+EBP - 112 &        &              &           & unused \\
+\cline{2-2} \cline{5-5}
+\end{tabular}
+\caption{堆疊上的陣列排列\label{fig:StackLayouts}}
+\end{figure}
+
+\subsubsection{以局部變數的方式在堆疊上定義陣列\index{陣列!定義!局部變數}}
+
+在堆疊上定義一個局部陣列變數沒有直接的方法。像以前一樣，你可以首先計算出\emph{所有}局部變數需要的全部位元組，包括陣列，然後再用ESP減去這個數值(或者直接使用{\code
+ENTER}指令)。例如，如果一個函式需要一個字元變數，兩個雙字整形和一個包含50個元素的字陣列，你將需要$1
++ 2 \times 4 + 50 \times 2 =
+109$個位元組。但是，為了保持ESP在雙字的邊界上，被ESP減的數值必須是4的倍數(這個例子中是112。)圖~\ref{fig:StackLayouts}展示了兩種可能的方法。第一種排序的未使用部分用來保持雙字在雙字邊界上，這樣可以加速記憶體的訪問。
+\index{陣列!定義|)}
+
+\subsection{訪問陣列中的元素\index{陣列!訪問|(}}
+
+跟C不同的是，在組合語言中沒有{\code [ ]}運算符。要訪問陣列中的一個元素，必須將它的位址計算出來。考慮下面兩個陣列的定義：
+\begin{AsmCodeListing}[frame=none, numbers=none]
+array1       db     5, 4, 3, 2, 1     ; 位元組陣列
+array2       dw     5, 4, 3, 2, 1     ; 字陣列
+\end{AsmCodeListing}
+下面是使用這些陣列的例子：
+\begin{AsmCodeListing}[frame=none]
+      mov    al, [array1]             ; al = array1[0]
+      mov    al, [array1 + 1]         ; al = array1[1]
+      mov    [array1 + 3], al         ; array1[3] = al
+      mov    ax, [array2]             ; ax = array2[0]
+      mov    ax, [array2 + 2]         ; ax = array2[1] (不是array2[2]!)
+      mov    [array2 + 6], ax         ; array2[3] = ax
+      mov    ax, [array2 + 1]         ; ax = ??
+\end{AsmCodeListing}
+在第5行，引用了字陣列中的元素1,而不是元素2。為什麼？因為字是兩個位元組的單元，所以移動到字陣列的下一元素，你必須向前移動兩個位元組，而不是一個。第7行將從第一個元素中讀取一個位元組再從第二個元素中讀取一個位元組。在C中，編譯器會根據一個指標的類型來決定使用指標運算的運算式需移動多少位元組，而程式師就不需要管這些了。然而，在組合語言中，當需要從一個元素移動到另一個元素時，它取決於程式師認為的陣列元素的大小。
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single,commandchars=\\\{\}]
+      mov    ebx, array1           ; ebx = array1的地址
+      mov    dx, 0                 ; dx將儲存總數
+      mov    ah, 0                 ; ?
+      mov    ecx, 5
+lp:
+      mov    al, [ebx]             ; al = *ebx
+      add    dx, ax                ; dx += ax (不是al!) \label{line:SumArray1}
+      inc    ebx                   ; bx++
+      loop   lp
+\end{AsmCodeListing}
+\caption{對一組陣列的元素求和(版本1)\label{fig:SumArray1}}
+\end{figure}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single,commandchars=\\\{\}]
+      mov    ebx, array1           ; ebx = array1的地址
+      mov    dx, 0                 ; dx將儲存總數
+      mov    ecx, 5
+lp:
+\textit{      add    dl, [ebx]             ; dl += *ebx}
+\textit{      jnc    next                  ; 若沒有進位，則跳轉到next}
+\textit{      inc    dh                    ; inc dh}
+\textit{next:}
+      inc    ebx                   ; bx++
+      loop   lp
+\end{AsmCodeListing}
+\caption{對一組陣列的元素求和(版本2)\label{fig:SumArray2}}
+\end{figure}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single,commandchars=\\\{\}]
+      mov    ebx, array1           ; ebx = array1的地址
+      mov    dx, 0                 ; dx將儲存總數
+      mov    ecx, 5
+lp:
+\textit{      add    dl, [ebx]             ; dl += *ebx}
+\textit{      adc    dh, 0                 ; dh += carry flag + 0}
+      inc    ebx                   ; bx++
+      loop   lp
+\end{AsmCodeListing}
+\caption{對一組陣列的元素求和(版本3)\label{fig:SumArray3}}
+\end{figure}
+
+圖~\ref{fig:SumArray1}展示了一個代碼片段：對前面樣例代碼中的陣列{\code array1}中的元素進行了求和。第~\ref{line:SumArray1}行，AX與DX相加。為什麼不是AL？首先，{\code ADD}指令的兩個運算元必須為同樣的大小。其次，這樣做對於對位元組求和後得到一個太大以致不能匹配一個位元組的總數是非常容易的。通過使用DX，達到65,535的總數是允許。然而，認識到AH同樣被相加了是非常重要的。這就是第3行為什麼AH被置為0的緣故了。\footnote{置AH為0隱含地表示AL是一個無符號數值。如果它是有符號的，恰當的操作是在第6行和第7行之間插入一條{\code CBW}指令。}
+
+圖~\ref{fig:SumArray2}和圖\ref{fig:SumArray3}展示了兩種可以替換的方法來計算總數。斜體字的行替換了圖~\ref{fig:SumArray1}中的第6行和第7行。
+
+\subsection{更高級的間接定址\index{間接定址!陣列|(}}
+
+不要驚訝，間接定址經常與陣列一起使用。最普遍的間接記憶體引用格式為：
+\begin{center}
+{\code [ \emph{base reg(基址寄存器)} + \emph{factor(係數)}*\emph{index reg(變址寄存器)} +
+      \emph{constant(常量)}]}
+\end{center}
+其中：
+\begin{description}
+\item[基址寄存器]可以是EAX，EBX，ECX，EDX，EBP，ESP，ESI或EDI寄存器。
+\item[係數]可以是1，2，4或8。(如果是1，係數是可以省略的。)
+\item[變址寄存器]可以是EAX，EBX，ECX，EDX，EBP，ESI或EDI寄存器。
+                 (注意ESP並不可以。)
+\item[常量]為一個32位的常量。這個常量可以是一個變數(或變數運算式)。
+\end{description}
+
+\subsection{例子}
+這有一個使用陣列並將它傳遞給函式的例子。它使用
+{\code array1c.c}程式(下面列出的)作為驅動程式，而不是
+{\code driver.c}程式。 \index{array1.asm|(}
+\begin{AsmCodeListing}[label=array1.asm]
+%define ARRAY_SIZE 100
+%define NEW_LINE 10
+
+segment .data
+FirstMsg        db   "First 10 elements of array", 0
+Prompt          db   "Enter index of element to display: ", 0
+SecondMsg       db   "Element %d is %d", NEW_LINE, 0
+ThirdMsg        db   "Elements 20 through 29 of array", 0
+InputFormat     db   "%d", 0
+
+segment .bss
+array           resd ARRAY_SIZE
+
+segment .text
+        extern  _puts, _printf, _scanf, _dump_line
+        global  _asm_main
+_asm_main:
+        enter   4,0     ; 在EBP - 4處的局部雙字變數
+        push    ebx
+        push    esi
+
+; 將陣列初始化為100，99，98，97， ...
+
+        mov     ecx, ARRAY_SIZE
+        mov     ebx, array
+init_loop:
+        mov     [ebx], ecx
+        add     ebx, 4
+        loop    init_loop
+
+        push    dword FirstMsg         ; 顯示FirstMsg
+        call    _puts
+        pop     ecx
+
+        push    dword 10
+        push    dword array
+        call    _print_array           ; 顯示陣列的前10個元素
+        add     esp, 8
+
+; 提示用戶輸入元素下標
+Prompt_loop:
+        push    dword Prompt
+        call    _printf
+        pop     ecx
+
+        lea     eax, [ebp-4]      ; eax = 局部雙字變數的位址
+        push    eax
+        push    dword InputFormat
+        call    _scanf
+        add     esp, 8
+        cmp     eax, 1               ; eax = scanf的返回值
+        je      InputOK
+
+        call    _dump_line  ; 轉儲當前行的剩餘部分並重新開始
+        jmp     Prompt_loop          ; 如果輸入無效
+
+InputOK:
+        mov     esi, [ebp-4]
+        push    dword [array + 4*esi]
+        push    esi
+        push    dword SecondMsg      ; 顯示元素的值
+        call    _printf
+        add     esp, 12
+
+        push    dword ThirdMsg       ; 顯示元素20-29
+        call    _puts
+        pop     ecx
+
+        push    dword 10
+        push    dword array + 20*4     ; array[20]的地址
+        call    _print_array
+        add     esp, 8
+
+        pop     esi
+        pop     ebx
+        mov     eax, 0            ; 返回到C中
+        leave
+        ret
+
+;
+; 程式_print_array
+; 調用的C程式把雙字陣列的元素當作有符號整形來顯示。
+; C函式原型:
+; void print_array( const int * a, int n);
+; 參數：
+;   a - 指向需要顯示的陣列的指標(堆疊上ebp+8處)
+;   n - 需要顯示的整數個數(堆疊上ebp+12處)
+
+segment .data
+OutputFormat    db   "%-5d %5d", NEW_LINE, 0
+
+segment .text
+        global  _print_array
+_print_array:
+        enter   0,0
+        push    esi
+        push    ebx
+
+        xor     esi, esi                  ; esi = 0
+        mov     ecx, [ebp+12]             ; ecx = n
+        mov     ebx, [ebp+8]              ; ebx = 陣列的位址
+print_loop:
+        push    ecx                       ; printf將會改變ecx!
+
+        push    dword [ebx + 4*esi]       ; 將array[esi]壓入堆疊
+        push    esi
+        push    dword OutputFormat
+        call    _printf
+        add     esp, 12                   ; 移除參數(留下ecx!)
+
+        inc     esi
+        pop     ecx
+        loop    print_loop
+
+        pop     ebx
+        pop     esi
+        leave
+        ret
+\end{AsmCodeListing}
+
+\LabelLine{array1c.c}
+\lstset{escapeinside=`',language=Pascal,%
+}
+\begin{lstlisting}{}
+#include <stdio.h>
+
+int asm_main( void );
+void dump_line( void );
+
+int main()
+{
+  int ret_status;
+  ret_status = asm_main();
+  return ret_status;
+}
+
+/*`
+ * 函式dump\_line
+ * 轉儲輸入緩衝區中當前行的所有字元
+ '*/
+void dump_line()
+{
+  int ch;
+
+  while( (ch = getchar()) != EOF && ch != '\n')
+    /*`空程式體'*/ ;
+}
+\end{lstlisting}
+\LabelLine{array1c.c}
+\index{array1.asm|)}
+\index{間接定址!陣列|)}
+\index{陣列!訪問|)}
+
+\subsubsection{再看一下{\code LEA}指令\index{LEA|(}}
+
+{\code LEA}指令不僅僅可以用來計算位址，也可以用作其他目的。一個相當普遍的目的是快速計算。考慮下面的代碼：
+\begin{AsmCodeListing}[numbers=none,frame=none]
+      lea    ebx, [4*eax + eax]
+\end{AsmCodeListing}
+這條代碼有效地將$5 \times \mathtt{EAX}$的值儲存到EBX中。相比於使用{\code MUL}\index{MUL}指令，使用{\code LEA}既簡單又快捷。但是，你必須認識到在方括號裏的運算式\emph{必須}是一個合法的間接位址。因此，例如，這個指令就不可以用來快速乘6。
+\index{LEA|)}
+
+
+\subsection{多維陣列\index{陣列!多維|(}}
+
+多維陣列和已經討論的普遍的一維陣列相比，差異並不是很大。事實上，在記憶體中，它們的描述方法和普遍的一維陣列是一樣的。
+
+\subsubsection{二維陣列\index{陣列!多維!二維|(}}
+不要感到意外，最簡單的多維陣列就是二維陣列。一個二維陣列通常以網格的形式來表示元素。每個元素通過兩個下標來確定。按照慣例，第一個下標用來確定元素的行值，而第二下標用來確定元素的列值。
+
+考慮一個三行二列的陣列，像這樣定義：
+\begin{lstlisting}[stepnumber=0]{}
+  int a[3][2];
+\end{lstlisting}
+C編譯器將為這個陣列保留6($= 2 \times 3$)個整形數的空間，而且像下面一樣來映射元素：
+
+\parbox{\textwidth}{
+\vspace{0.5em}
+\centering
+\begin{tabular}{||l|c|c|c|c|c|c||}
+\hline
+下標 & 0 & 1 & 2 & 3 & 4 & 5 \\
+\hline
+元素 & a[0][0] & a[0][1] & a[1][0] & a[1][1] & a[2][0] & a[2][1]  \\
+\hline
+\end{tabular}
+\vspace{0.5em}
+}
+\noindent 這張表試圖展示的是{\code a[0][0]}引用的元素儲存在6個元素的一維陣列的開始。元素{\code a[0][1]}儲存在下一個位置(下標~1)，以此類推。在記憶體中，二維陣列的各個行都是連續儲存的。一行的最後一個元素後面緊跟著下一行的第一個元素。這就是所謂的陣列
+\emph{依行}表示法，這也是C/C++編譯器表示陣列的表示方法。
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[]
+   mov    eax, [ebp - 44]          ; ebp - 44是i的位置
+   sal    eax, 1                   ; i乘以2
+   add    eax, [ebp - 48]          ; 加上j
+   mov    eax, [ebp + 4*eax - 40]  ; ebp - 40是a[0][0]的地址
+   mov    [ebp - 52], eax          ; 將結果儲存到x中(在ebp - 52中)
+\end{AsmCodeListing}
+\caption{\lstinline|x = a[i][j]|的組合語言表示法 \label{fig:aij}}
+\end{figure}
+
+在依行表示法中，編譯器如何確定{\code a[i][j]}出現在哪？一個簡單的公式將通過{\code i}和{\code j}來計算下標。在這個例子中，公式為$2i + j$。並不難看出如何得到這個公式。每一行有兩個元素大小；所以行$i$的第一個元素的位置為$2i$。然後該行的$j$列的位置可以通過$j$和 $2i$相加得到。這個分析同樣展示了如何產生{\code N}列陣列的公式：$N \times i + j$。注意，這個公式並\emph{不}依賴於行的總數。
+
+作為一個例子，我們來看看\emph{gcc}如何編譯下面的代碼(使用上面定義的陣列{\code a})：
+\begin{lstlisting}[stepnumber=0]{}
+  x = a[i][j];
+\end{lstlisting}
+圖~\ref{fig:aij}展示了這條語句翻譯成的組合語言。因此編譯器實質上將代碼轉換成：
+\begin{lstlisting}[stepnumber=0]{}
+  x = *(&a[0][0] + 2*i + j);
+\end{lstlisting}
+而且事實上，程式師可以以這種方法來書寫，也可以得到同樣的結果。
+
+選擇依行的陣列表示法並沒有什麼魔力。依列的表示法同樣可以工作：
+
+\parbox{\textwidth}{
+\vspace{0.5em}
+\centering
+\begin{tabular}{||l|c|c|c|c|c|c||}
+\hline
+下標 & 0 & 1 & 2 & 3 & 4 & 5 \\
+\hline
+元素 & a[0][0] & a[1][0] & a[2][0] & a[0][1] & a[1][1] & a[2][1]  \\
+\hline
+\end{tabular}
+\vspace{0.5em} } \noindent
+在依列表示法中，各列被連續儲存。元素{\code [i][j]}儲存在$i +
+3j$位置中。其他語言
+(例如：FORTRAN)使用依列表示法。當與多種語言進行代碼介面時，這是非常重要的。
+\index{陣列!多維!二維|)}
+
+\subsubsection{大於二維}
+對於大於二維的陣列，應用了同樣原理的想法。考慮一個三維陣列：
+\begin{lstlisting}[stepnumber=0]{}
+  int b[4][3][2];
+\end{lstlisting}
+在記憶體中，這個陣列將被當作四個大小為{\code [3][2]}的二維陣列被連續儲存。下面的表展示了它如何運作：
+
+\parbox{\textwidth}{
+\vspace{0.5em}
+\centering
+\begin{tabular}{||l|c|c|c|c|c|c||}
+\hline
+下標 & 0 & 1 & 2 & 3 & 4 & 5  \\
+\hline
+元素 & b[0][0][0] & b[0][0][1]  & b[0][1][0] & b[0][1][1] & b[0][2][0]
+&  b[0][2][1]  \\
+\hline
+\hline
+下標 & 6 & 7 & 8 & 9 & 10 & 11 \\
+\hline
+元素 & b[1][0][0] & b[1][0][1] & b[1][1][0] & b[1][1][1]  & b[1][2][0]
+& b[1][2][1] \\
+\hline
+\end{tabular}
+\vspace{0.5em}
+}
+\noindent 計算{\code b[i][j][k]}的位置的公式是$6i + 2j + k$。其中6由{\code [3][2]}陣列的大小決定。一般來說，對於維數為{\code
+a[L][M][N]}的陣列，元素{\code a[i][j][k]}的位置將是$M\times N\times i
++ N \times j + k$。再次需要注意的是，第一個維的元素個數({\code L})並沒有出現在公式中。
+
+對於更高維的陣列，可以通過推廣來做同樣的處理。對於一個從$D_1$到$D_n$的$n$陣列，下標為$i_1$到$i_n$的元素的位置可以由下面這個公式得到：
+\begin{displaymath}
+D_2 \times D_3 \cdots \times D_n \times i_1 + D_3 \times D_4 \cdots \times D_n
+\times i_2 + \cdots + D_n \times i_{n-1} + i_n
+\end{displaymath}
+或者對於超級的數學技客，它可以用更簡潔地書寫為：
+\begin{displaymath}
+\sum_{j=1}^{n} \: \left( \prod_{k=j+1}^{n} D_k \right) \: i_j
+\end{displaymath}
+\MarginNote{這裏你可以斷定作者\\是物理專業的。(或者說\\是引用了FORTRANO\\語言的一個免費樣品？)}
+第一維$D_1$，並沒有出現在公式中。
+
+對於依列表示法，普遍的公式將是：
+\begin{displaymath}
+i_1 + D_1 \times i_2 + \cdots + D_1 \times D_2 \times \cdots \times D_{n-2}
+\times i_{n-1} + D_1 \times D_2 \times \cdots \times D_{n-1} \times i_n
+\end{displaymath}
+或表示為超級數學技客的書寫方法：
+\begin{displaymath}
+\sum_{j=1}^{n} \: \left( \prod_{k=1}^{j-1} D_k \right) \: i_j
+\end{displaymath}
+在這種情況下，是最後一維$D_n$，不出現在公式中。
+
+\subsubsection{在C語言中，傳遞多維陣列參數\index{陣列!多維!參數|(}}
+
+多維陣列的依列表示法在C編程有一個直接的效果。對於一維的陣列，當任何具體的元素被放置到記憶體中時，陣列的大小並不需要計算出來。但這對於多維陣列是不正確的。為了訪問這些陣列的元素，除了第一維的元素個數，編譯器必須知道其他所有維數的元素個數。當一個函式的原型帶有一個多維陣列參數時，這就變得很明顯了。下面的代碼將不會被編譯：
+\lstset{escapeinside=`',language=Pascal,%
+}
+\begin{lstlisting}[stepnumber=0]{}
+  void f( int a[ ][ ] );  /* `沒有維數資訊' */
+\end{lstlisting}
+但是，下面的代碼就會被編譯：
+\begin{lstlisting}[stepnumber=0]{}
+  void f( int a[ ][2] );
+\end{lstlisting}
+任何有兩列的二維陣列可以傳遞給這個函式。第一維的元素個數是不需要的\footnote{它可以在這裏指定，但是會被編譯器忽略。}。
+
+不要被這類函式的原型搞混了：
+\begin{lstlisting}[stepnumber=0]{}
+  void f( int * a[ ] );
+\end{lstlisting}
+它定義了一個一維的整形指標陣列。(它可以附帶用來創建一個像二維陣列一樣運作的陣列。)
+
+對於更高維的陣列，除了第一維的元素個數，陣列參數的其他維數的必須指定。例如，一個四維的陣列參數可以像這樣被傳遞：
+\begin{lstlisting}[stepnumber=0]{}
+  void f( int a[ ][4][3][2] );
+\end{lstlisting}
+\index{陣列!多維!參數|)}
+\index{陣列!多維|)}
+
+\section{陣列/串處理指令}
+\index{串處理指令|(}
+
+80x86家族的處理器提供了幾條與陣列一起使用的指令。這些指令稱為
+\emph{串處理指令}。它們使用變址寄存器(ESI和EDI)來執行一個操作，然後這兩個寄存器自動地進行增1或減1操作。FLAGS寄存器裏的\emph{方向標誌位元}(DF) \index{寄存器!FLAGS!DF}決定了這些變址寄存器是增加還是減少。有兩條指令用來修改方向標誌位元：
+\begin{description}
+\item[CLD] \index{CLD} 清方向標誌位元。這種情況下，變址寄存器是自動增加的。
+\item[STD] \index{STD} 置方向標誌位元。這種情況下，變址寄存器是自動減少的。
+\end{description}
+80x86編程中的一個\emph{非常}普遍的錯誤就是忘記了把方向標誌位元明確地設置為正確的狀態。這就經常導致代碼大部分情況下能正常工作(當方向標誌位元恰好就是所需要的狀態時)，但並不能正常工作在\emph{所有}情況下。
+
+\begin{figure}[t]
+\centering
+{\code
+\begin{tabular}{|lp{1.5in}|lp{1.5in}|}
+\hline
+LODSB & AL = [DS:ESI]\newline ESI = ESI $\pm$ 1 &
+STOSB & [ES:EDI] = AL\newline EDI = EDI $\pm$ 1 \\
+\hline
+LODSW & AX = [DS:ESI]\newline ESI = ESI $\pm$ 2 &
+STOSW & [ES:EDI] = AX\newline EDI = EDI $\pm$ 2 \\
+\hline
+LODSD & EAX = [DS:ESI]\newline ESI = ESI $\pm$ 4 &
+STOSD & [ES:EDI] = EAX\newline EDI = EDI $\pm$ 4 \\
+\hline
+\end{tabular}
+}
+\caption{從串取和存入串指令\label{fig:rwString}
+         \index{LODSB} \index{STOSB} \index{LODSW} \index{LODSD} \index{STOSD}}
+\end{figure}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+segment .data
+array1  dd  1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+
+segment .bss
+array2  resd 10
+
+segment .text
+      cld                   ; 別忘記這個！
+      mov    esi, array1
+      mov    edi, array2
+      mov    ecx, 10
+lp:
+      lodsd
+      stosd
+      loop  lp
+\end{AsmCodeListing}
+\caption{從串取和存入串的例子\label{fig:lodEx}}
+\end{figure}
+
+\subsection{讀寫記憶體}
+
+最簡單的串處理指令是讀或寫記憶體或同時讀寫記憶體。它們可以每次讀或寫一個位元組，一個字或一個雙字。圖~\ref{fig:rwString}中的小段虛擬碼展示了這些指令的作用。這有點需要注意的。首先，ESI是用來讀的，而EDI是用來寫的。如果你能記得SI代表\emph{Source Index，源變址寄存器}和DI代表\emph{Destination Index，目的變址寄存器}，那麼這個就很容易記住了。\index{寄存器!ESI} \index{寄存器!EDI}其次，注意包含資料的寄存器是固定的(AL，AX或
+EAX)。最後，注意存入串指令使用ES來決定需要寫的段，而不是DS。在保護模式下，這通常不是問題，因為它只有一個資料段，而ES應自動地初始化為引用DS(和DS一樣)。但是，在實模式下，將ES初始化為正確的段值\index{寄存器!段}對於程式師來說是非常重要的\footnote{另一複雜的地方是你不可以直接使用一條{\code MOV}指令來將DS寄存器中的值複製到ES寄存器中。取而代之的是，你需要使用兩條{\code MOV}指令，先把DS寄存器的值複製到一個通用寄存器(比如：AX)中，然後再把這個通用寄存器的值複製到ES中。}。圖~\ref{fig:lodEx}展示了一個使用這些指令將一個陣列複製到另一陣列的例子。
+
+\begin{figure}[t]
+\centering
+{\code
+\begin{tabular}{|lp{2.5in}|}
+\hline
+MOVSB & byte [ES:EDI] = byte [DS:ESI] \newline ESI = ESI $\pm$ 1 \newline
+        EDI = EDI $\pm$ 1 \\
+\hline
+MOVSW & word [ES:EDI] = word [DS:ESI] \newline ESI = ESI $\pm$ 2 \newline
+        EDI = EDI $\pm$ 2 \\
+\hline
+MOVSD & dword [ES:EDI] = dword [DS:ESI] \newline ESI = ESI $\pm$ 4 \newline
+        EDI = EDI $\pm$ 4 \\
+\hline
+\end{tabular}
+}
+\caption{串傳送指令\label{fig:movString} \index{MOVSB}
+         \index{MOVSW} \index{MOVSD}}
+\end{figure}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+segment .bss
+array  resd 10
+
+segment .text
+      cld                   ; 別忘記這個！
+      mov    edi, array
+      mov    ecx, 10
+      xor    eax, eax
+      rep stosd
+\end{AsmCodeListing}
+\caption{零陣列的例子\label{fig:zeroArrayEx}}
+\end{figure}
+
+{\code LODSx}和{\code STOSx}指令的聯合使用(如圖~\ref{fig:lodEx}中的13和14行)是非常普遍的。事實上，一條{\code MOVSx}串處理指令可以用來完成這個聯合使用的功能。圖~\ref{fig:movString}描述了這些指令執行的操作。圖~\ref{fig:lodEx}的第13和14行可以用{\code MOVSD}指令來替代，能得到同樣的效果。唯一的區別就是在迴圈時EAX寄存器根本就不會被使用。
+
+\subsection{{\code REP}首碼指令\index{REP|(}}
+
+80x86家族提供了一個特殊的首碼指令\footnote{首碼指令並不是一個指令，它是放置在串處理指令前面的一個特殊的位元組，用來修改指令的行為。其他首碼同樣可以用來進行跨段記憶體訪問}，稱為{\code REP}，它可以與上面的串處理指令一同使用。這個首碼告訴CPU重複執行下條串處理指令一個指定的次數。ECX寄存器用來計算重複的次數
+(和在{\code LOOP}指令中的使用是一樣的)。使用{\code REP}首碼，在圖~\ref{fig:lodEx}中的12到15行的循環體可以替換成一行：
+\begin{AsmCodeListing}[frame=none, numbers=none]
+      rep movsd
+\end{AsmCodeListing}
+圖~\ref{fig:zeroArrayEx}展示了另一個例子：得到一個零陣列。
+\index{REP|)}
+
+\begin{figure}[t]
+\centering
+{\code
+\begin{tabular}{|lp{3.5in}|}
+\hline CMPSB & 比較位元組[DS:ESI]和[ES:EDI] \newline ESI = ESI $\pm$ 1
+        \newline EDI = EDI $\pm$ 1 \\
+\hline CMPSW & 比較字[DS:ESI]和[ES:EDI] \newline ESI = ESI $\pm$ 2
+        \newline EDI = EDI $\pm$ 2 \\
+\hline CMPSD & 比較雙字[DS:ESI]和[ES:EDI] \newline ESI = ESI $\pm$ 4
+        \newline EDI = EDI $\pm$ 4 \\
+\hline
+SCASB & 比較AL和[ES:EDI] \newline EDI $\pm$ 1 \\
+\hline
+SCASW & 比較AX和[ES:EDI] \newline EDI $\pm$ 2 \\
+\hline
+SCASD & 比較EAX和[ES:EDI] \newline EDI $\pm$ 4 \\
+\hline
+\end{tabular}
+}
+\caption{串比較指令\label{fig:cmpString}
+         \index{CMPSB} \index{CMPSW} \index{CMPSD} \index{SCASB}
+         \index{SCASW} \index{SCASD}}
+\end{figure}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single,commandchars=\\\{\}]
+segment .bss
+array        resd 100
+
+segment .text
+      cld
+      mov    edi, array    ; 指向陣列開始部分的指標
+      mov    ecx, 100      ; 元素的個數
+      mov    eax, 12       ; 需掃描的個數
+lp:
+      scasd    \label{line:scasdSrchStrEx}
+      je     found
+      loop   lp
+ ; 若沒有找到，執行的代碼
+      jmp    onward
+found:
+      sub    edi, 4         ; edi現在指向陣列中的12\label{line:subSrchStrEx}
+ ; 若找到了，執行的代碼
+onward:
+\end{AsmCodeListing}
+\caption{查找的例子\label{fig:srchStrEx}}
+\end{figure}
+
+\subsection{串比較指令}
+
+圖~\ref{fig:cmpString}展示了幾個新的串處理指令：它們可以用來比較記憶體和記憶體或記憶體和寄存器。在比較和查找陣列方面，它們是很有用的。它們會像{\code CMP}指令一樣設置FLAGS寄存器。{\code CMPSx}
+\index{CMPSB} \index{CMPSW} \index{CMPSD}指令比較相應的記憶體空間，而{\code SCASx} \index{SCASB}
+\index{SCASW} \index{SCASD}根據一指定的值掃描記憶體空間。
+
+圖~\ref{fig:srchStrEx}展示了一個代碼小片斷：在一個雙字陣列中查找數位12。行~\ref{line:scasdSrchStrEx}裏的{\code SCASD}指令總是對EDI進行加4操作，即使找到了需要的數值。因此，如果你想得到陣列中數12的位址，就必須用EDI減去4(正如
+行~\ref{line:subSrchStrEx}所做的)。
+
+\begin{figure}[t]
+\centering
+\begin{tabular}{|l|p{4in}|}
+\hline
+{\code REPE}, {\code REPZ} & 當ZF標誌位元為1或重複次數不超過ECX時，重複執行指令\\
+\hline
+{\code REPNE}, {\code REPNZ} & 當ZF標誌為0或重複次數不超過ECX時，重複執行指令\\
+\hline
+\end{tabular}
+\caption{{\code REPx}首碼指令\label{fig:repx} \index{REPE}
+          \index{REPNE}}
+\end{figure}
+
+\begin{figure}
+\begin{AsmCodeListing}[frame=single,commandchars=\\\{\}]
+segment .text
+      cld
+      mov    esi, block1        ; block1的地址
+      mov    edi, block2        ; block2的地址
+      mov    ecx, size          ; block以位元組表示的大小
+      repe   cmpsb              ; 當ZF為1時，重複執行
+      je     equal              ; 如果ZF為1,跳轉到equal \label{line:cmpBlocksEx}
+   ; 如果block不相等，執行的代碼
+      jmp    onward
+equal:
+   ; 如果相等，執行的代碼
+onward:
+\end{AsmCodeListing}
+\caption{比較記憶體塊\label{fig:cmpBlocksEx}}
+\end{figure}
+
+\subsection{{\code REPx}首碼指令}
+
+還有其他可以用在串比較指令中的，像{\code REP}一樣的首碼指令。圖~\ref{fig:repx}展示了兩個新的首碼並描述了它們的操作。{\code REPE} \index{REPE}和
+{\code REPZ}作用是一樣的({\code REPNE} \index{REPNE}
+和{\code REPNZ}也是一樣)。如果重複的串比較指令因為比較的結果而終止了，變址寄存器同樣會進行增量操作而ECX也會進行減1操作；但是FLAGS寄存器將仍然保持著重複終止時的狀態。
+\MarginNote{在重複比較之後，為什\\麼你不能單單看ECX是\\否等於0？}因此，使用ZF標誌位元來確定重複的比較是因為一次比較而結束，還是因為ECX等於0而結束是可能的。
+
+圖~\ref{fig:cmpBlocksEx}展示了一個樣例子代碼片斷：確定兩個記憶體塊是否相等。例子中行~\ref{line:cmpBlocksEx}中的{\code JE}指令是用來檢查前面指令的結果。如果重複的比較是因為它找到了兩個不相等的位元組而終止，那麼ZF標誌位元就為0,也就不會執行分支；但是，如果比較是因為ECX等於0而結束，那麼ZF標誌位元就為1,而且代碼將分支到{\code equal}標號處。
+
+\subsection{樣例}
+
+這一節包含了一個彙編原始檔案，原始檔案中包含了幾個應用串處理指令進行陣列操作的函式。其中大部分都是C語言庫中的常見函式的複製品。
+
+\index{memory.asm|(}
+\begin{AsmCodeListing}[label=memory.asm]
+global _asm_copy, _asm_find, _asm_strlen, _asm_strcpy
+
+segment .text
+; 函式 _asm_copy
+; 複製記憶體塊
+; C原型
+; void asm_copy( void * dest, const void * src, unsigned sz);
+; 參數:
+;   dest - 指向複製操作的目的緩衝區的指標
+;   src  - 指向複製操作的源緩衝區的指標
+;   sz   - 需要複製的位元組數
+
+; 下面，定義了一些有用的變數
+
+%define dest [ebp+8]
+%define src  [ebp+12]
+%define sz   [ebp+16]
+_asm_copy:
+        enter   0, 0
+        push    esi
+        push    edi
+
+        mov     esi, src        ; esi = 複製操作的源緩衝區的位址
+        mov     edi, dest       ; edi = 複製操作的目的緩衝區的位址
+        mov     ecx, sz         ; ecx = 需要複製的位元組數
+
+        cld                     ; 清方向標誌位元
+        rep     movsb           ; 執行movsb操作ECX次
+
+        pop     edi
+        pop     esi
+        leave
+        ret
+
+
+; 函式 _asm_find
+; 根據一給定的位元組值查找記憶體
+; void * asm_find( const void * src, char target, unsigned sz);
+; 參數:
+;   src    - 指向需要查找的緩衝區的指標
+;   target - 需要查找的位元組值
+;   sz     - 在緩衝區中的位元組總數
+; 返回值:
+;   如果找到了target，返回指向在緩衝區中第一次出現target的地方的指標
+;   否則
+;     返回NULL
+; 注意: target是一個位元組值，但是被當作一個雙字壓入堆疊中。
+;       位元組值儲存在低8位元上。
+;
+%define src    [ebp+8]
+%define target [ebp+12]
+%define sz     [ebp+16]
+
+_asm_find:
+        enter   0,0
+        push    edi
+
+        mov     eax, target     ; al包含需查找的值
+        mov     edi, src
+        mov     ecx, sz
+        cld
+
+        repne   scasb           ; 掃描直到ECX == 0或[ES:EDI] == AL才停止
+
+        je      found_it        ; 如果ZF為1,則找到了相應的值
+        mov     eax, 0          ; 如果沒有找到，返回NULL指標
+        jmp     short quit
+found_it:
+        mov     eax, edi
+        dec     eax              ; 如果找到了，則返回(DI - 1)
+quit:
+        pop     edi
+        leave
+        ret
+
+
+; 函式 _asm_strlen
+; 返回字串的大小
+; unsigned asm_strlen( const char * );
+; 參數:
+;   src - 指向字串的指標
+; 返回值:
+;   字串中的字元數(以0結束，若碰到0,則不再計數) (儲存在EAX中)
+
+%define src [ebp + 8]
+_asm_strlen:
+        enter   0,0
+        push    edi
+
+        mov     edi, src        ; edi = 指向字串的指標
+        mov     ecx, 0FFFFFFFFh ; 使用可能的ECX的最大值
+        xor     al,al           ; al = 0
+        cld
+
+        repnz   scasb           ; 掃描終止符0
+
+;
+; repnz將會多執行一步，所以ECX的大小是FFFFFFFE，
+; 而不是FFFFFFFF
+;
+        mov     eax,0FFFFFFFEh
+        sub     eax, ecx        ; 大小 = 0FFFFFFFEh - ecx
+
+        pop     edi
+        leave
+        ret
+
+; 函式 _asm_strcpy
+; 複製一個字串
+; void asm_strcpy( char * dest, const char * src);
+; 參數:
+;   dest - 指向進行複製操作的目的字串
+;   src  - 指向進行複製操作的源字串
+;
+%define dest [ebp + 8]
+%define src  [ebp + 12]
+_asm_strcpy:
+        enter   0,0
+        push    esi
+        push    edi
+
+        mov     edi, dest
+        mov     esi, src
+        cld
+cpy_loop:
+        lodsb                   ; 載入AL & inc si
+        stosb                   ; 儲存AL & inc di
+        or      al, al          ; 設置條件標誌位元
+        jnz     cpy_loop        ; 如果沒到終止符0,則繼續
+
+        pop     edi
+        pop     esi
+        leave
+        ret
+\end{AsmCodeListing}
+
+\LabelLine{memex.c}
+\lstset{escapeinside=`',language=Pascal,%
+}
+\begin{lstlisting}{}
+#include <stdio.h>
+
+#define STR_SIZE 30
+/* `原型' */
+
+void asm_copy( void *, const void *, unsigned ) __attribute__((cdecl));
+void * asm_find( const void *,
+                 char target, unsigned ) __attribute__((cdecl));
+unsigned asm_strlen( const char * ) __attribute__((cdecl));
+void asm_strcpy( char *, const char * ) __attribute__((cdecl));
+
+int main()
+{
+  char st1[STR_SIZE] = "test string";
+  char st2[STR_SIZE];
+  char * st;
+  char   ch;
+
+  asm_copy(st2, st1, STR_SIZE);   /* `複製源字串的所有30個字元到目的字串' */
+  printf("%s\n", st2);
+
+  printf("Enter a char: ");  /* `在字串中查找一位元組值' */
+  scanf("%c%*[^\n]", &ch);
+  st = asm_find(st2, ch, STR_SIZE);
+  if ( st )
+    printf("Found it: %s\n", st);
+  else
+    printf("Not found\n");
+
+  st1[0] = 0;
+  printf("Enter string:");
+  scanf("%s", st1);
+  printf("len = %u\n", asm_strlen(st1));
+
+  asm_strcpy( st2, st1);     /* `複製源字串的有效字元到目的字串' */
+  printf("%s\n", st2 );
+
+  return 0;
+}
+\end{lstlisting}
+\LabelLine{memex.c}
+\index{memory.asm|)}
+\index{串處理指令|)}
+\index{陣列|)}
+

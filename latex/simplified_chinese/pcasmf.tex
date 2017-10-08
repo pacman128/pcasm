@@ -1,0 +1,89 @@
+% -*-LaTex-*-
+%front matter of pcasm book
+
+\chapter{前言}
+
+\section*{目的}
+
+这本书的目的是为了让读者更好地理解计算机在相比于编程语言如Pascal的更底层如何工作。通过更深刻地了解计算机如何工作，读者通常可以更有能力用高级语言如C和C++来开发软件。学习用汇编语言来编程是达到这个目的的一个极好的方法。其它的PC汇编程序的书仍然在讲授着如何在1981年使用在初始的PC机上的8086处理器上进行编程!那时的8086处理器只支持\emph{实}模式。在这种模式下，任何程序都可以寻址任意内存或访问计算机里的任意设备。这种模式不适合于安全，多任务操作系统。这本书改为叙述在80386和后来的处理器如何在\emph{保护}模式(也就是Windows和Linux运行的模式)下进行编程。这种模式支持现在操作系统所期望的特征，比如：虚拟内存和内存保护。使用保护模式有以下几个原因：
+\begin{enumerate}
+\item 在保护模式下编程比在其它书使用的8086实模式下要容易。
+\item 所有的现代的PC操作系统都运行在保护模式下。
+\item 可以获得运行在此模式下的免费软件。
+\end{enumerate}
+关于保护模式下的PC汇编编程的书籍的缺乏是作者书写这本书的主要原因。
+
+就像上面所提到的，这本书使用了免费/开源的软件：也就是，NASM汇编器和DJGPP C/C++编译器。它们都可以在因特网上下载到。本书同样讨论如何在Linux操作系统下和在Windows下的Borland和Microsoft的C/C++编译器中如何使用NASM汇编代码。所有这些平台上的例子都可以在我的网页上找到：
+{\code http://www.drpaulcarter.com/pcasm}.
+如何你想汇编和运行这本教程上的例子，你\emph{必须}下载这些样例代码。
+
+注意这本书并不打算涵盖汇编编程的各个方面。作者尽可能地涉及了\emph{所有}程序员都应该熟悉的最重要的方面。
+
+\section*{致谢}
+
+作者要感谢世界上许多为免费/开源运动作出贡献的程序员。这本书的程序甚至是这本书本身都是使用免费软件来书写的。作者特别要感谢John~S.~Fine，
+Simon~Tatham，Julian~Hall和其它开发NASM汇编器的人，这本书的所有例子都基于这个汇编器；开发DJGPP
+C/C++DJ编译器的Delorie；众多对DJGPP所基于的GNU
+gcc编译器有贡献的人们；Donald Knuth和其它开发\TeX\ 和 \LaTeXe\
+排版语言的人，也正是用于书写这本书的语言；Richard Stallman
+(免费软件基金会的创立者)，Linus Torvalds
+(Linux内核的创建者)和其它作者用来书写这本书的底层软件的创建者。
+
+谢谢以下的人提出的修改意见：
+\begin{itemize}
+\item John S. Fine
+\item Marcelo Henrique Pinto de Almeida
+\item Sam Hopkins
+\item Nick D'Imperio
+\item Jeremiah Lawrence
+\item Ed Beroset
+\item Jerry Gembarowski
+\item Ziqiang Peng
+\item Eno Compton
+\item Josh I Cates
+\item Mik Mifflin
+\item Luke Wallis
+\item Gaku Ueda
+\item Brian Heward
+\item Chad Gorshing
+\item F. Gotti
+\item Bob Wilkinson
+\item Markus Koegel
+\item Louis Taber
+\item Dave Kiddell
+\item Eduardo Horowitz
+\item S\'{e}bastien Le Ray
+\item Nehal Mistry
+\item Jianyue Wang
+\item Jeremias Kleer
+\item Marc Janicki
+\end{itemize}
+
+
+\section*{因特网上的资源}
+\begin{center}
+\begin{tabular}{|ll|}
+\hline
+作者的网页 & {\code http://www.drpaulcarter.com/} \\
+%NASM   & {\code http://nasm.2y.net/} \\
+NASM源代码的网页 & {\code http://sourceforge.net/projects/nasm/} \\
+DJGPP  & {\code http://www.delorie.com/djgpp} \\
+Linux汇编器 & {\code http://www.linuxassembly.org/} \\
+汇编的艺术(The Art of Assembly) & {\code http://webster.cs.ucr.edu/} \\
+USENET & {\code comp.lang.asm.x86 } \\
+Intel文件 & {\code http://developer.intel.com/design} \\
+       &  {\code /Pentium4/documentation.htm} \\
+\hline
+\end{tabular}
+\end{center}
+
+
+\section*{反馈}
+
+作者欢迎任意关于这本书的反馈信息。.
+\begin{center}
+\begin{tabular}{ll}
+\textbf{E-mail:} & {\code pacman128@gmail.com} \\
+\textbf{WWW:}    & {\code http://www.drpaulcarter.com/pcasm} \\
+\end{tabular}
+\end{center}

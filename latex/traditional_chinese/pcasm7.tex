@@ -1,0 +1,1020 @@
+% -*-latex-*-
+\chapter{結構體與C++}
+
+\section{結構體\index{結構體|(}}
+
+\subsection{簡介}
+
+在C語言中的結構體用來將相關的資料集合到一個組合變數中。這項技術有幾個優點：
+\begin{enumerate}
+\item 通過展示定義在結構體內的資料是緊密相聯的來使代碼變得清晰明瞭。
+\item 它使傳遞資料給函式變得簡單。代替單獨地傳遞多個變數，它通過傳遞一個單元來傳遞多個變數。
+\item 它增加了代碼的 \index{局部性}\emph{局部性}\footnote{可以看任何作業系統書中關於虛擬記憶體管理中的討論這個術語的部分。} 。
+\end{enumerate}
+
+從組合語言的觀點看，結構體可以認為是擁有\emph{不同}大小的元素的陣列。而真正的陣列的元素的大小和類型總是一樣的。如果你知道陣列的起始位址，每個元素的大小和需要的元素的下標，有這個特性就能計算出這個元素的位址。
+
+結構體中的元素的大小並不一定要是一樣的(而且通常情況下是不一樣的)。因為這個原因，結構體中的每個元素必須清楚地指定而且需要給每個元素一個\emph{標號}(或者名稱)，而不是給一個數字下標。
+
+在組合語言中，結構體中的元素可以通過和訪問陣列中的元素一樣的方法來訪問。為了訪問一個元素，你必須知道結構體的起始位址和這個元素相對於結構體的\emph{相對偏移位址}。但是，和陣列不一樣的是：不可以通過元素的下標來計算該偏移位址，結構體的元素的位址需要通過編譯器來賦值。
+
+例如，考慮下面的結構體：
+\lstset{escapeinside=`',language=Pascal,%
+}
+\begin{lstlisting}[stepnumber=0]{}
+struct S {
+  short int x;    /* `2個位元組的整形' */
+  int       y;    /* `4個位元組的整形' */
+  double    z;    /* `8個位元組的浮點數' */
+};
+\end{lstlisting}
+
+\begin{figure}
+\centering
+\begin{tabular}{r|c|}
+\multicolumn{1}{c}{偏移位址} & \multicolumn{1}{c}{ 元素 } \\
+\cline{2-2}
+0 & {\code x} \\
+\cline{2-2}
+2 & \\
+  & {\code y} \\
+\cline{2-2}
+6 & \\
+  & \\
+  & {\code z} \\
+  & \\
+\cline{2-2}
+\end{tabular}
+\caption{結構體S \label{fig:structPic1}}
+\end{figure}
+
+圖~\ref{fig:structPic1}展示了一個{\code S}結構體變數在電腦記憶體中是如何儲存的。ANSI C標準規定結構體中的元素在記憶體中儲存的順序和在{\code struct}定義中的順序是一樣的。它同樣規定第一個元素需恰好在結構體的起始位址中(\emph{也就是說}偏移位址為0)。它同樣在{\code stddef.h}頭檔中定義了另一個有用的宏{\code offsetof()}。\index{結構體!offsetof()}這個巨集用來計算和返回結構體中任意元素的偏移位址。這個巨集攜帶兩個參數，第一個是結構體\emph{類型}的變數名，第二個是需要得到偏移位址的元素名。因此，圖~\ref{fig:structPic1}中的，{\code offsetof(S, y)}的結果將是2。
+
+%TODO: talk about definition of offsetof() ??
+
+\subsection{記憶體位址對齊}
+
+\begin{figure}
+\centering
+\begin{tabular}{r|c|}
+\multicolumn{1}{c}{偏移位址} & \multicolumn{1}{c}{ 元素 } \\
+\cline{2-2}
+0 & {\code x} \\
+\cline{2-2}
+2 & \emph{unused} \\
+\cline{2-2}
+4 & \\
+  & {\code y} \\
+\cline{2-2}
+8 & \\
+  & \\
+  & {\code z} \\
+  & \\
+\cline{2-2}
+\end{tabular}
+\caption{結構體S \label{fig:structPic2}}
+
+\end{figure}
+\index{結構體!地址對齊|(}
+如果在\emph{gcc}編譯器中你使用{\code offsetof}宏來得到{\code y}的偏移地址，那麼它們將找到並返回4，而不是2！為什麼呢？\MarginNote{回想一下一個位址\\如果除以了4以後，\\位址是處在雙字界上的。} 因此\emph{gcc}(和其他許多編譯器)，在缺省情況下，變數是對齊在雙字界上的。在32位元保護模式下，如果資料是從雙字界開始儲存的，那麼CPU能快速地讀取記憶體。圖~\ref{fig:structPic2}展示了如果使用\emph{gcc}，那麼{\code S}結構體在記憶體中是如何儲存的。編譯器在結構體中插入了兩個沒有使用的位元組，用來將{\code y}(和{\code z})對齊在雙字界上。這就表明了在C中定義的結構體，使用{\code offsetof}計算偏移來代替元素自己來計算自己的偏移為什麼是一個好的想法。
+
+當然，如果只是在組合語言程式中使用結構體，程式師可以自己決定偏移位址。但是，如果你需要使用C和彙編的介面技術，那麼在彙編代碼和C代碼中約定好如何計算結構體元素的偏移位址是非常重要的！一個麻煩的地方是不同的C編譯器給出的元素的偏移位址是不同的。例如：就像我們已經知道的，
+\emph{gcc}編譯器創建結構體{\code S}如圖~\ref{fig:structPic2}；但是，Borland的編譯器將創建結構體如圖~\ref{fig:structPic1}。C編譯器提供了指定資料對齊的方法。但是，ANSI C標準並沒有指定它們該如何完成，因此不同的編譯器使用不同的方法來完成記憶體位址對齊。
+
+
+
+%Borland's compiler has a flag, {\code -a}, that can be
+%used to define the alignment used for all data. Compiling with {\code -a 4}
+%tells \emph{bcc} to use double word alignment. Microsoft's compiler
+%provides a {\code \#pragma pack} directive that can be used to set
+%the alignment (consult Microsoft's documentation for details). Borland's
+%compiler also supports Microsoft's pragma
+
+\emph{gcc}\index{編譯器!gcc!\_\_attribute\_\_}編譯器有一個靈活但是複雜的方法來指定位址對齊。它允許你使用特殊的語法來指定任意類型的位址對齊。例如，下麵一行：
+\begin{lstlisting}[stepnumber=0]{}
+  typedef short int unaligned_int __attribute__((aligned(1)));
+\end{lstlisting}
+\noindent定義了一個名為{\code unaligned\_int}的新類型，它採用的是位元組界對齊方式。(是的，所以在{\code
+\_\_attribute\_\_}後面的括弧都是需要的！){\code aligned}的參數1可以用其他的2的乘方值來替代，用來表示採用的是其他對齊方式。(2為字邊界，4表示雙字界，
+\emph{等等。})如果結構體裏的{\code y}元素改為{\code unaligned\_int}類型，那麼\emph{gcc}給出的{\code y}的偏移位址為2.但是，{\code z}依然處在偏移位址8的位置，因為雙精度類型的缺省對齊方式為雙字對齊。要想{\code z}的偏移位址為6，那麼還要改變它的類型定義。
+
+\begin{figure}[t]
+\lstset{escapeinside=`',language=Pascal,%
+}
+\begin{lstlisting}[frame=tlrb,stepnumber=0]{}
+struct S {
+  short int x;    /* `2個位元組的整形' */
+  int       y;    /* `4個位元組的整形' */
+  double    z;    /* `8個位元組的浮點數'   */
+} __attribute__((packed));
+\end{lstlisting}
+\caption{使用\emph{gcc}的壓縮結構體 \label{fig:packedStruct}\index{編譯器!gcc!\_\_attribute\_\_}}
+\end{figure}
+
+\emph{gcc}編譯器同樣允許你\emph{壓縮}一個結構體。它告訴編譯器使用盡可能小的空間來儲存這個結構體。圖~\ref{fig:packedStruct}展示了{\code S}如何以這種方法來定義。這種形式下的{\code S}將使用可能的最少的位元組數，14個位元組。
+
+Microsoft和Borland的編譯器都支援使用{\code \#pragma}指示符的方法來指定對齊方式。\index{編譯器!Microsoft!pragma pack}
+\begin{lstlisting}[stepnumber=0]{}
+#pragma pack(1)
+\end{lstlisting}
+上面的指示符告訴編譯器採用位元組界的對齊方式來壓縮結構體中的元素。(\emph{也就是說}，沒有額外的填充空間)。其中的1可以用2，4，8或16代替，分別用來指定對齊方式為字邊界，雙字界，四字界和節邊界。這個指示符在被另一個指示符置為無效之前保持有效。這就可能會導致一些問題，因為這些指示符通常使用在頭檔中。如果這個頭檔在包含結構體的其他頭檔之前被包含到程式中，那麼這些結構體的放置方式將和它們缺省的放置方式不同。這將導致非常嚴重的查找錯誤。程式中的不同模組將會將結構體元素\emph{放置}在不同的地方。
+
+\begin{figure}[t]
+\lstset{escapeinside=`',language=Pascal,%
+}
+\begin{lstlisting}[frame=tlrb,stepnumber=0]{}
+#pragma pack(push)    /* `保存對齊方式的狀態值' */
+#pragma pack(1)       /* `設置為位元組界'   */
+
+struct S {
+  short int x;    /* `2個位元組的整形' */
+  int       y;    /* `4個位元組的整形' */
+  double    z;    /* `8個位元組的浮點數'   */
+};
+
+#pragma pack(pop)     /* `恢復原始的對齊方式' */
+\end{lstlisting}
+\caption{使用Microsoft或Borland的壓縮結構體 \label{fig:msPacked}\index{編譯器!Microsoft!pragma pack}}
+\end{figure}
+
+有一個方法來避免這個問題。Microsoft和Borland都支持這個方法：保存當前對齊方式狀態值和隨後恢復它。圖~\ref{fig:msPacked}展示了如何使用這種方法。
+\index{結構體!地址對齊|)}
+
+\subsection{位元域s\index{結構體!位域|(}}
+
+\begin{figure}[t]
+\lstset{escapeinside=`',language=Pascal,%
+}
+\begin{lstlisting}[frame=tlrb,stepnumber=0]{}
+struct S {
+  unsigned f1 : 3;   /* `3個位域'  */
+  unsigned f2 : 10;  /* `10個位域' */
+  unsigned f3 : 11;  /* `11個位域' */
+  unsigned f4 : 8;   /* `8個位域'  */
+};
+\end{lstlisting}
+\caption{關於位域的例子 \label{fig:bitStruct}}
+\end{figure}
+
+位元域允許你指定結構體中的成員的大小為只使用指定的比特位數。比特位數的大小並不一定要是8的倍數。一個位域成員的定義和\lstinline|unsigned int|或\lstinline|int|的成員定義是一樣，只是在定義的後面增加了冒號和位數的大小。圖~\ref{fig:bitStruct}展示了一個例子。它定義了一個32位元的變數，它由下面的幾部分組成：
+\begin{center}
+\begin{tabular}{|c|c|c|c|}
+\multicolumn{1}{c}{8個比特} & \multicolumn{1}{c}{11個比特} &
+\multicolumn{1}{c}{10個比特} & \multicolumn{1}{c}{3個比特} \\
+\hline \hspace{2em} f4 \hspace{2em} & \hspace{3em} f3 \hspace{3em}
+& \hspace{3em} f2 \hspace{3em} & f1 \\
+\hline
+\end{tabular}
+\end{center}
+第一個位域被指定到此雙字的最低有效位處。\footnote{實際上，ANSI/ISO C標準在實際上如何放置比特位方面給了編譯器少許靈活性。但是，普遍的C編譯器(\emph{gcc}，\emph{Microsoft}和
+\emph{Borland})都將像這樣放置比特位域。}
+
+但是，如果你看了這些比特位元實際上在記憶體中是如何儲存的，你就會發現格式並不是如此簡單。難點發生在當位元域跨越位元組界時。因為在little endian處理器上的位元組將以相反的順序儲存到記憶體中。例如，{\code S}結構體在記憶體中將如下所示：
+\begin{center}
+\begin{tabular}{|c|c||c|c||c||c|}
+\multicolumn{1}{c}{5個比特} & \multicolumn{1}{c}{3個比特} &
+\multicolumn{1}{c}{3個比特} & \multicolumn{1}{c}{5個比特} &
+\multicolumn{1}{c}{8個比特} & \multicolumn{1}{c}{8個比特} \\ \hline
+f2l & f1 &  f3l  & f2m & \hspace{1em} f3m \hspace{1em}
+& \hspace{1.5em} f4 \hspace{1.5em} \\
+\hline
+\end{tabular}
+\end{center}
+\emph{f2l}變數表示\emph{f2}位域的末尾五個比特位(\emph{也就是}，五個最低有效位)。\emph{f2m}變數表示\emph{f2}的五個最高有效位。雙垂直線的地方表示位元組界。如果你將所有的位元組反向，\emph{f2}和\emph{f3}位域將重新結合到正確的位置。
+
+\begin{figure}[t]
+\centering
+\begin{tabular}{|c*{8}{|p{1.3em}}|}
+\hline 位元組 $\backslash$ 位元 & 7 & 6 & 5 & 4 & 3 & 2 & 1 & 0 \\
+\hline 0 & \multicolumn{8}{c|}{操作碼(08h) } \\ \hline 1 &
+\multicolumn{3}{c|}{邏輯單元 \# } & \multicolumn{5}{c|}{LBA的msb} \\
+\hline 2 & \multicolumn{8}{c|}{邏輯塊位址的中間部分} \\
+\hline 3 & \multicolumn{8}{c|}{邏輯塊位址的lsb} \\
+\hline 4 & \multicolumn{8}{c|}{傳遞的長度} \\
+\hline 5 & \multicolumn{8}{c|}{控制字} \\ \hline
+\end{tabular}
+\caption{SCSI讀命令格式\label{fig:scsi-read}}
+\end{figure}
+
+\begin{figure}[t]
+\lstset{escapeinside=`',language=Pascal,%
+}
+\begin{lstlisting}[frame=lrtb]{}
+#define MS_OR_BORLAND (defined(__BORLANDC__) \
+                        || defined(_MSC_VER))
+
+#if MS_OR_BORLAND
+#  pragma pack(push)
+#  pragma pack(1)
+#endif
+
+struct SCSI_read_cmd {
+  unsigned opcode : 8;
+  unsigned lba_msb : 5;
+  unsigned logical_unit : 3;
+  unsigned lba_mid : 8;    /* `中間的比特位' */
+  unsigned lba_lsb : 8;
+  unsigned transfer_length : 8;
+  unsigned control : 8;
+}
+#if defined(__GNUC__)
+   __attribute__((packed))
+#endif
+;
+
+#if MS_OR_BORLAND
+#  pragma pack(pop)
+#endif
+\end{lstlisting}
+\caption{SCSI讀命令格式的結構\label{fig:scsi-read-struct}\index{編譯器!gcc!\_\_attribute\_\_}
+         \index{編譯器!Microsoft!pragma pack}}
+\end{figure}
+
+實體記憶體的放置方式通常並不是很重要，除非有資料需要傳送到程式中或從程式中傳出(實際上這和位域是非常相同的)。硬體設備的介面使用奇數的比特位是非常普遍的，此時使用位域來描述是非常有用的。
+
+\begin{figure}[t]
+\centering
+\begin{tabular}{|c||c||c||c||c|c||c|}
+\multicolumn{1}{c}{8個比特} & \multicolumn{1}{c}{8個比特} &
+\multicolumn{1}{c}{8個比特} & \multicolumn{1}{c}{8個比特} &
+\multicolumn{1}{c}{3個比特} & \multicolumn{1}{c}{5個比特} &
+\multicolumn{1}{c}{8個比特} \\ \hline 控制字 & 傳輸的長度 & lba\_lsb
+& lba\_mid &
+logical\_unit  & lba\_msb & opcode \\
+\hline
+\end{tabular}
+\caption{{\code SCSI\_read\_cmd}的位域圖 \label{fig:scsi-read-map}}
+\end{figure}
+\index{SCSI|(}
+SCSI\footnote{Small Computer Systems Interface，小型電腦系統介面，一個硬碟，\emph{等等}的工業標準}就是一個例子。SCSI設備的直接讀命令被指定為傳送一個六個位元組的資訊到設備，格式指定為圖~\ref{fig:scsi-read}中的格式。使用位域來描述這個的難點是
+\emph{邏輯區塊位址(logical block address)}，它在此命令中跨越了三個不同的位元組。從圖~\ref{fig:scsi-read}中，你可以看到資料是以big endian的格式儲存的。圖~\ref{fig:scsi-read-struct}展示了一個試圖在所有編譯器中工作的定義。前兩行定義了一個宏，如何代碼是由Microsoft或Borland編譯器來編譯時，則它就為真。可能比較混亂的部分是11行到14行。首先，你可能會想為什麼\lstinline|lba_mid|和
+\lstinline|lba_lsb|位域要分開被定義，而不是定義成一個16位的域？原因是資料是以big endian順序儲存的。而編譯器將把一個16位元的域以little endian順序來儲存。其次，\lstinline|lba_msb|和 \lstinline|logical_unit|位域看起來似乎方向反了；但是，情況並不是這樣。它們必須得以這樣的順序來擺放。圖~\ref{fig:scsi-read-map}展示了作為一個48位元的實體，它的位元域圖是怎樣的。(位元組界同樣是以雙垂直線來表示。)當它在記憶體中是以little endian的格式來儲存，那麼比特位元將以要求的格式來排列。
+(圖~\ref{fig:scsi-read}).
+
+\begin{figure}[t]
+\lstset{escapeinside=`',language=Pascal,%
+}
+\begin{lstlisting}[frame=lrtb]{}
+struct SCSI_read_cmd {
+  unsigned char opcode;
+  unsigned char lba_msb : 5;
+  unsigned char logical_unit : 3;
+  unsigned char lba_mid;    /* `中間的比特位' */
+  unsigned char lba_lsb;
+  unsigned char transfer_length;
+  unsigned char control;
+}
+#if defined(__GNUC__)
+   __attribute__((packed))
+#endif
+;
+\end{lstlisting}
+\caption{另一種SCSI讀命令格式的結構\label{fig:scsi-read-struct2}
+         \index{編譯器!gcc!\_\_attribute\_\_}\index{編譯器!Microsoft!pragma pack}}
+\end{figure}
+
+考慮得複雜一點，我們知道\lstinline|SCSI_read_cmd|的定義在Microsoft
+C編譯器中不能完全正確工作。如果\lstinline|sizeof(SCSI_read_cmd)|運算式被賦值了，
+Microsoft
+C將返回8,而不是6！這是因為Microsoft編譯器使用位域的類型來決定如何繪製比特圖。因為所有的位域都被定義為\lstinline|unsigned|類型，所以編譯器在結構體的末尾加了兩個位元組使得它成為一個雙字類型的整數。這個問題可以通過用\lstinline|unsignedshort|替代所有的位域定義類型來修正。現在，Microsoft編譯器不需要增加任何的填充位元組，因為六個位元組是兩個位元組字類型的整數。\footnote{混亂的不同類型的位域將導致非常混亂的行為！讀者需要自己去實驗。}有了這個改變，其他的編譯器也能正確工作。圖~\ref{fig:scsi-read-struct2}展示了另外一種定義，能在所有的三種編譯器上工作。它通過使用\lstinline|unsignedchar|避免了除2位的域以外的所有位域的問題。
+\index{SCSI|)}
+
+如果發現前面的討論非常混亂的讀者，請不要氣餒。它本來就是混亂的！通過經常完全地避免使用位域而採用位操作來手動地檢查和修改比特位，作者發現能避免一些混亂。
+
+\index{結構體!位域|)}
+
+%TODO:discuss alignment issues and struct size issues
+
+\subsection{在組合語言中使用結構體}
+
+就像上面討論，在組合語言中訪問結構體就類似於訪問陣列。作為一個簡單的例子，考慮一下你如何寫這樣一個組合語言程式：將0寫入到{\code S}結構體的{\code y}中。假定這個程式的原型是這樣的：
+\begin{lstlisting}[stepnumber=0]{}
+void zero_y( S * s_p );
+\end{lstlisting}
+\noindent 組合語言程式如下：
+\begin{AsmCodeListing}
+%define      y_offset  4
+_zero_y:
+      enter  0,0
+      mov    eax, [ebp + 8]      ; 從堆疊中得到s_p(結構體的指標)
+      mov    dword [eax + y_offset], 0
+      leave
+      ret
+\end{AsmCodeListing}
+
+C語言允許你把一個結構體當作數值傳遞給函式；但是，通常這都是一個壞主意。當以數值來傳遞時，在結構體中的所有資料都必須複製到堆疊中，然後在程式中再拿出來使用。用一個結構體指標來替代能有更高的效率。
+
+C語言同樣允許一個結構體類型作為一個函式的返回值。很明顯，一個結構體不能通過儲存到{\code EAX}寄存器中來返回。不同的編譯器處理這種情況的方法也不同。一個編譯器普遍使用的解決方法是在內部重寫函式，讓它攜帶一個結構體指標參數。這個指標用來將返回值放入到結構體中，這個結構體是在調用的程式外面定義的。
+
+大多數彙編器(包括NASM)都有在你的彙編代碼中定義結構體的內置支援。查閱你的資料來得到更詳細的資訊。
+
+% add section on structure return values for functions
+
+\index{結構體|)}
+
+\section{組合語言和C++\index{C++|(}}
+
+C++編程語言是C語言的一種擴展形式。許多C語言和組合語言介面的基本規則同樣適用於C++。但是，有一些規則需要修正。同樣，擁有一些組合語言的知識，你能很容易理解C++中的一些擴展部分。這一節假定你已經有一定的C++基礎知識。
+
+\subsection{重載函式和名字改編\index{C++!名字改編|(}}
+\label{subsec:mangling}
+\begin{figure}
+\centering
+\begin{lstlisting}[frame=tlrb]{}
+#include <stdio.h>
+
+void f( int x )
+{
+  printf("%d\n", x);
+}
+
+void f( double x )
+{
+  printf("%g\n", x);
+}
+\end{lstlisting}
+\caption{兩個名為{\code f()}的函式\label{fig:twof}}
+\end{figure}
+
+C++允許不同的函式(和類成員函式)使用同樣的函式名來定義。當不止一個函式共用同一個函式名時，這些函式就稱為\emph{重載函式}。在C語言中，如果定義的兩個函式使用的函式名是一樣，那麼連接器將產生一個錯誤，因為在它連接的目標檔中，一個符號它將找到兩個定義。例如，考慮圖~\ref{fig:twof}中的代碼。等價的彙編代碼將定義兩個名為{\code \_f}的標號，而這明顯是錯誤的。
+
+C++使用和C一樣的連接過程，但是通過執行\emph{名字改編}或修改用來標記函式的符號來避免這個錯誤。在某種程式上，C也早已經使用了名字改編。當創建函式的標號時，它在C函式名上增加了一條下劃線。但是，C語言將以同樣的方法來改編圖~\ref{fig:twof}中的兩個函式名，那麼將會產生一個錯誤。C++使用一個更高級的改編過程：為這些函式產生兩個不同的標號。例如：圖~\ref{fig:twof}中的第一個函式將由DJGPP指定為標號{\code \_f\_\_Fi}，而第二個函式，指定為{\code \_f\_\_Fd}。這樣就避免了任何的連接錯誤。
+% check to make sure that DJGPP does still but an _ at beginning for C++
+
+不幸的是，關於在C++中如何改編名字並沒有一個標準，而且不同的編譯器改編的名字也不一樣。例如，Borland C++將使用標號{\code @f\$qi}和{\code @f\$qd}來表示圖~\ref{fig:twof}中的兩個函式。但是，規則並不是完全任意的。改編後的名字編碼成函式的\emph{簽名}。一個函式的簽名是通過它攜帶的參數的順序和類型來定義的。注意，，攜帶了一個{\code int}參數的函式在它的改編名字的末尾將有一個\emph{i}(對於DJGPP 和Borland都是一樣)，而攜帶了一個{\code double}參數的函式在它的改編名字的末尾將有一個\emph{d}。如果有一個名為{\code f}的函式，它的原型如下：
+\begin{lstlisting}[stepnumber=0]{}
+  void f( int x, int y, double z);
+\end{lstlisting}
+\noindent DJGPP將會把它的名字改編成{\code \_f\_\_Fiid}而Borland將會把它改編成
+{\code @f\$qiid}。
+
+函式的返回類型並\emph{不是}函式簽名的一部分，因此它也不會編碼到它的改編名字中。這個事實解釋了在C++中的一個重載規則。只有簽名唯一的函式才能重載。就如你能看到的，如果在C++中定義了兩個名字和簽名都一樣的函式，那麼它們將得到同樣的簽名，而這將產生一個連接錯誤。缺省情況下，所有的C++函式都會進行名字改編，甚至是那些沒有重載的函式。它編譯一個檔時，編譯器並沒有方法知道一個特定的函式重載與否，所以它將所有的名字改編。事實上，和函式簽名的方法一樣，編譯器同樣通過編碼變數的類型來改編總體變數的變數名。因此，如果你在一個檔中定義了一個總體變數為某一類型然後試圖在另一個檔中用一個錯誤的類型來使用它，那麼將產生一個連接錯誤。C++這個特性被稱為\emph{類型安全連接}。
+\index{C++!類型安全連接}它同樣暴露出另一種類型的錯誤：原型不一致。當在一個模組中函式的定義和在另一個模組使用的函式原型不一致時，就發生這種錯誤。在C中，這是一個非常難調試出來的問題。C並不能捕捉到這種錯誤。程式將被編譯和連接，但是將會有未定義的操作發生，就像調用的代碼會將和函式期望不一樣的類型壓入堆疊中一樣。在C++中，它將產生一個連接錯誤。
+
+當C++編譯器語法分析一個函式調用時，它通過查看傳遞給函式的參數的類型來尋找匹配的函式\footnote{這個匹配並不一定要是精確匹配，編譯器將通過強制轉型參數來考慮匹配。這個過程的規則超出了本書的範圍。查閱一本C++的書來得到更詳細的資訊。}。如果它找到了一個匹配的函式，那麼通過使用編譯器的名字改編規則，它將創建一個{\code CALL}來調用正確的函式。
+
+因為不同的編譯器使用不同的名字改編規則，所以不同編譯器編譯的C++代碼可能不可以連接到一起。當考慮使用一個預編譯的C++庫時，這個事實是非常重要的！如果有人想寫出一個能在C++代碼中使用的組合語言程式，那麼他必須知道要使用的C++編譯器使用的名字改編規則(或使用下面將解釋的技術)。
+
+機敏的學生可能會詢問在圖~\ref{fig:twof}中的代碼到底能不能如預期般工作。因為C++改編了所有函式的函式名，那麼
+{\code printf}將被改編，而編譯器將不會產生一個到標號{\code \_printf}處的{\code CALL}調用。這是一個非常正確的擔憂！如果{\code printf}的原型被簡單地放置在檔的開始部分，那麼這就將發生。原型為：
+\begin{lstlisting}[stepnumber=0]{}
+  int printf( const char *, ...);
+\end{lstlisting}
+\noindent DJGPP將會把它改編為{\code
+\_printf\_\_FPCce}。({\code F}表示\emph{function，函式}，{\code P}表示\\\emph{pointer，指針}，{\code C}表示\emph{const，常量}， {\code c}表示
+\emph{char}而{\code e}表示省略號。)那麼它將不會調用正規C庫中的{\code printf}函式！當然，必須有一種方法讓C++代碼用來調用C代碼。這是非常重要的，因為到處都有\emph{許多}非常有用的舊的C代碼。除了允許你調用遺留的C代碼外，C++同樣允許你調用使用了正規的C改編約定的彙編代碼。
+
+\index{C++!extern ""C""|(}
+C++擴展了{\code extern}關鍵字，允許它用來指定它修飾的函式或總體變數使用的是正規C約定。在C++術語中，稱這些函式或總體變數使用了\emph{C鏈結}。例如，為了聲明{\code printf}為C鏈結，需使用下面的原型：
+\begin{lstlisting}[language=C++,stepnumber=0]{}
+extern "C" int printf( const char *, ... );
+\end{lstlisting}
+\noindent 這就告訴編譯器不要在這個函式上使用C++的名字改編規則，而使用C規則來替代。但是，如果這樣做了，那麼{\code printf}將不可以重載。這就提供了一個簡易的方法用在C++和組合語言程式介面上：使用C鏈結定義一個函式，然後再使用C調用約定。
+
+為了方便，C++同樣允許定義函式或總體變數塊的C鏈結。通常函式或總體變數塊用捲曲花括弧表示。
+\lstset{escapeinside=`',language=Pascal,%
+}
+\begin{lstlisting}[stepnumber=0,language=C++]{}
+extern "C" {
+  /* `C鏈結的總體變數和函式原型' */
+}
+\end{lstlisting}
+
+如果你檢查了當今的C/C++編譯器中的ANSI C頭檔，你會發現在每個頭檔上面都有下面這個東西：
+\begin{lstlisting}[stepnumber=0,language=C++]{}
+#ifdef __cplusplus
+extern "C" {
+#endif
+\end{lstlisting}
+\noindent 而且在底部有一個包含閉捲曲花括弧的同樣的結構。C++編譯器定義了宏{\code \_\_cplusplus}(有\emph{兩條}領頭的下劃線)。上面的代碼片斷如果用C++來編譯，那麼整個頭檔就被一個{\code extern~"C"}塊圍起來了，但是如果使用C來編譯，就不會執行任何操作
+(因為對於{\code extern~"C"}，C編譯器將產生一個語法錯誤)。程式師可以使用同樣的技術用來在組合語言程式中創建一個能被C或C++使用的頭檔。
+\index{C++!extern ""C""|)}
+\index{C++!名字改編|)}
+
+\begin{figure}
+\lstset{escapeinside=`',language=Pascal,%
+}
+\begin{lstlisting}[language=C++,frame=tlrb]{}
+void f( int & x )     // `\&表示是一個引用參數' { x++; }
+
+int main()
+{
+  int y = 5;
+  f(y);               // `傳遞了引用y，注意這裏沒有\&!'
+  printf("%d\n", y);  // `顯示6!'
+  return 0;
+}
+\end{lstlisting}
+\caption{引用的例子\label{fig:refex}}
+\end{figure}
+
+\subsection{引用\index{C++!引用|(}}
+
+\emph{引用}是C++的另一個新特性。它允許你傳遞參數給函式，而不需要明確使用指標。例如，考慮圖~\ref{fig:refex}中的代碼。事實上，引用參數是非常簡單，實際上它們就是指標。只是編譯器對程式師隱藏它而已(正如Pascal編譯器把{\code
+var}參數當作指針來執行)。當編譯器產生此函式調用的第7行代碼的彙編語句時，它將{\code
+y}的\emph{位址}傳遞給函式。如果有人是用組合語言書寫的{\code
+f}函式，那麼他們操作的情況，就好像原型如下似的：\footnote{當然，他們可能想使用C鏈結來聲明函式，用來避免名字改編，就像小節~\ref{subsec:mangling}中討論的}：
+\begin{lstlisting}[stepnumber=0]{}
+  void f( int * xp);
+\end{lstlisting}
+
+引用是非常方便的，特別是對於運算符重載來說是非常有用的。運算符重載又是C++的另一個特性，它允許你在對結構體或類類型進行操作時賦予普通運算符另一種功能。例如，一個普遍的使用是賦予加號({\code +})運算符能將字串物件連接起來的功能。因此，如果{\code a}和{\code
+b}是字串，那麼{\code a~+~b}將得到{\code a}和{\code b}連接後的字串。實際上，C++可以調用一個函式來做這件事(事實上，上面的運算式可以用函式的表示法來重寫為：{\code operator~+(a,b)})。為了提高效率，有人可能會希望傳遞字串的位址來代替傳遞他們的值。若沒有引用，那麼將需要這樣做：{\code
+operator~+(\&a,\&b)}，但是若要求你以運算符的語法來書寫應為：{\code \&a~+~\&b}。這是非常笨拙而且混亂的。但是，通過使用引用，你可以像這樣書寫：{\code a~+~b}，這樣就看起來非常自然。
+\index{C++!引用|)}
+
+\subsection{內聯函式\index{C++!內聯函式|(}}
+
+到目前為止，\emph{內聯函式}又是C++的另一個特性\footnote{
+C編譯器通常支持這種特性，把它當作ANSI C的擴展。}。內聯函式照道理應該可以取代容易犯錯誤的，攜帶參數的，基於預處理程式的巨集。回想一下在C中，書寫一個求數的平方的宏可以是這樣的：
+\begin{lstlisting}[stepnumber=0]{}
+#define SQR(x) ((x)*(x))
+\end{lstlisting}
+\noindent 因為預處理程式不能理解C而採用簡單的替換操作，在大多數情況下，圓括號裏要求是能正確計算出來的值。但是，即使是這個版本也不能給出{\code SQR(x++)}的正確答案。
+
+\begin{figure}
+\begin{lstlisting}[language=C++,frame=tlrb]{}
+inline int inline_f( int x )
+{ return x*x; }
+
+int f( int x )
+{ return x*x; }
+
+int main()
+{
+  int y, x = 5;
+  y = f(x);
+  y = inline_f(x);
+  return 0;
+}
+\end{lstlisting}
+\caption{內聯函式的例子 \label{fig:InlineFun}}
+\end{figure}
+
+
+宏之所以被使用是因為它除去了進行一個簡單函式的函式調用的額外時間開支。就像副程式那一章描述的，執行一個函式調用包括好幾步。對於一個非常簡單的函式來說，用來進行函式調用的時間可能比實際上執行函式裏的操作的時間還要多！內聯函式是一個更為友好的用來書寫代碼的方法，讓代碼看起來象一個標準的函式，但是它並\emph{不是}{\code CALL}指令能調用的普通代碼塊。出現內聯函式的調用運算式的地方將被執行函式的代碼替換。C++允許通過在函式定義前加上{\code inline}關鍵字來使函式成為內聯函式。如果，考慮在圖~\ref{fig:InlineFun}中聲明的函式。第10行對{\code f}的調用將執行一個標準的函式調用(在組合語言中，假定{\code x}的地址為{\code ebp-8}而{\code y}地址為{\code ebp-4})：
+\begin{AsmCodeListing}
+      push   dword [ebp-8]
+      call   _f
+      pop    ecx
+      mov    [ebp-4], eax
+\end{AsmCodeListing}
+但是，第11行對{\code inline\_f}的調用將得到如下結果：
+\begin{AsmCodeListing}
+      mov    eax, [ebp-8]
+      imul   eax, eax
+      mov    [ebp-4], eax
+\end{AsmCodeListing}
+
+這種情況下，使用內聯函式有兩個優點。首先，內聯函式更快。沒有參數需要壓入堆疊中，也不需要創建和毀壞堆疊幀，也不需要進行分支。其次，內聯函式調用使用的代碼是非常少！後面一點對這個例子來說是正確的，但是並不是在所有情況下都是正確的。
+
+內聯函式的主要優點是內聯代碼不需要連接，所以對於使用內聯函式的\emph{所有}原始檔案來說，內聯函式的代碼都必須有效。前面的彙編代碼的例子展示了這一點。對於非內聯函式的調用，只要求知道參數，返回值類型，調用約定和函式的函式名。所有的這些資訊都可以從函式的原型中得到。但是，使用內聯函式調用，就必須知道這個函式的所有代碼。這就意味著如果改變了一個內聯函式中的任何部分，那麼\emph{所有}使用了這個函式的原始檔案必須重新編譯。回想一下對於非內聯函式，如果函式原型沒有改變，通常使用這個函式的原始檔案就不需要重新編譯。由於所有的這些原因，內聯函式的代碼通常放置在頭檔中。這樣做違反了在C語言中標準的穩定和快速準則：執行的代碼語句\emph{決不能}放置在頭檔中。
+\index{C++!內聯函式|)}
+
+\begin{figure}[t]
+\lstset{escapeinside=`',language=Pascal,%
+}
+\begin{lstlisting}[language=C++,frame=tlrb]{}
+class Simple {
+public:
+  Simple();                // `缺省的構造函式'
+  ~Simple();               // `析構函式'
+  int get_data() const;    // `函式成員'
+  void set_data( int );
+private:
+  int data;                // `資料成員'
+};
+
+Simple::Simple()
+{ data = 0; }
+
+Simple::~Simple()
+{ /* `空程式體' */ }
+
+int Simple::get_data() const
+{ `返回值'; }
+
+void Simple::set_data( int x )
+{ data = x; }
+\end{lstlisting}
+\caption{一個簡單的C++類\label{fig:SimpleClass}}
+\end{figure}
+
+\subsection{類\index{C++!類|(}}
+
+C++中的類描述了一個\emph{物件}類型。一個物件包括資料成員(data member)和函式成員(function member)\footnote{在C++中，通常稱之為\emph{成員函式(member
+function)}或者更為普遍地稱之為\emph{方法(method)}\index{方法}。}。換句話說就是，它是由跟它相關聯的資料和函式組成的一個{\code struct}結構體。考慮在圖~\ref{fig:SimpleClass}中定義的那個簡單的類。一個{\code Simple}類型的變數非常類似於包含一個{\code int}成員的標準C{\code struct}結構體。\MarginNote{事實上，C++使用{\code this}\\關鍵字從成員函式內部\\來訪問指向此函式\\能起作用的物件的指標。}這些函式並\emph{不會}儲存到指定結構體的記憶體中。但是，成員函式和其他函式是不一樣的。它們傳遞了一個\emph{隱藏}的參數。這個參數是一個指向成員函式能起作用的物件的指標。
+
+\begin{figure}[t]
+\begin{lstlisting}[stepnumber=0]{}
+void set_data( Simple * object, int x )
+{
+  object->data = x;
+}
+\end{lstlisting}
+\caption{Simple::set\_data()的C版本\label{fig:SimpleCVer}}
+\end{figure}
+
+
+\begin{figure}[t]
+\begin{AsmCodeListing}
+_set_data__6Simplei:           ; 改編後的名字
+      push   ebp
+      mov    ebp, esp
+
+      mov    eax, [ebp + 8]   ; eax = 指向對象的指標(this)
+      mov    edx, [ebp + 12]  ; edx = 整形參數
+      mov    [eax], edx       ; data在偏移位址0處
+
+      leave
+      ret
+\end{AsmCodeListing}
+\caption{編譯Simple::set\_data( int )的輸出 \label{fig:SimpleAsm}}
+\end{figure}
+
+
+例如，考慮圖~\ref{fig:SimpleClass}中的{\code Simple}類的成員函式{\code set\_data}。如果用C語言來書寫此函式，這個函式將像這樣：明確傳遞一個指向成員函式能起作用的物件的指標，如圖~\ref{fig:SimpleCVer}所示。使用\emph{DJGPP}編譯器加上{\code -S}選項(\emph{gcc}和Borland編譯器也是一樣)來告訴編譯器輸出一個包含此代碼產生的等價的組合語言代碼的原始檔案。對於\emph{DJGPP}和\emph{gcc}編譯器，此彙編原始檔案是以{\code .s}副檔名結尾的，但是不幸的是使用的語法是AT\&T組合語言語法，這種語法和NASM和MASM語法區別非常大\footnote{\emph{gcc}編譯系統包含了一個屬於自己的稱為\emph{gas}\index{gas}的彙編器。
+\emph{gas}彙編器使用AT\&T語法，因此編譯器以\emph{gas}的格式來輸出代碼。網頁中有好幾頁用來討論INTEL和AT\&T語法的區別。同時有一個名為{\code a2i}的免費程式
+({http://www.multimania.com/placr/a2i.html})，此程式將AT\&T格式轉換成了NASM格式。}。(Borland和MS編譯器產生一個以{\code .asm}副檔名結尾的原始檔案，使用的是MASM語法。)
+圖~\ref{fig:SimpleAsm}展示了將\emph{DJGPP}的輸出轉換成NASM語法後的代碼，增加了闡明語句目的的注釋。在第一行中，注意成員函式{\code set\_data}的函式名被指定為一個改編後的標號，此標號是通過編碼成員函式名，類名和參數後得到的。類名被編碼進去的是因為其他類中可能也有名為{\code set\_data}的成員函式，而這兩個成員函式\emph{必須}使用不同的標號。參數之所以被編碼進去是為了類能通過攜帶其他參數來重載成員函式{\code set\_data}，正如標準的C++函式。但是，和以前一樣，不同的編譯器在改編標號時編碼資訊的方式也不同。
+
+下面的第2和第3行，出現了熟悉的函式的開始部分。在第5行，把堆疊中的第一個參數儲存到{\code
+EAX}中了。這並\emph{不是}參數{\code x}！替代它的是那個隱藏的參數\footnote{像平常一樣，\emph{沒有東西}能隱藏在彙編代碼中！} ，它是指向此函式能起作用的物件的指標。第6行將參數{\code x}儲存到{\code EDX}中了，而第7行又將{\code EDX}儲存到了{\code EAX}指向的雙字中。它是{\code Simple}物件中的{\code data}成員，也是這個類中的唯一的資料，它儲存在{\code Simple}結構體中偏移位址為0的地方。
+
+\begin{figure}[tp]
+\lstset{escapeinside=`',language=Pascal,%
+}
+\begin{lstlisting}[frame=tlrb,language=C++]{}
+class Big_int {
+public:
+   /*
+   * Parameters:
+   *   size           - `表示成正常無符號整數的整形大小'
+   *
+   *   initial_value  - `將Big\_int的值初始化為一個正常的無符號整形'
+   */
+  explicit Big_int( size_t   size,
+                    unsigned initial_value = 0);
+  /*
+   * Parameters:
+   *   size           - `表示成正常無符號整數的整形大小'
+   *
+   *   initial_value  - `將Big\_int的值初始化為一個包含一個以十六進位表示的值的字串'
+   *
+   */
+  Big_int( size_t       size,
+           const char * initial_value);
+
+  Big_int( const Big_int & big_int_to_copy);
+  ~Big_int();
+
+  // `返回Big\_int的大小 (以無符號整形的形式)'
+  size_t size() const;
+
+  const Big_int & operator = ( const Big_int & big_int_to_copy);
+  friend Big_int operator + ( const Big_int & op1,
+                              const Big_int & op2 );
+  friend Big_int operator - ( const Big_int & op1,
+                              const Big_int & op2);
+  friend bool operator == ( const Big_int & op1,
+                            const Big_int & op2 );
+  friend bool operator < ( const Big_int & op1,
+                           const Big_int & op2);
+  friend ostream & operator << ( ostream &       os,
+                                 const Big_int & op );
+private:
+  size_t      size_;    // `無符號陣列的大小'
+  unsigned *  number_;  // `指向擁有數值的無符號陣列的指標'
+};
+\end{lstlisting}
+\caption{Big\_int類的定義\label{fig:BigIntClass}}
+\end{figure}
+
+\begin{figure}[tp]
+\lstset{escapeinside=`',language=Pascal,%
+}
+\begin{lstlisting}[frame=tlrb,language=C++]{}
+// `組合語言程式的原型'
+extern "C" {
+  int add_big_ints( Big_int &       res,
+                    const Big_int & op1,
+                    const Big_int & op2);
+  int sub_big_ints( Big_int &       res,
+                    const Big_int & op1,
+                    const Big_int & op2);
+}
+
+inline Big_int operator + ( const Big_int & op1, const Big_int & op2)
+{
+  Big_int result(op1.size());
+  int res = add_big_ints(result, op1, op2);
+  if (res == 1)
+    throw Big_int::Overflow();
+  if (res == 2)
+    throw Big_int::Size_mismatch();
+  return result;
+}
+
+inline Big_int operator - ( const Big_int & op1, const Big_int & op2)
+{
+  Big_int result(op1.size());
+  int res = sub_big_ints(result, op1, op2);
+  if (res == 1)
+    throw Big_int::Overflow();
+  if (res == 2)
+    throw Big_int::Size_mismatch();
+  return result;
+}
+\end{lstlisting}
+\caption{Big\_int類的算術代碼\label{fig:BigIntAdd}}
+\end{figure}
+
+\subsubsection{樣例}
+\index{C++!Big\_int樣例|(}
+這一節使用了這章中的思想創建了一個C++類：用來描述任意大小的無符號整形。因為要描述任意大小的整形，所以它需要儲存到一個無符號整形的陣列(雙字的)中。可以使用動態分配來實現任意大小的整形。雙字是以相反的方向儲存的\footnote{為什麼呢？因為加法運算將從陣列的開始處開始逐漸向前進行操作。}  (\emph{也就是說}，雙字的最低有效位的下標為0)。圖~\ref{fig:BigIntClass}展示了{\code Big\_int}類的定義\footnote{查閱樣例源代碼來得到這個例子的全部的代碼。本文中將只引用部分代碼。}。{\code Big\_int}的大小是通過測量{\code unsigned}陣列的大小得到的，用來儲存它的資料。此類中的{\code size\_}資料成員的偏移位址為0，而{\code number\_}成員的偏移為4。
+
+為了簡單化這些例子，只有擁有大小相同的陣列的物件實例才可以相互進行加減操作。
+
+這個類有三個構造函式(constructor)：第一個構造函式(第9行)使用了一個正常的無符號整形來初始化類實例；第二個構造函式(第18行)使用了一個包含一個十六進位值的字串來初始化類實例。第三個構造函式(第21行)是\emph{拷貝構造函式(copy
+constructor)}\index{C++!拷貝構造函式}。
+
+因為這裏使用的是組合語言，所以討論的焦點在於加法和減法運算符如何工作。圖~\ref{fig:BigIntAdd}展示了與這些運算符相關的部分頭檔。它們展示了如何創建運算符來調用組合語言程式。因為不同的編譯器使用完全不同的名字改編規則來改編運算符函式，所以創建了內聯的運算符函式來調用C鏈結組合語言程式。這就使得在不同編譯器間的移植變得相對容易些，而且和直接調用速度一樣快。這項技術同樣免去了從彙編中拋出異常的必要！
+
+為什麼在這裏使用的全部是組合語言呢？回想一下，在執行多倍精度運算時，進位必須從一個雙字移去與下一個有效的雙字進行加法操作。C++(和 C)並不允許程式師訪問CPU的進位元標誌位元。只有通過讓C++獨立地重新計算出進位元標誌位元後有條件地與下一個雙字進行加法操作，才能執行這個加法操作。使用組合語言來書寫代碼會更有效，因為它可以訪問進位元標誌位元，可以使用{\code ADC}指令來自動將進位元標誌位元加上，這樣做更有道理。
+
+為了簡化，只有{\code add\_big\_ints}的組合語言程式將在這討論。下面是這個程式的代碼(來自{\code big\_math.asm})：
+\begin{AsmCodeListing}[label=big\_math.asm]
+segment .text
+        global  add_big_ints, sub_big_ints
+%define size_offset 0
+%define number_offset 4
+
+%define EXIT_OK 0
+%define EXIT_OVERFLOW 1
+%define EXIT_SIZE_MISMATCH 2
+
+; 加法和減法程式的參數
+%define res ebp+8
+%define op1 ebp+12
+%define op2 ebp+16
+
+add_big_ints:
+        push    ebp
+        mov     ebp, esp
+        push    ebx
+        push    esi
+        push    edi
+        ;
+        ; 首先設置：esi指向op1
+        ;           edi指向op2
+        ;           ebx指向res
+        mov     esi, [op1]
+        mov     edi, [op2]
+        mov     ebx, [res]
+        ;
+        ; 要保證所有3個Big_int類型數有同樣的大小
+        ;
+        mov     eax, [esi + size_offset]
+        cmp     eax, [edi + size_offset]
+        jne     sizes_not_equal                 ; op1.size_ != op2.size_
+        cmp     eax, [ebx + size_offset]
+        jne     sizes_not_equal                 ; op1.size_ != res.size_
+
+        mov     ecx, eax                        ; ecx = Big_int的大小
+        ;
+        ; 現在，讓寄存器指向它們各自的陣列
+        ;      esi = op1.number_
+        ;      edi = op2.number_
+        ;      ebx = res.number_
+        ;
+        mov     ebx, [ebx + number_offset]
+        mov     esi, [esi + number_offset]
+        mov     edi, [edi + number_offset]
+
+        clc                                     ; 清進位元標誌位元
+        xor     edx, edx                        ; edx = 0
+        ;
+        ; 加法迴圈
+add_loop:
+        mov     eax, [edi+4*edx]
+        adc     eax, [esi+4*edx]
+        mov     [ebx + 4*edx], eax
+        inc     edx                             ; 不要改變進位元標誌位元
+        loop    add_loop
+
+        jc      overflow
+ok_done:
+        xor     eax, eax                        ; 返回值 = EXIT_OK
+        jmp     done
+overflow:
+        mov     eax, EXIT_OVERFLOW
+        jmp     done
+sizes_not_equal:
+        mov     eax, EXIT_SIZE_MISMATCH
+done:
+        pop     edi
+        pop     esi
+        pop     ebx
+        leave
+        ret
+\end{AsmCodeListing}
+
+希望，到此刻為止讀者能明白大部分這裏的代碼。第25行到27行將{\code Big\_int}物件傳遞的指標儲存到寄存器中。記住引用的僅僅是指針。第31行到35行檢查保證三個物件陣列的大小是一樣的。(注意，
+{\code size\_}的偏移被加到指針中了，為了訪問資料成員。)第44行和第46行調整寄存器，讓它們指向被各自物件使用的陣列，用來替代使用物件本身。(同樣，{\code number\_}的偏移被加到物件指標中了。)
+
+\begin{figure}[tp]
+\begin{lstlisting}[language=C++, frame=tlrb]{}
+#include "big_int.hpp"
+#include <iostream>
+using namespace std;
+
+int main()
+{
+  try {
+    Big_int b(5,"8000000000000a00b");
+    Big_int a(5,"80000000000010230");
+    Big_int c = a + b;
+    cout << a << " + " << b << " = " << c << endl;
+    for( int i=0; i < 2; i++ ) {
+      c = c + a;
+      cout << "c = " << c << endl;
+    }
+    cout << "c-1 = " << c - Big_int(5,1) << endl;
+    Big_int d(5, "12345678");
+    cout << "d = " << d << endl;
+    cout << "c == d " << (c == d) << endl;
+    cout << "c > d " << (c > d) << endl;
+  }
+  catch( const char * str ) {
+    cerr << "Caught: " << str << endl;
+  }
+  catch( Big_int::Overflow ) {
+    cerr << "Overflow" << endl;
+  }
+  catch( Big_int::Size_mismatch ) {
+    cerr << "Size mismatch" << endl;
+  }
+  return 0;
+}
+\end{lstlisting}
+\caption{ {\code Big\_int}的簡單應用 \label{fig:BigIntEx}}
+\end{figure}
+
+在第52行到57行的迴圈中，將儲存在陣列裏的整形一起相加，首先加的是最低有效的雙字，然後是下一最低有效的雙字，\emph{等等。}多倍精度運算必須以這樣的順序來完成(看小節~\ref{sec:ExtPrecArith})。第59行用來檢查溢出，一旦溢出，進位元標誌位元將由最後進行加法運算的最高有效位置位。因為陣列裏的雙字是以little endian順序儲存的，所以迴圈從陣列的開始處開始，依次向前直到結束。
+
+圖~\ref{fig:BigIntEx}展示了{\code Big\_int}的簡單應用的簡短的例子。注意，{\code Big\_int}常量必須明確聲明，如第16行。這有兩個原因。首先，沒有轉換構造函式來將一個無符號整形轉換成{\code Big\_int}類型。其次，只有相同大小的{\code Big\_int}數才能用來進行相加操作。這裏進行類型轉換是有問題的，因為要知道需轉換的大小是非常困難的。此類的一個更高級的實現將允許任意大小的數之間的相加。作者不打算因為要實現任意大小的數的相加而把這個例子弄得過度複雜。(但是，鼓勵讀者來實現它。)
+\index{C++!Big\_int樣例|)}
+
+\begin{figure}[tp]
+\begin{lstlisting}[language=C++, frame=tlrb]{}
+#include <cstddef>
+#include <iostream>
+using namespace std;
+
+class A {
+public:
+  void __cdecl m() { cout << "A::m()" << endl; }
+  int ad;
+};
+
+class B : public A {
+public:
+  void __cdecl m() { cout << "B::m()" << endl; }
+  int bd;
+};
+
+void f( A * p )
+{
+  p->ad = 5;
+  p->m();
+}
+
+int main()
+{
+  A a;
+  B b;
+  cout << "Size of a: " << sizeof(a)
+       << " Offset of ad: " << offsetof(A,ad) << endl;
+  cout << "Size of b: " << sizeof(b)
+       << " Offset of ad: " << offsetof(B,ad)
+       << " Offset of bd: " << offsetof(B,bd) << endl;
+  f(&a);
+  f(&b);
+  return 0;
+}
+\end{lstlisting}
+\caption{簡單繼承\label{fig:SimpInh}}
+\end{figure}
+
+
+\subsection{繼承和多態\index{C++!繼承|(}}
+
+
+\begin{figure}[tp]
+\begin{AsmCodeListing}
+_f__FP1A:                       ; 改編後的函式名
+      push   ebp
+      mov    ebp, esp
+      mov    eax, [ebp+8]       ; eax指向對象
+      mov    dword [eax], 5     ; ad的偏移為0
+      mov    eax, [ebp+8]       ; 將物件的位址傳遞給A::m()
+      push   eax
+      call   _m__1A             ; A::m()改編後的成員函式名
+      add    esp, 4
+      leave
+      ret
+\end{AsmCodeListing}
+\caption{簡單繼承的彙編代碼 \label{fig:FAsm1}}
+\end{figure}
+
+\emph{繼承(Inheritance)}允許一個類繼承另一個類的資料和成員函式。例如，考慮圖~\ref{fig:SimpInh}中的代碼。它展示了兩個類，{\code A}和{\code B}，其中類{\code B}是通過繼承類{\code A}得到的。程式的輸出如下：
+\begin{verbatim}
+Size of a: 4 Offset of ad: 0
+Size of b: 8 Offset of ad: 0 Offset of bd: 4
+A::m()
+A::m()
+\end{verbatim}
+注意，兩個類的資料成員{\code ad}({\code B}通過繼承{\code A}得到的)在相同的偏移處。這是非常重要的，因為{\code f}函式將傳遞一個指標到一個
+{\code A}物件或任意一個由{\code A}派生(\emph{也就是}，通過繼承得到)的物件類型中。圖~\ref{fig:FAsm1}展示了此函式的(編輯過的)彙編代碼(\emph{gcc}得到的)。
+
+\begin{figure}[tp]
+\begin{lstlisting}[language=C++, frame=tlrb]{}
+class A {
+public:
+  virtual void __cdecl m() { cout << "A::m()" << endl; }
+  int ad;
+};
+
+class B : public A {
+public:
+  virtual void __cdecl m() { cout << "B::m()" << endl; }
+  int bd;
+};
+\end{lstlisting}
+\caption{ 多態繼承 \label{fig:VirtInh}}
+\end{figure}
+
+\index{C++!多態|(}
+注意在輸出中，{\code a}和{\code b}對象調用的都是{\code A}的成員函式{\code m}。從組合語言程式中，我們可以看到對{\code A::m()}的調用被硬編碼到函式中了。對於真正的面向物件編程，成員函式的調用取決於傳遞給函式的物件類型是什麼。這就是所謂的\emph{多態}。缺省情況下，C++關掉了這個特性。你可以使用\emph{virtual} \index{C++!virtual}關鍵字來啟動它。圖~\ref{fig:VirtInh}展示了如何修改這兩個類。其他代碼不需要修改。多態可以用許多方法來實現。不幸的是，當在以這種方法書寫的時候，\emph{gcc}的實現方法正處在改變中，而且與它最初的實現方法相比，明顯變得更複雜了。為了簡單化討論的目的，作者只涉及基於Microsoft和Borland編譯器Windows使用的多態的實現方法。這種實現方法很多年沒有改變了，而且可能在未來幾年也不會改變。
+
+有了這些改變，程式的輸出如下：
+\begin{verbatim}
+Size of a: 8 Offset of ad: 4
+Size of b: 12 Offset of ad: 4 Offset of bd: 8
+A::m()
+B::m()
+\end{verbatim}
+
+
+\begin{figure}[tp]
+\begin{AsmCodeListing}[commentchar=!]
+?f@@YAXPAVA@@@Z:
+      push   ebp
+      mov    ebp, esp
+
+      mov    eax, [ebp+8]
+      mov    dword [eax+4], 5  ; p->ad = 5;
+
+      mov    ecx, [ebp + 8]    ; ecx = p
+      mov    edx, [ecx]        ; edx = 指向vtable
+      mov    eax, [ebp + 8]    ; eax = p
+      push   eax               ; 將"this"指針壓入堆疊中
+      call   dword [edx]       ; 調用在vtable裏的第一個程式
+      add    esp, 4            ; 清理堆疊
+
+      pop    ebp
+      ret
+\end{AsmCodeListing}
+\caption{{\code f()}函式的彙編代碼 \label{fig:FAsm2}}
+\end{figure}
+
+\begin{figure}[tp]
+\lstset{escapeinside=`',language=Pascal,%
+}
+\begin{lstlisting}[language=C++, frame=tlrb]{}
+class A {
+public:
+  virtual void __cdecl m1() { cout << "A::m1()" << endl; }
+  virtual void __cdecl m2() { cout << "A::m2()" << endl; }
+  int ad;
+};
+
+class B : public A {    // `B繼承了A的m2()'
+public:
+  virtual void __cdecl m1() { cout << "B::m1()" << endl; }
+  int bd;
+};
+/* `顯示給定的物件的vtable' */
+void print_vtable( A * pa ) {
+  // `p把pa看作是一個雙字陣列'
+  unsigned * p = reinterpret_cast<unsigned *>(pa);
+  // `vt把vtable看作是一個指標陣列'
+  void ** vt = reinterpret_cast<void **>(p[0]);
+  cout << hex << "vtable address = " << vt << endl;
+  for( int i=0; i < 2; i++ )
+    cout << "dword " << i << ": " << vt[i] << endl;
+
+  // `用極端的沒有許可權的方法來調用虛函式!'
+  void (*m1func_pointer)(A *);   // `函式指標變數'
+  m1func_pointer = reinterpret_cast<void (*)(A*)>(vt[0]);
+  m1func_pointer(pa);            // `通過函式指標調用成員函式m1'
+
+  void (*m2func_pointer)(A *);   // `函式指標變數'
+  m2func_pointer = reinterpret_cast<void (*)(A*)>(vt[1]);
+  m2func_pointer(pa);            // `通過函式指標調用成員函式m2'
+}
+
+int main()
+{
+  A a;   B b1;  B b2;
+  cout << "a: " << endl;   print_vtable(&a);
+  cout << "b1: " << endl;  print_vtable(&b);
+  cout << "b2: " << endl;  print_vtable(&b2);
+  return 0;
+}
+\end{lstlisting}
+\caption{ 更複雜的例子 \label{fig:2mEx}}
+\end{figure}
+
+
+\begin{figure}[tp]
+\centering
+%\epsfig{file=vtable}
+\input{vtable.latex}
+\caption{{\code b1}的內部表示\label{fig:vtable}}
+\end{figure}
+
+現在，對{\code f}的第二次調用調用了{\code B::m()}的成員函式，因為它傳遞了物件{\code B}。但是，這並不是唯一的修改的地方。{\code A}的大小現在為8(而{\code B}為12)。同樣，{\code
+ad}的偏移為4,不是0。在偏移0處是的什麼呢？這個問題的答案與如何實現多態相關。
+
+\index{C++!vtable|(} 含有任意虛成員函式的C++類有一個額外的隱藏的域，它是一張指向成員函式指標陣列的指標表。\footnote{對於沒有虛成員函式的類，C++編譯器通過一個包含同樣資料成員的標準C結構體來對這種類進行相容。}。這個表通常稱為\emph{vtable}。對於
+{\code A}和{\code B}類，指標表儲存在偏移位址0處。Windows編譯器總是把此指針表放到繼承樹頂部的類的開始處。從擁有虛成員函式的程式版本(源自圖~\ref{fig:SimpInh})中的{\code f}函式產生的彙編代碼(圖~\ref{fig:FAsm2})中，你可以看到對成員函式{\code m}的調用不是使用一個標號。第9行來查找物件的vtable的位址。物件的位址在第11行中被壓入堆疊。第12行通過分支到vtable裏的第一個位址處來調用虛成員函式。
+\footnote{當然，這個值已經在{\code ECX}寄存器中了。它是在第8行放置到該寄存器的，並且可以移除第10行，再把下一行改變為push {\code ECX}。這些代碼並不十分有效，因為它是在沒有開啟優化編譯選項的情況下產生的。}。這次調用並不使用一個標號，它分支到{\code EDX}指向的代碼位址處。這種類型的調用是一個
+\emph{晚綁定(late binding)}的例子\index{C++!晚綁定}。晚綁定將調用哪個成員函式的判定延遲到代碼運行時。這就允許代碼為物件調用恰當的成員函式。標準的案例(圖~\ref{fig:FAsm1})硬編碼某個成員函式的調用，也稱為\emph{早綁定(early binding)}\index{C++!早綁定}
+(因為這兒成員函式被早綁定了，在編譯的時候。)。
+
+用心的讀者將會覺得奇怪為什麼在圖~\ref{fig:VirtInh}中的類的成員函式通過使用{\code \_\_cdecl}關鍵字來明確聲明使用的是C調用約定。缺省情況下，Microsoft對於C++類成員函式使用的是不同的調用約定，而不是標準C調用約定。此調用約定將指向成員函式能起作用的物件的指標傳遞到{\code ECX}寄存器，而不是使用堆疊。成員函式的其他明確的參數仍然使用堆疊。修改為{\code \_\_cdecl}告訴編譯器使用標準C調用約定。Borland C++缺省情況下使用的是C調用約定。
+
+\begin{figure}[tp]
+\fbox{ \parbox{\textwidth}{\code
+a: \\
+vtable address = 004120E8\\
+dword 0: 00401320\\
+dword 1: 00401350\\
+A::m1()\\
+A::m2()\\
+b1:\\
+vtable address = 004120F0\\
+dword 0: 004013A0\\
+dword 1: 00401350\\
+B::m1()\\
+A::m2()\\
+b2:\\
+vtable address = 004120F0\\
+dword 0: 004013A0\\
+dword 1: 00401350\\
+B::m1()\\
+A::m2()\\
+} }
+\caption{圖~\ref{fig:2mEx}中程式的輸出 \label{fig:2mExOut}}
+\end{figure}
+
+
+下面我們再看一個稍微複雜一點的例子。
+(圖~\ref{fig:2mEx})。在這個例子中，類{\code A}和{\code B}都有兩個成員函式：{\code m1}和{\code m2}。記住因為類{\code B}並沒有定義自己的成員函式{\code m2}，它繼承了{\code A}類的成員函式。圖~\ref{fig:vtable}展示了物件{\code b}在記憶體中如何儲存。圖~\ref{fig:2mExOut}展示了此程式的輸出。首先，看看每個物件的vtable的位址。兩個{\code B}對象的vtable位址是一樣的，因此他們共用同樣的vtable。一張vtable表是類的屬性而不是一個物件(就如一個{\code static}資料成員)。其次，看看在vtable裏的地址。從組合語言程式的輸出中，你可以確定成員函式{\code m1}指標在偏移位址~0處
+(或雙字~0)而{\code m2}在偏移位址~4處(雙字~1)。{\code m2}成員函式指標在類{\code A}和{\code B}的vtable中是一樣的，因為類{\code B}從類{\code A}繼承了成員函式{\code m2}。
+
+第25行到32行展示了你可以通過從物件的vtable讀位址的方法來調用一個虛函式\footnote{記住這些代碼只能在MS和Borland編譯器下運行，\emph{gcc}不行。}。成員函式位址通過一個清楚的\emph{this}指標儲存到了一個C類型函式指標中了。從圖~\ref{fig:2mExOut}的輸出中，你可以看到它確實可以運行。但是，請\emph{不要}像這樣寫代碼！這只是用來舉例說明虛成員函式如何使用vtable。
+
+%Looking at the output of Figure~\ref{fig:2mExOut} does demonstrate several
+%features of the implementation of polymorphism.  The {\code b1} and {\code b2}
+%variables have the same vtable address; however the {\code a} variable
+%has a different vtable address. The vtable is a property of the class not
+%a variable of the class. All class variables share a common vtable. The two
+%{\code dword} values in the table are the pointers to the virtual methods.
+%The first one (number 0) is for {\code m1}. Note that it is different for the
+%{\code A} and {\code B} classes. This makes sense since the A and B classes
+%have different {\code m1} methods. However, the second method pointer is
+%the same for both classes, since class {\code B} inherits the {\code m2}
+%method from its base class, {\code A}.
+
+從這裏我們可以學到一些實踐的教訓。一個重要的事實是當你讀或寫類變數到一個二進位原始檔案中時，你必須非常小心。你不可以在整個物件中僅僅使用一個二進位讀或寫，因為可能會讀或寫原始檔案之外的vtable指針！這是一個指向留在程式記憶體中的vtable的指標，而且不同的程式將不同。 同樣的問題會發生在C語言的結構中，但是在C語言中，結構體只有當程式師明確將指標放到結構體中時，結構體內部才有指標。類{\code A}或類{\code B}中，並沒有明顯地定義過指針。
+
+
+再次，認識到不同的編譯器實現虛成員函式的方法是不一樣的是非常重要的。在In Windows中，COM(元件物件模型，Component Object Model)
+\index{COM}類物件使用vtable來實現COM介面\footnote{COM類同樣使用{\code \_\_stdcall}
+\index{調用約定!stdcall}調用約定，而不是標準C調用約定。}。只有像Microsoft一樣用來實現虛成員函式的編譯器才可以創建COM類。這也是為什麼Borland採用和Microsoft一樣的實現方法的原因，也是為什麼不可以用\emph{gcc}來創建COM類的原因之一。
+
+虛成員函式的代碼和非常虛的成員函式的代碼非常相像。只是調用它們的代碼是不同的。如果彙編器能絕對保證調用哪個虛成員函式，那麼它可以忽略vtable，直接調用成員函式。(\emph{例如}，使用早綁定)。
+\index{C++!vtable|)}
+\index{C++!多態|)}
+\index{C++!繼承|)}
+\index{C++!類|)}
+\index{C++|)}
+
+\subsection{C++的其他特性}
+
+C++其他特性的工作方式(\emph{例如}，除了處理繼承和多繼承，還有運行時類型識別)不屬於本書的範圍。如果讀者希望走得更遠一些，一個好的起點是Ellis
+和Stroustrup寫的\emph{The Annotated C++ Reference
+Manual}和Stroustrup寫的\emph{The Design and Evolution of C++}。
+

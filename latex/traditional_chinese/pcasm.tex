@@ -1,0 +1,145 @@
+% To create PDF version, type
+%   pdflatex pcasm.tex
+% This will produce errors the first time, type R at the error prompt
+% Then rerun again (twice to get all the references.
+
+\documentclass[11pt,utf8]{ctexbookutf8}
+
+\typeout{-----------------------------------------}
+\typeout{Enter files to be included. (*=all)}
+\typeout{(pcasm1,pcasm2,...)}
+\typeout{-----------------------------------------}
+\typein[\infiles]{ }
+\if*\infiles\else\includeonly{\infiles}\fi
+
+
+
+%----------------------------------------------------------------------
+% The following is the construct that interests us in the end:
+%\ifpdf
+%   % Put PDF-specific stuff here
+%\else
+%   % Put LaTeX-specific stuff here
+
+\usepackage{shortvrb,indentfirst,ulem,makeidx}
+\usepackage{fancyhdr}
+\usepackage{ccmap} 
+\usepackage{indentfirst}  % indent first paragraph of sections
+%\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{epsfig}
+\usepackage{longtable}
+\usepackage{color}
+\usepackage{CJKutf8}
+%\usepackage{makeidx}
+%\usepackage{ccmap}
+%\if
+\usepackage[dvipdfm,CJKbookmarks=true,
+           bookmarksopen=ture,
+           bookmarksnumbered=true,
+           pdftitle={PC Assembly Language},
+           pdfauthor={Paul A. Carter},
+           pdfsubject={80x86 Assembly Language Programming},
+           pdfkeywords={80x86 assembly programming},
+           colorlinks=true,
+           pdfborder=001,
+           citecolor=red]{hyperref}
+%\fi
+
+
+
+
+
+
+
+
+% \topmargin -0.5 true cm
+% \oddsidemargin 0 true cm
+ %\evensidemargin 0 true cm
+% \textheight 23 true cm
+ %\textwidth 16.5 true cm
+
+% \setlength{\parskip}{0.75ex plus .2ex minus .5ex}
+ %\renewcommand{\baselinestretch}{1.2}
+
+
+ \pagestyle{fancy}
+
+
+ \newcommand{\ctex}{\texttt{ctex}}
+ \newcommand{\ctexorg}{\texttt{ctex.org}}
+
+
+
+
+ \CTEXoptions[today=big]
+ \CTEXsetup[name={第,节},number={\chinese{section}},format+={\bfseries},beforeskip={-10ex plus -.1ex minus -.1ex},afterskip={1ex plus .1ex minus .1ex}]{section}
+ \CTEXsetup[name={附件},number={\chinese{chapter}}]{appendix}
+
+ \CTEXsetup[name={第,篇},nameformat={\centering\bfseries},titleformat={\zihao{0}\bfseries}]{part}
+
+ \setcounter{secnumdepth}{4}
+ \CTEXsetup[name={(,)},number={\arabic{paragraph}}]{paragraph}
+
+
+\begin{CJK}{UTF8}{songext}
+\author{Paul~A.~Carter\\ \\翻譯：伍星}
+\title{PC組合語言}
+\end{CJK}
+\usepackage{lecnote}
+\makeindex
+
+
+\hyphenation{num-bers SF OF CF DF fact dif-fer-ence inter-rupts op-er-ands}
+\begin{document}
+\begin{CJK}{UTF8}{songext}
+%\CJKcaption{GB}
+\maketitle
+\newlength{\AsmMargin}
+\setlength{\AsmMargin}{-1cm}
+\DefineVerbatimEnvironment{AsmCodeListing}{Verbatim}
+{numbers=left, frame=lines,xleftmargin=\AsmMargin, labelposition=all, commentchar=^ }
+
+\newcommand{\MarginNote}[1]{\marginpar{\sloppy \em \small #1}}
+\thispagestyle{empty}
+\vspace*{\fill}
+\noindent Copyright \copyright\  2001, 2002, 2003, 2004 by Paul Carter\\
+
+\noindent
+在沒有作者的同意下，這個可以全部被翻版和發行(包含作者的身份，版權和允許通知)，規定不能由文檔本身來收取任何費用。這就包括``明白使用''的引用像評論和廣告業，還有衍生工作像翻譯。\\
+
+\noindent 注意這個限制並不打算禁止對列印或複製這個文檔的服務進行收費。\\
+
+\noindent
+鼓勵教師把這個文檔當作課堂資源來使用；不管怎樣，得到在這種情況下使用的通知，作者將非常感激。
+
+%\index{subroutine|see{subprogram}}
+\index{REPNZ|see{REPNE}}
+\index{REPZ|see{REPE}}
+\index{C++!成員函數|see{方法}}
+%\index{text segment|see{code segment}}
+
+\tableofcontents
+\vfill \frontmatter
+\include{toc}
+\include{pcasmf}
+\mainmatter
+\include{pcasm1}
+\include{pcasm2}
+\include{pcasm3}
+\include{pcasm4}
+\include{pcasm5}
+\include{pcasm6}
+\include{pcasm7}
+%\include{pcasm8}
+\begin{appendix}
+\include{pcasma}
+\end{appendix}
+\clearpage
+\ifpdf
+\phantomsection % fixes link anchor
+\fi 
+\addcontentsline{toc}{chapter}{索引}
+\printindex
+\end{CJK}
+\end{document}

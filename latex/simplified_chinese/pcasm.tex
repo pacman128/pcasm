@@ -1,0 +1,116 @@
+% To create PDF version, type
+%   pdflatex pcasm.tex
+% This will produce errors the first time, type R at the error prompt
+% Then rerun again (twice to get all the references.
+
+\documentclass[11pt]{book}
+
+\typeout{-----------------------------------------}
+\typeout{Enter files to be included. (*=all)}
+\typeout{(pcasm1,pcasm2,...)}
+\typeout{-----------------------------------------}
+\typein[\infiles]{ }
+\if*\infiles\else\includeonly{\infiles}\fi
+
+
+\newif\ifpdf
+\ifx\pdfoutput\undefined
+    \pdffalse          % we are not running PDFLaTeX
+\else
+    \pdfoutput=1       % we are running PDFLaTeX
+    \pdftrue
+\fi
+%----------------------------------------------------------------------
+% The following is the construct that interests us in the end:
+%\ifpdf
+%   % Put PDF-specific stuff here
+%\else
+%   % Put LaTeX-specific stuff here
+%\fi
+
+\usepackage{indentfirst}  % indent first paragraph of sections
+%\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{epsfig}
+\usepackage{longtable}
+\usepackage{color}
+\usepackage{makeidx}
+\usepackage{CJK}
+\ifx\pdfoutput\undefined
+\usepackage[dvips]{graphicx}
+\usepackage[dvipdfm,
+           CJKbookmarks=true,
+           bookmarksopen=ture,
+           bookmarksnumbered=true,
+           pdftitle={PC Assembly Language},
+           pdfauthor={Paul A. Carter},
+           pdfsubject={80x86 Assembly Language Programming},
+           pdfkeywords={80x86 assembly programming},
+           colorlinks=true,
+           pdfborder=001,
+           citecolor=red%        　
+           ]{hyperref}
+\AtBeginDvi{\special{pdf:tounicode GBK-EUC-UCS2}} % GBK -> Unicode
+\usepackage[pdftex]{graphicx}
+\fi
+
+\begin{CJK*}{GBK}{song}
+\author{Paul~A.~Carter}
+\title{PC汇编语言}
+\end{CJK*}
+\usepackage{lecnote}
+\makeindex
+
+
+\hyphenation{num-bers SF OF CF DF fact dif-fer-ence inter-rupts op-er-ands}
+\begin{document}
+\begin{CJK*}{GBK}{song}
+\CJKcaption{GB}
+\maketitle
+\newlength{\AsmMargin}
+\setlength{\AsmMargin}{-1cm}
+\DefineVerbatimEnvironment{AsmCodeListing}{Verbatim}
+{numbers=left, frame=lines,xleftmargin=\AsmMargin, labelposition=all, commentchar=^ }
+
+\newcommand{\MarginNote}[1]{\marginpar{\sloppy \em \small #1}}
+\thispagestyle{empty}
+\vspace*{\fill}
+\noindent Copyright \copyright\  2001, 2002, 2003, 2004 by Paul Carter\\
+
+\noindent
+在没有作者的同意下，这个可以全部被翻版和发行(包含作者的身份，版权和允许通知)，规定不能由文档本身来收取任何费用。这就包括``明白使用''的引用像评论和广告业，还有衍生工作像翻译。\\
+
+\noindent 注意这个限制并不打算禁止对打印或复制这个文档的服务进行收费。\\
+
+\noindent
+鼓励教师把这个文档当作课堂资源来使用；不管怎样，得到在这种情况下使用的通知，作者将非常感激。
+
+%\index{subroutine|see{subprogram}}
+\index{REPNZ|see{REPNE}}
+\index{REPZ|see{REPE}}
+\index{C++!成员函数|see{方法}}
+%\index{text segment|see{code segment}}
+
+\tableofcontents
+\vfill \frontmatter
+\include{toc}
+\include{pcasmf}
+\mainmatter
+\include{pcasm1}
+\include{pcasm2}
+\include{pcasm3}
+\include{pcasm4}
+\include{pcasm5}
+\include{pcasm6}
+\include{pcasm7}
+%\include{pcasm8}
+\begin{appendix}
+\include{pcasma}
+\end{appendix}
+\clearpage
+\ifpdf
+\phantomsection % fixes link anchor
+\fi
+\addcontentsline{toc}{chapter}{索引} \printindex
+\end{CJK*}
+\end{document}

@@ -1,0 +1,693 @@
+% -*-latex-*-
+\chapter{位元操作}
+\section{移位元操作\index{位元操作!移位元|(}}
+
+組合語言允許程式師對資料的單個比特位元進行操作。一個最常見的的位元操作稱為\emph{移位元}。移位元操作移動某一個資料的比特位元的位置。移位元可以是向左移(\emph{也就是：}向最高有效位移動)，也可以向右移(最低有效位)。
+
+\subsection{邏輯移位元\index{位元操作!移位元!邏輯移位元|(}}
+
+邏輯移位元是移位元中最簡單的類型。它以一種最直接的方式進行移位元操作。圖~\ref{fig:logshifts}展示了一個位元組的移位元操作的例子。
+
+\begin{figure}[h]
+\centering
+\begin{tabular}{l|c|c|c|c|c|c|c|c|}
+\cline{2-9}
+原始資料      & 1 & 1 & 1 & 0 & 1 & 0 & 1 & 0 \\
+\cline{2-9}
+向左移位元  & 1 & 1 & 0 & 1 & 0 & 1 & 0 & 0 \\
+\cline{2-9}
+向右移位元 & 0 & 1 & 1 & 1 & 0 & 1 & 0 & 1 \\
+\cline{2-9}
+\end{tabular}
+\caption{邏輯移位元 \label{fig:logshifts}}
+\end{figure}
+
+注意：新進來的比特位總是為0。{\code SHL} \index{SHL}和{\code SHR}
+\index{SHR}指令分別用來執行邏輯左移和邏輯右移。這些指令允許你移動任意的位數。位元數可以是一個常量，也可以是儲存在{\code
+CL}寄存器的值。最後從資料中移出的比特位元儲存在進位元標誌位元中。這有一些代碼例子：
+\begin{AsmCodeListing}[frame=none]
+      mov    ax, 0C123H
+      shl    ax, 1           ; 向左移動一個比特位，   ax = 8246H, CF = 1
+      shr    ax, 1           ; 向右移動一個比特位，   ax = 4123H, CF = 0
+      shr    ax, 1           ; 向右移動一個比特位，   ax = 2091H, CF = 1
+      mov    ax, 0C123H
+      shl    ax, 2           ; 向左移動兩個比特位，   ax = 048CH, CF = 1
+      mov    cl, 3
+      shr    ax, cl          ; 向右移動三個比特位，   ax = 0091H, CF = 1
+\end{AsmCodeListing}
+
+\subsection{移位元的應用}
+
+快速的乘法和除法是移位元操作最普遍的應用。回憶在十進位系統中，乘以和除以10的幾次方是非常簡單的，只是移動位而已。在二進位中，乘以和除以2的幾次方也是一樣的。例如：要得到二進位數字$1011_2$(或十進位11)的兩倍，只需向左移動一位，得到$10110_2$
+(或22)。一個除以2的幾次方的除法的商相當於一個右移操作的結果。僅僅是除以2，向右移動一位；除以4($2^2$),向右移動2位；除以8($2^3$，向右移動3位，\emph{等等。}
+移位元指令非常基礎而且比功能相同的{\code MUL} \index{MUL}和{\code DIV}
+\index{DIV}指令執行要快得\emph{多}！
+
+實際上，邏輯移位元只可以用於無符號數的乘法和除法。一般它們不能應用於有符號數。考慮兩個位元組的數值FFFF(有符號時為$-1$)。如果它向右邏輯移動一位元，結果是7FFF，也就是$+32,767$!另一種類型的移位元操作可以用在有符號數上。
+\index{位元操作!移位元!邏輯移位元|)}
+
+\subsection{算術移位元\index{位元操作!移位元!算術移位元|(}}
+
+這些移位元操作是為允許有符號數能快速地執行乘以和除以2的幾次方的操作而設計的。它們保證符號位能被正確對待。
+\begin{description}
+\item[SAL] \index{SAL} 算術左移(Shift Arithmetic Left) - 這條指令只是{\code SHL}的同義詞。它實際上被編譯成與{\code               SHL}一樣的機器代碼。只要符號位元沒有因移位元而改變，結果就將是正確的。
+\item[SAR] \index{SAR} 算術右移(Shift Arithmetic Right) - 這是一條新的指令，它不會移動運算元的符號位元(\emph{也就是：}                最高有效位)。其他位被正常移動，除了從左邊新進來的位元通過複製符號位元(也就是說，如果符號位元為1,那麼新的位值也同樣為1)得到
+           外。因此，如果一個位元組使用這條指令來移位元，只有低7位會被移動。就像其他移位元指令一樣，最後移出的位元儲存在進位元標誌位元中。
+\end{description}
+
+\begin{AsmCodeListing}[frame=none]
+      mov    ax, 0C123H
+      sal    ax, 1           ; ax = 8246H, CF = 1
+      sal    ax, 1           ; ax = 048CH, CF = 1
+      sar    ax, 2           ; ax = 0123H, CF = 0
+\end{AsmCodeListing}
+\index{位元操作!移位元!算術移位元|)}
+
+\subsection{迴圈移位元\index{位元操作!移位元!迴圈|(}}
+
+迴圈移位元指令像邏輯指令一樣運作，除了把從資料的一端移出的比特位又移入到另一端外。因此，資料好像被當作一個迴圈結構體一樣對待。{\code ROL} \index{ROL}和{\code ROR} \index{ROR}是兩個最簡單的迴圈移位元指令，它們分別執行左移和右移操作。就像其他移位元指令一樣，這些移位元指令把迴圈移出的最後一個比特位元複製到進位元標誌位元中。
+\begin{AsmCodeListing}[frame=none]
+      mov    ax, 0C123H
+      rol    ax, 1           ; ax = 8247H, CF = 1
+      rol    ax, 1           ; ax = 048FH, CF = 1
+      rol    ax, 1           ; ax = 091EH, CF = 0
+      ror    ax, 2           ; ax = 8247H, CF = 1
+      ror    ax, 1           ; ax = C123H, CF = 1
+\end{AsmCodeListing}
+
+有兩個額外的迴圈指令用來在資料和進位元標誌位元之間移動比特位，它們稱為{\code
+RCL} \index{RCL}和{\code RCR}。\index{RCR}例如，如果{\code
+AX}寄存器用這些指令來移位元，那麼有17位用來得到{\code
+AX}，進位元標誌位元也包括在迴圈中。
+\begin{AsmCodeListing}[frame=none]
+      mov    ax, 0C123H
+      clc                    ; 進位元標誌位元清零(CF = 0)
+      rcl    ax, 1           ; ax = 8246H, CF = 1
+      rcl    ax, 1           ; ax = 048DH, CF = 1
+      rcl    ax, 1           ; ax = 091BH, CF = 0
+      rcr    ax, 2           ; ax = 8246H, CF = 1
+      rcr    ax, 1           ; ax = C123H, CF = 0
+\end{AsmCodeListing}
+\index{位元操作!移位元!迴圈|)}
+
+\subsection{簡單應用\label{sect:AddBitsExample}}
+
+這有一個代碼小片斷，它用來計算在EAX寄存器裏``on''(\emph{也就是：}~1)的比特位有多少個。
+%TODO: show how the ADC instruction could be used to remove the jnc
+\begin{AsmCodeListing}
+      mov    bl, 0           ; bl將儲存ON的比特位元的總數
+      mov    ecx, 32         ; ecx是迴圈計數器
+count_loop:
+      shl    eax, 1          ; 把比特位移入到進位元標誌位元中
+      jnc    skip_inc        ; 如果CF == 0，那麼跳轉到skip_inc處執行
+      inc    bl
+skip_inc:
+      loop   count_loop
+\end{AsmCodeListing}
+上面的代碼毀掉了在{\code EAX}中的初值(迴圈之後，{\code EAX}的值為0)。如果你想保留{\code EAX}中的值，那麼用{\code rol  eax, 1}替換第四行即可。
+\index{位元操作!移位元|)}
+
+\section{布林型按位運算}
+
+有四個普遍的布林型運算符，它們是：\emph{AND}，
+\emph{OR}，\emph{XOR}和 \emph{NOT}。
+\emph{真值表}展示了每一個可能的運算元得到的運算結果。
+
+\subsection{\emph{AND}運算符\index{位元操作!AND}}
+
+\begin{table}[t]
+\centering
+\begin{tabular}{|c|c|c|}
+\hline
+\emph{X} & \emph{Y} & \emph{X} AND \emph{Y} \\
+\hline \hline
+0 & 0 & 0 \\
+0 & 1 & 0 \\
+1 & 0 & 0 \\
+1 & 1 & 1 \\
+\hline
+\end{tabular}
+\caption{AND運算符 \label{tab:and} \index{AND}}
+\end{table}
+
+兩個比特位的\emph{AND}運算結果只有當這兩位都是1時才為1，否則結果就為0，就像真值表~\ref{tab:and}展示的一樣。
+
+\begin{figure}[t]
+\centering
+\begin{tabular}{rcccccccc}
+    & 1 & 0 & 1 & 0 & 1 & 0 & 1 & 0 \\
+AND & 1 & 1 & 0 & 0 & 1 & 0 & 0 & 1 \\
+\hline
+    & 1 & 0 & 0 & 0 & 1 & 0 & 0 & 0
+\end{tabular}
+\caption{一個位元組的AND運算 \label{fig:and}}
+\end{figure}
+
+處理器支援這些運算指令對資料的所有位元平等地進行獨立的運算。例如：如果對{\code AL}和{\code BL}裏的內容進行\emph{AND}運算，那麼基本的\emph{AND}運算將應用於在這兩個寄存器裏的8對比特位中的每一對，像圖~\ref{fig:and} 展示的一樣。下面是一個代碼例子：
+\begin{AsmCodeListing}[frame=none]
+      mov    ax, 0C123H
+      and    ax, 82F6H          ; ax = 8022H
+\end{AsmCodeListing}
+
+\subsection{\emph{OR}運算符\index{位元操作!OR}}
+
+\begin{table}[t]
+\centering
+\begin{tabular}{|c|c|c|}
+\hline
+\emph{X} & \emph{Y} & \emph{X} OR \emph{Y} \\
+\hline \hline
+0 & 0 & 0 \\
+0 & 1 & 1 \\
+1 & 0 & 1 \\
+1 & 1 & 1 \\
+\hline
+\end{tabular}
+\caption{OR運算\label{tab:or} \index{OR}}
+\end{table}
+
+
+兩個比特位的包含\emph{OR}運算結果只有當這兩位都是0時才為0，否則結果就為1，就像真值表~\ref{tab:or}展示的一樣。下面是一個代碼例子：
+
+\begin{AsmCodeListing}[frame=none]
+      mov    ax, 0C123H
+      or     ax, 0E831H          ; ax = E933H
+\end{AsmCodeListing}
+
+\subsection{\emph{XOR}運算\index{位元操作!XOR}}
+
+\begin{table}
+\centering
+\begin{tabular}{|c|c|c|}
+\hline
+\emph{X} & \emph{Y} & \emph{X} XOR \emph{Y} \\
+\hline \hline
+0 & 0 & 0 \\
+0 & 1 & 1 \\
+1 & 0 & 1 \\
+1 & 1 & 0 \\
+\hline
+\end{tabular}
+\caption{XOR運算 \label{tab:xor}\index{XOR}}
+\end{table}
+
+
+兩個比特位的互斥\emph{XOR}運算結果只有當這兩位相等時為0，否則結果就為1，就像真值表~\ref{tab:xor}展示的一樣。下面是一個代碼例子：
+
+\begin{AsmCodeListing}[frame=none]
+      mov    ax, 0C123H
+      xor    ax, 0E831H          ; ax = 2912H
+\end{AsmCodeListing}
+
+\subsection{\emph{NOT}運算\index{位元操作!NOT}}
+
+\begin{table}[t]
+\centering
+\begin{tabular}{|c|c|}
+\hline
+\emph{X} & NOT \emph{X} \\
+\hline \hline
+0 & 1 \\
+1 & 0 \\
+\hline
+\end{tabular}
+\caption{NOT運算 \label{tab:not}\index{NOT}}
+\end{table}
+
+\emph{NOT}運算符是\emph{一元}運算符(\emph{也就是說，}它只對一個運算元進行運算，而不像\emph{二元}運算符，如：\emph{AND})。
+一個比特位的\emph{NOT}運算結果是這個位值的相反數，像真值表~\ref{tab:not}展示的一樣。下面是一個代碼例子：
+
+\begin{AsmCodeListing}[frame=none]
+      mov    ax, 0C123H
+      not    ax                 ; ax = 3EDCH
+\end{AsmCodeListing}
+
+注意，\emph{NOT}能得到一個數的補數。與其他按位運算不同的是，{\code NOT}指令並不修改在{\code FLAGS}寄存器裏的任何一位。
+
+\subsection{{\code TEST}指令 \index{TEST}}
+
+{\code
+TEST}指令執行一次\emph{AND}運算，但是並不儲存結果。它會基於可能的結果對{\code
+FLAGS}寄存器進行設置(非常像{\code
+CMP}指令執行了一次減法操作但是只是設置了{\code
+FLAGS})。例如：如果結果是0，那麼{\code ZF}就被置位了。
+
+\begin{table}
+\begin{tabular}{lp{3in}}
+開啟位\emph{i} & 將需修改的數與$2^i$(這是一個只有位\emph{i}為on的二進位數字)進行\emph{OR}運算 \\
+關閉位\emph{i} &
+將需修改的數與只有位\emph{i}為off的二進位數字進行\emph{AND}運算。這個運算元通常稱為\emph{遮罩} \\
+求反位\emph{i} & 將需修改的數與$2^i$進行\emph{XOR}運算
+\end{tabular}
+\caption{布耳運算的使用  \label{tab:bool}}
+\end{table}
+
+\subsection{位元操作的應用\index{位元操作!組合語言|(}}
+
+位元操作對於操縱資料單個位元而不修改其他位來說是非常有用的。表~\ref{tab:bool}展示了這些操作的三個普遍的應用。下面是一些實現了這些想法的代碼例子。
+\begin{AsmCodeListing}[frame=none]
+      mov    ax, 0C123H
+      or     ax, 8           ; 開啟位3，   ax = C12BH
+      and    ax, 0FFDFH      ; 關閉位5，   ax = C10BH
+      xor    ax, 8000H       ; 求反位31，    ax = 410BH
+      or     ax, 0F00H       ; 開啟半個位元組，  ax = 4F0BH
+      and    ax, 0FFF0H      ; 關閉半個位元組，  ax = 4F00H
+      xor    ax, 0F00FH      ; 求反半個位元組，  ax = BF0FH
+      xor    ax, 0FFFFH      ; 補數，   ax = 40F0H
+\end{AsmCodeListing}
+
+\emph{AND}運算還可以用來得到除以2的幾次方之後的餘數。要得到除以數$2^i$之後的餘數，只需對這個數和等於$2^i
+- 1$的遮罩進行\emph{AND}運算。這個遮罩從位0到位$2^i -
+1$都為1，也就是這些位包含了餘數。\emph{AND}運算的結果將保留這些位，而將其他位輸出為0。
+下面是一個得到100除以16的商和餘數的代碼小片斷。
+\begin{AsmCodeListing}[frame=none]
+      mov    eax, 100        ; 100 = 64H
+      mov    ebx, 0000000FH  ; 遮罩 = 16 - 1 = 15 或 F
+      and    ebx, eax        ; ebx = 餘數 = 4
+      shr    eax, 4          ; eax = eax/2^4的商 = 6
+\end{AsmCodeListing}
+使用{\code CL}寄存器，就使得修改資料中的任何一位元變得有可能。下面是一個對{\code EAX}任意比特位置位(開啟)的例子。需要置位元的比特位元儲存在{\code BH}中。
+\begin{AsmCodeListing}[frame=none]
+      mov    cl, bh          ; 首先需得到參加OR運算的數值
+      mov    ebx, 1
+      shl    ebx, cl         ; 向左移cl次
+      or     eax, ebx        ; 開啟位
+\end{AsmCodeListing}
+關閉一位稍微有點麻煩。
+\begin{AsmCodeListing}[frame=none]
+      mov    cl, bh          ; 首先需得到參加AND運算的數值
+      mov    ebx, 1
+      shl    ebx, cl         ; 向左移cl次
+      not    ebx             ; 求反所有位
+      and    eax, ebx        ; 關閉位
+\end{AsmCodeListing}
+求反任意一個比特位的代碼留給了讀者，做為一個習題。
+
+在一個80x86程式中看到這個莫名其妙的指令是很平常的：
+\begin{AsmCodeListing}[frame=none,numbers=none]
+      xor    eax, eax         ; eax = 0
+\end{AsmCodeListing}
+一個數字與自己進行\emph{XOR}運算，其結果總是0。這條指令被使用是因為它產生的機器代碼比功能相同的{\code
+MOV}指令要少。 \index{位元操作!組合語言|)}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}
+      mov    bl, 0           ; bl將儲存值為ON的位元數
+      mov    ecx, 32         ; ecx是迴圈計數器
+count_loop:
+      shl    eax, 1          ; 移動一位元到進位元標誌位元中
+      adc    bl, 0           ; bl加上進位元標誌位元
+      loop   count_loop
+\end{AsmCodeListing}
+\caption{用{\code ADC}計算位數 \label{fig:countBitsAdc}}
+\end{figure}
+
+\section{避免使用條件分支}
+\index{分支預測|(}
+
+現代處理器使用了非常尖端的技術來盡可能快地執行代碼。一個普遍技術稱為
+\emph{預測執行}\index{預測執行}。這種技術使用CPU的並行處理能力來同時執行多條指令。條件分支與這項技術有衝突。一般說來，處理器是不知道分支是否會執行。如果執行了，跟沒有執行相比執行的是一組不同的指令。處理器試著預測分支是否執行。如果預測錯誤，處理器就浪費了它的時間去執行了一些錯誤的代碼。
+
+\index{分支預測|)}
+
+一個避免這個問題的辦法就是如果可能儘量避免使用條件分支。 在\ref{sect:AddBitsExample}的樣例代碼中就提供了一個可以這樣做的簡單的例子。在以前的例子中，EAX寄存器中的值為
+``on''的位被計算出來。它使用了一個分支跳轉到{\code INC}指令。圖~\ref{fig:countBitsAdc}展示了如何使用{\code ADC}\index{ADC}指令直接加上進位元標誌位元來替代這個分支。
+
+{\code SET\emph{xx}}\index{SET\emph{xx}}指令提供了在一定情況下替換分支的方法。基於FLAGS寄存器的狀態，這些指令將一個位元組的寄存器或記憶體空間中的值置為0或1。在{\code SET}後的字元與條件分支使用的是一樣的。如果{\code SET\emph{xx}}條件為真，那麼儲存的結果就為1,如果為假，則儲存的結果就為0。例如：
+\begin{AsmCodeListing}[frame=none,numbers=none]
+      setz   al        ; AL = 如果ZF標誌位置位元了則為1，否則為0。
+\end{AsmCodeListing}
+使用這些指令，你可以開發出一些進行數值運算的精巧的技術，而不需要使用分支。
+
+例如，考慮查找兩個數的最大數的問題。這個問題的標準解決方法是使用一條{\code CMP}指令再使用條件分支對最大值進行操作。下面這個例子展示了不使用分支如何找到最大值。
+
+\begin{AsmCodeListing}
+; file: max.asm
+%include "asm_io.inc"
+segment .data
+
+message1 db "Enter a number: ",0
+message2 db "Enter another number: ", 0
+message3 db "The larger number is: ", 0
+
+segment .bss
+
+input1  resd    1        ; 鍵入的第一個數值
+
+segment .text
+        global  _asm_main
+_asm_main:
+        enter   0,0               ; 程式開始運行
+        pusha
+
+        mov     eax, message1     ; 顯示第一條消息
+        call    print_string
+        call    read_int          ; 輸入第一個數值
+        mov     [input1], eax
+
+        mov     eax, message2     ; 顯示第二條消息
+        call    print_string
+        call    read_int          ; 輸入第二個數值(在eax中)
+
+        xor     ebx, ebx          ; ebx = 0
+        cmp     eax, [input1]     ; 比較第一和第二個數值
+        setg    bl                ; ebx = (input2 > input1) ?          1 : 0
+        neg     ebx               ; ebx = (input2 > input1) ? 0xFFFFFFFF : 0
+        mov     ecx, ebx          ; ecx = (input2 > input1) ? 0xFFFFFFFF : 0
+        and     ecx, eax          ; ecx = (input2 > input1) ?     input2 : 0
+        not     ebx               ; ebx = (input2 > input1) ?      0 : 0xFFFFFFFF
+        and     ebx, [input1]     ; ebx = (input2 > input1) ?          0 : input1
+        or      ecx, ebx          ; ecx = (input2 > input1) ?     input2 : input1
+
+        mov     eax, message3     ; 顯示結果
+        call    print_string
+        mov     eax, ecx
+        call    print_int
+        call    print_nl
+
+        popa
+        mov     eax, 0            ; 返回到C中
+        leave
+        ret
+\end{AsmCodeListing}
+
+這個訣竅是產生一個可以用來選擇出正確的最大值的俺碼。在30行的{\code SETG}\index{SETG}指令如果第二個輸入值是最大值就將BL置為1,否則就置為0。這不是真正需要的遮罩。為了得到真正需要的遮罩，31行對整個EBX寄存器使用了
+{\code NEG}\index{NEG}指令。(注意：EBX在前面已經置為0了。)如果EBX等於0,那麼這條指令就不做任何事情；但是如果EBX為1,結果就是-1的補數表示或0xFFFFFFFF。這正好是需要的位元遮罩。剩下的代碼就是使用這個位遮罩來選擇出正確的輸入的最大值。
+
+另外一個可供選擇的訣竅是使用{\code DEC}語句。在上面的代碼中，如果用{\code DEC}代替{\code NEG}，那麼結果同樣會是0或0xFFFFFFFF。但是，與使用{\code NEG}相比，得到值將是反過來的。
+
+
+\section{在C中進行位元操作\index{位元操作!C|(}}
+
+\subsection{C中的按位運算}
+
+不同於某些高階語言的是，C提供了按位元操作的運算符。\emph{AND}運算符用二元運算符{\code \&}來描述。\footnote{這個運算符不同於二元運算符{\code \&\&}和單項運算符{\code \&}!}。\emph{OR}運算符用二元運算符{\code |}來描述。而\emph{NOT}運算符是用單項運算符{\code \verb|~| }來描述。
+
+C中的二元運算符{\code <<}和{\code >>}執行移位元操作。運算符{\code <<}執行左移操作而運算符
+{\code >>}執行右移操作。這些運算符有兩個運算元。左邊的運算元是需要移位元的數值，右邊的運算元是需要移的位元數。如果需要移位元的數值是無符號類型，那麼就執行了一次邏輯移位元。如果需要移位元的數值是有符號類型(比如：{\code int})，那麼就執行了一次算術移位元。下面是一些使用了這些運算符的C代碼例子：
+\lstset{escapeinside=`',language=Pascal,%
+}
+\begin{lstlisting}{}
+short int s;          /* `假定short int類型為16位' */
+short unsigned u;
+s = -1;               /* `s = 0xFFFF (補數)' */
+u = 100;              /* `u = 0x0064 '*/
+u = u | 0x0100;       /* u = 0x0164 */
+s = s & 0xFFF0;       /* s = 0xFFF0 */
+s = s ^ u;            /* s = 0xFE94 */
+u = u << 3;           /* `u = 0x0B20 (邏輯移位元)' */
+s = s >> 2;           /* `s = 0xFFA5 (算術移位元)' */
+\end{lstlisting}
+
+\subsection{在C中使用按位運算}
+
+在C中使用按位元運算的目的與在組合語言中使用按位元運算的目的是一樣的。它們可以允許你運算元據的單個比特位，而且可以用在快速乘除法中。事實上，一個好的C編譯器應該可以自動用移位元來進行乘法運算如：{\code x *= 2}。
+\begin{table}
+\centering
+\begin{tabular}{|c|l|}
+\hline
+宏 & \multicolumn{1}{c|}{含意} \\
+\hline \hline
+{\code S\_IRUSR} & 用戶可讀 \\
+{\code S\_IWUSR} & 用戶可寫 \\
+{\code S\_IXUSR} & 用戶可執行 \\
+\hline
+{\code S\_IRGRP} & 組用戶可讀 \\
+{\code S\_IWGRP} & 組用戶可寫 \\
+{\code S\_IXGRP} & 組用戶可執行 \\
+\hline
+{\code S\_IROTH} & 其他用戶可讀 \\
+{\code S\_IWOTH} & 其他用戶可寫 \\
+{\code S\_IXOTH} & 其他用戶可執行 \\
+\hline
+\end{tabular}
+\caption{POSIX檔許可權宏 \label{tab:posix}}
+\end{table}
+
+許多作業系統的API\footnote{Application Programming
+Interface，應用程式介面}(例如：\emph{POSIX}\footnote{代表電腦環境的可移植作業系統介面。IEEE在UNIX上標準開發出來的。}和Win32)包含了一些函式，這些函式使用的運算元含有按位元編碼的資料。例如：POSIX系統就為三種不同類型的用戶保留了檔的許可權：\emph{user}
+(用戶，\emph{owner}可能是一個更好的名字)，
+\emph{group}(組用戶)和\emph{others}(其他用戶)。每一種類型的用戶可以被授予進行讀，寫和/或執行一個檔的許可權。要改變一個檔的許可權，要求C程式師進行單個的位元操作。POSIX定義了幾個宏來做這件事(看表~\ref{tab:posix})。{\code
+chmod}函式可以用來設置檔的許可權。這個函式有兩個參數，一個是表示需設置的檔檔案名的字串，另外一個是為需要的許可權設置了正確位的整形
+\footnote{實際上就是一個{\code mode\_t}類型的參數，{\code
+mode\_t}是一個整形類型的類型定義。} 。
+例如，下面的代碼設置了這樣的許可權：允許檔的owner用戶對檔可讀可寫，在group中的用戶許可權為可讀而others用戶沒有許可權訪問。
+\begin{lstlisting}[stepnumber=0]{}
+chmod("foo", S_IRUSR | S_IWUSR | S_IRGRP );
+\end{lstlisting}
+
+POSIX中{\code stat}函式可以用來得到檔的當前許可權位。與{\code chmod}函式一起使用，它可以用來改變某些許可權而不影響到其他許可權。下面是一個移除檔的others用戶的寫許可權和增加owner用戶的讀許可權的例子。同時，其他許可權沒有被改變。
+\lstset{escapeinside=`',language=Pascal,%
+}
+\begin{lstlisting}{}
+struct stat file_stats;    /*` stat()使用的結構體' */
+stat("foo", &file_stats);  /*` 讀檔資訊
+                               file\_stats.st\_mode中有許可權位' */
+chmod("foo", (file_stats.st_mode & ~S_IWOTH) | S_IRUSR);
+\end{lstlisting}
+\index{位元操作!C|)}
+
+\section{Big和Little Endian表示法\index{endianess|(}}
+
+第一章介紹了多位元組資料的big和little endian表示法的概念。但是，作者發現這個主題弄得很多人非常迷惑。這一節將詳細介紹這一主題。
+
+讀者可能會回憶起endian表示法指的是一個多位元組資料的單個位元組元素儲存在記憶體中的順序。Big endian是最直接的方法。它首先儲存的是最高有效位元組，然後是第二個有效位元組，以些類推。換句話說就是，\emph{大的}位元被首先儲存。Little
+endian以一個相反的順序來儲存位元組(最小的有效位元組最先被儲存)。x86家族的處理器使用的就是little endian表示法。
+
+看一個例子：考慮雙字$12345678_{16}$的表示。如果是
+big endian表示法，這些位元組將像這樣儲存：12~34~56~78。如果是
+little endian表示法，這些位元組就像這樣儲存：78~56~34~12。
+
+現在讀者可能會這樣問自己：一個理智的晶片設計者怎麼會使用little endian表示法？在Intel公司裏的工程師是不是虐待狂？因為他們使廣大的程式師承受了這種混亂的表示法。像這樣，CPU看起來會因為在記憶體中向後儲存位元組而做額外的工作(而且從記憶體中讀出時又要顛倒它們)。答案是CPU使用little endian格式讀寫記憶體是不需要做額外的工作的。你必須認識到CPU是由許多電子電路組成，簡單地工作在位值上。位元(和位元組)在CPU中不需要有任何的順序的。
+
+考慮2個位元組的寄存器{\code AX}。這可以分解成單個位元組的寄存器：{\code AH}和{\code AL}。在CPU中的電路保留了{\code AH} 和 {\code AL}的值。在一個CPU中，電路是沒有任何順序的。也就是說，儲存{\code AH}的電路可以在儲存{\code AL}的電路前面或後面。{\code mov}指令複製{\code AX}的值到記憶體中，首先複製{\code AL}的值，接著是{\code AH}。CPU做這件事一點也沒有比先儲存{\code AH}難。
+\lstset{escapeinside=`',language=Pascal,%
+}
+\begin{figure}[t]
+\begin{lstlisting}[stepnumber=0,frame=tblr]{}
+  unsigned short word = 0x1234;   /* `假定sizeof(short) == 2' */
+  unsigned char * p = (unsigned char *) &word;
+
+  if ( p[0] == 0x12 )
+    printf("Big Endian Machine\n");
+  else
+    printf("Little Endian Machine\n");
+\end{lstlisting}
+\caption{如何確定Endian格式 \label{fig:determineEndian}}
+\end{figure}
+
+同樣的討論還可以用到一個位元組的單個比特位元上。它們在CPU電路(或就此而言，記憶體)裏並不真的有一定順序。但是，因為在CPU或記憶體中單個的比特位並沒有編址，所以沒有辦法知道(或關心)CPU在內部對它們是如何排序的。
+
+在圖~\ref{fig:determineEndian}中的C代碼展示了如何確定CPU的Endian格式。\lstinline|p|指標把\lstinline|word|變數當作兩個元素的字元陣列來看待。因此，\lstinline|word|在記憶體裏的第一個位元組賦值給了\lstinline|p[0]|，而這取決於CPU的Endian格式。
+
+\subsection{什麼時候需要在乎Little和Big Endian}
+
+對於典型的編程，CPU的Endian格式並不是很重要。它很重要的大多數時刻是在不同的電腦系統間傳輸二進位資料時。此時使用的要麼是某種類型的物理資料媒介(例如一塊硬碟)要麼是網路。\MarginNote{當多位元組字元來到\\時，比如：UNICODE\index{UNICODE}\\，Endian格式甚至對\\於文本資料都是非常\\重要的。UNICODE\\支持任意一種Endian\\格式而且有一個能指\\出使用了哪一種Endian\\格式從而來描述資\\料的技巧。
+}因為ASCII資料是單個位元組的，Endian格式對它來說是沒有問題的。
+
+所有的內部的TCP/IP消息頭都以big endian的格式來儲存整形。
+(稱為\emph{網路位元組續}). TCP/IP \index{TCP/IP}庫提供了可移植處理Endian格式問題的方法的C函式。例如：\lstinline|htonl()| 函式把一個雙字(或長整形)從\emph{主機}格式轉換成了\emph{網路}格式。
+\lstinline|ntohl()|函式執行一個相反的交換。\footnote{實際上，轉換一個整形的Endian格式就是簡單地顛倒一下位元組；因此從big轉換成little和從little轉換成big是同樣的操作。所以所有這些函式都在做同樣的事。}對於一個big endian系統，這兩個函式僅僅是無修改地返回它們的輸入。這就允許你寫出的網路程式可以在任何的Endian格式系統上成功編譯和運行。要得到關於Endian格式和網路編程更多的資訊，請看W. Richard Steven寫的優秀的書籍：
+\emph{UNIX Network Programming}。
+
+\begin{figure}[t]
+\lstset{escapeinside=`',language=Pascal,%
+}
+\begin{lstlisting}[frame=tlrb]{}
+unsigned invert_endian( unsigned x )
+{
+  unsigned invert;
+  const unsigned char * xp = (const unsigned char *) &x;
+  unsigned char * ip = (unsigned char *) & invert;
+
+  ip[0] = xp[3];   /* `逐個位元組地進行交換' */
+  ip[1] = xp[2];
+  ip[2] = xp[1];
+  ip[3] = xp[0];
+
+  return invert;   /* `返回順序相反的位元組' */
+}
+\end{lstlisting}
+\caption{invert\_endian Function \label{fig:invertEndian}\index{endianess!invert\_endian}}
+\end{figure}
+
+圖~\ref{fig:invertEndian}展示了一個轉換雙字Endian格式的C函式。486處理器提供了一個名為{\code
+BSWAP}\index{BSWAP}的新的指令來交換任意32位元寄存器中的位元組。例如：
+\begin{AsmCodeListing}[frame=none,numbers=none]
+      bswap   edx          ; 交換edx中的位元組
+\end{AsmCodeListing}
+這條指令不可以使用在16位的寄存器上。但是
+{\code XCHG} \index{XCHG}指令可以用來交換可以分解成8位寄存器的16寄存器中的位元組。例如：
+\begin{AsmCodeListing}[frame=none,numbers=none]
+      xchg    ah,al        ; 交換ax中的位元組
+\end{AsmCodeListing}
+\index{endianess|)}
+
+\section{計算位數\index{計算位數|(}}
+
+前面介紹了一個簡單的技術來計算一個雙字中``on''的位數有多少。這一節來看看其他不是很直接來做這件事的方法，就當作使用在這一章中討論的位元操作的練習。
+
+
+\begin{figure}[t]
+\begin{lstlisting}[frame=tblr]{}
+int count_bits( unsigned int data )
+{
+  int cnt = 0;
+
+  while( data != 0 ) {
+    data = data & (data - 1);
+    cnt++;
+  }
+  return cnt;
+}
+\end{lstlisting}
+\caption{計算位數:方法一 \label{fig:meth1}}
+\end{figure}
+
+\subsection{方法一\index{計算位數!方法一|(}}
+
+第一個方法很簡單，但不是很明顯。圖~\ref{fig:meth1}展示了代碼。
+
+這個方法為什麼會起作用？在迴圈中的每一次重複，{\code data}中就會有一個比特位被關閉了。當所有的位都關閉了(\emph{也就是說，} 當 {\code data}
+等於0了)，迴圈就結束了。使{\code data}等於0需要重複的次數就等於原始值{\code data}中比特位為1的位數。
+
+第6行表示{\code data}中的一個比特位被關閉了。這個是如何起作用的？考慮{\code data}二進位表示法最普遍的格式和在這種表示法中最右邊的1。根據上面的定義，在這個1後面的所有位都為0。現在，{\code data
+- 1}的二進位表示是什麼樣的？最右邊的1的所有左邊的位與{\code data}是一樣的，但是在最右邊的1這一點的位將會是{\code data}原始位的反碼。例如：\\
+\begin{tabular}{lcl}
+{\code data}     & = & xxxxx10000 \\
+{\code data - 1} & = & xxxxx01111
+\end{tabular}\\
+x表示對於在這個位上這兩個數的值是相等的。當{\code data}和{\code data - 1}進行\emph{AND}運算後，在{\code data}中的最右邊的1這一位的結果就會為0，而其他比特位沒有被改變。
+
+\begin{figure}[t]
+\lstset{escapeinside=`',language=Pascal,%
+}
+\begin{lstlisting}[frame=tlrb]{}
+static unsigned char byte_bit_count[256];  /* `查找表' */
+
+void initialize_count_bits()
+{
+  int cnt, i, data;
+
+  for( i = 0; i < 256; i++ ) {
+    cnt = 0;
+    data = i;
+    while( data != 0 ) {    /* `方法一' */
+      data = data & (data - 1);
+      cnt++;
+    }
+    byte_bit_count[i] = cnt;
+  }
+}
+
+int count_bits( unsigned int data )
+{
+  const unsigned char * byte = ( unsigned char *) & data;
+
+  return byte_bit_count[byte[0]] + byte_bit_count[byte[1]] +
+         byte_bit_count[byte[2]] + byte_bit_count[byte[3]];
+}
+\end{lstlisting}
+\caption{方法二 \label{fig:meth2}}
+\end{figure}
+\index{計算位數!方法一|)}
+
+\subsection{方法二\index{計算位數!方法二|(}}
+
+查找表同樣可以用來計算出任意雙字的位數。這個直接方法首先要算出每個雙字的位數，還要把位元數儲存到一個陣列中。但是，有兩個與這個方法相關的問題。雙字的值大約有\emph{40億}。這就意味著陣列將會非常大而且會浪費很多時間在初始化這個陣列上。(事實上，除非你確實打算使用一個超過40億的陣列，否則花在初始化這個陣列的時間將遠遠大於用第一種方法計算位數的時間。
+
+一個更現實的方法是提前算出所有可能的位元組的位元數，並把它們儲存到一個陣列中。然後，雙字就可以分成四個位元組來求。這四個位元組的位元數通過查找陣列得到，然後將它們相加就得到原始雙字的位數。圖~\ref{fig:meth2}展示了如何用代碼實現這個方法。
+
+{\code initialize\_count\_bits}函式必須在第一次調用{\code
+count\_bits}函式之前被調用。這個函式初始化了{\code
+byte\_bit\_count}全局陣列。{\code
+count\_bits}函式並不是以一個雙字來看對待{\code
+data}變數，而是以把它看成四個位元組的陣列。 {\code
+byte}指標作為一個指向這個四個位元組陣列的指標。因此，{\code
+byte[0]}是\\{\code
+data}中的一個位元組(是最低有效位元組還是最高有效位元組取決於硬體是使用little還是big
+endian。)。當然，你可以像這樣使用一條指令：
+\begin{lstlisting}[stepnumber=0]{}
+(data >> 24) & 0x000000FF
+\end{lstlisting}
+\noindent 來得到最高有效位元組值，可以用同樣的方法得到其他位元組；但是這些指令會比引用一個陣列要慢。
+
+最後一點，使用{\code for}迴圈來計算在22和23行的總數是簡單的。但是，{\code for}迴圈就會包含初始化一個迴圈變數，在每一次重複後比較這個變數和增加這個變數的時間開支。通過清楚的四個值來計算總數會快一些。事實上，一個好的編譯器會將{\code for}迴圈形式轉換成清楚的求和。這個簡化和消除迴圈重複的處理是一個稱為\emph{迴圈展開}的編譯器優化技術。
+\index{計算位數!方法二|)}
+
+\subsection{方法三\index{計算位數!方法三|(}}
+
+\begin{figure}[t]
+\lstset{escapeinside=`',language=Pascal,%
+}
+\begin{lstlisting}[frame=tlrb]{}
+int count_bits(unsigned int x )
+{
+  static unsigned int mask[] = { 0x55555555,
+                                 0x33333333,
+                                 0x0F0F0F0F,
+                                 0x00FF00FF,
+                                 0x0000FFFF };
+  int i;
+  int shift;   /* `向右移動的位數' */
+
+  for( i=0, shift=1; i < 5; i++, shift *= 2 )
+    x = (x & mask[i]) + ( (x >> shift) & mask[i] );
+  return x;
+}
+\end{lstlisting}
+\caption{方法三 \label{fig:method3}}
+\end{figure}
+
+現在還有一個更聰明的方法來計算在資料裏的位元數。這個方法逐位元地相加資料的0位元和1位。得到的總數就等於在這個資料中1的位元數。例如，考慮計算儲存在{\code data}變數中的一個位元組中為1的位元數。第一步是執行下面這個操作：
+\begin{lstlisting}[stepnumber=0]{}
+data = (data & 0x55) + ((data >> 1) & 0x55);
+\end{lstlisting}
+這個做了些什麼？十六進位常量{\code 0x55}的二進位表示為$01010101$。在這個加法的第一個運算元中，{\code data}與這個常量進行了
+\emph{AND}運算，奇數的位就被拿出來了。第二運算元{\code ((data >> 1) \& 0x55)}，首先移動所有的偶數位到奇數位上，然後使用相同的遮罩得到這些相同的位。現在，第一個運算元含有{\code data}的奇數位而第二個運算元含有偶數位。把這兩個運算元相加就相當於把{\code
+data}的奇數位和偶數位相加。例如，如果{\code data}等於
+$10110011_2$，那麼：\\
+\begin{tabular}{rcr|l|l|l|l|}
+\cline{4-7}
+{\code data \&} $01010101_2$          &    &   & 00 & 01 & 00 & 01 \\
++ {\code (data >> 1) \&} $01010101_2$ & or & + & 01 & 01 & 00 & 01 \\
+\cline{1-1} \cline{3-7}
+                                      &    &   & 01 & 10 & 00 & 10 \\
+\cline{4-7}
+\end{tabular}
+
+顯示在右邊的加法展示了實際的位相加。這個位元組的位元被分成了四個2位的欄位來展示實際上執行了四個獨立的加法。因為所有這些欄位的最大總數為2，總數超過它自身的欄位且影響到其他欄位的總數是不可能的。
+
+當然，總的位數還沒被計算出來。但是，可以使用跟上面一樣的技術，經過同樣的步驟來計算總數。下一步應該是：
+\begin{lstlisting}[stepnumber=0]{}
+data = (data & 0x33) + ((data >> 2) & 0x33);
+\end{lstlisting}
+繼續上面的例子(謹記：{\code data}現在等於
+$01100010_2$):\\
+\begin{tabular}{rcr|l|l|}
+\cline{4-5}
+{\code data \&} $00110011_2$          &    &   & 0010 & 0010 \\
++ {\code (data >> 2) \&} $00110011_2$ & or & + & 0001 & 0000 \\
+\cline{1-1} \cline{3-5}
+                                      &    &   & 0011 & 0010 \\
+\cline{4-5}
+\end{tabular}\\
+現在有兩個4位的欄位被單獨地相加。
+
+下一步是通過把這兩位的總數相加來得到最終的結果：
+\begin{lstlisting}[stepnumber=0]{}
+data = (data & 0x0F) + ((data >> 4) & 0x0F);
+\end{lstlisting}
+
+使用上面的例子({\code data}等於$00110010_2$):\\
+\begin{tabular}{rcrl}
+{\code data \&} $00001111_2$          &    &   & 00000010 \\
++ {\code (data >> 4) \&} $00001111_2$ & or & + & 00000011 \\
+\cline{1-1} \cline{3-4}
+                                      &    &   & 00000101 \\
+\end{tabular}\\
+現在{\code data}等於5，這正好是正確的結果。圖~\ref{fig:method3}實現了用這個方法來計算一個雙字的位數。它使用了一個
+{\code for}迴圈來計算總數。把迴圈展開可能會更快一點，但是使用迴圈能清晰地看到這個方法產生的不同大小的資料。
+\index{計算位數!方法三|)}
+\index{計算位數|)}
+

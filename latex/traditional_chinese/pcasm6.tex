@@ -1,0 +1,945 @@
+% -*-latex-*-
+\chapter{浮點\index{浮點|(}}
+
+\section{浮點表示法\index{浮點!表示法|(}}
+
+\subsection{非整形的二進位數字}
+
+在第一章討論數制的時候，我們只討論了整形。顯然，和十進位一樣，其他進制必須也能表示非整形數。在十進位中，在小數點右邊的數字關聯了10的負乘方值：
+\[ 0.123 = 1 \times 10^{-1} + 2 \times 10^{-2} + 3 \times 10^{-3} \]
+
+不必驚訝，二進位也是以同樣的方法表示：
+\[ 0.101_2 = 1 \times 2^{-1} + 0 \times 2^{-2} + 1 \times 2^{-3} = 0.625 \]
+這個辦法與第一章中的整形辦法相結合就可以用來轉換一個一般數值：
+\[ 110.011_2 = 4 + 2 + 0.25 + 0.125 = 6.375 \]
+
+將十進位轉換成二進位也不是很難。一般來說，需將十進位數字分成兩塊：整數部分和分數部分。使用第一章中的方法來將整數部分轉換成二進位。分數部分的轉換可以使用下面描述的方法。
+
+\begin{figure}[t]
+\centering
+\fbox{
+\begin{tabular}{p{2in}p{2in}}
+\begin{eqnarray*}
+0.5625 \times 2 & = & 1.125 \\
+0.125 \times 2 & = & 0.25 \\
+0.25 \times 2 & = & 0.5 \\
+0.5 \times 2 & = & 1.0 \\
+\end{eqnarray*}
+&
+\begin{eqnarray*}
+\mbox{第一個比特位} & = & 1 \\
+\mbox{第二個比特位} & = & 0 \\
+\mbox{第三個比特位} & = & 0 \\
+\mbox{第四個比特位} & = & 1 \\
+\end{eqnarray*}
+\end{tabular}
+}
+\caption{將0.5625轉換成二進位\label{fig:binConvert1}}
+\end{figure}
+
+考慮一個用$a, b, c, \ldots$標記比特位元的二進位分數。這個數用二進位表示為：
+\[ 0.abcdef\ldots \]
+將此數乘2.新得到的數的二進位表示將是：
+\[ a.bcdef\ldots \]
+注意，第一個比特位現在在權值為1的位置。用$0$替換$a$得到：
+\[ 0.bcdef\ldots \]
+再乘以2得到：
+\[ b.cdef\ldots \]
+現在第二個比特位($b$)在權值為1的位置。重複這個過程，直到得到了需要的盡可能多的比特位。圖~\ref{fig:binConvert1}展示了一個實例：將0.5625轉換成二進位。這種方法當分數部分為0了才停止。
+
+\begin{figure}[t]
+\centering
+\fbox{\parbox{2in}{
+\begin{eqnarray*}
+0.85 \times 2 & = & 1.7 \\
+0.7 \times 2 & = &  1.4 \\
+0.4 \times 2 & = &  0.8 \\
+0.8 \times 2 & = &  1.6 \\
+0.6 \times 2 & = &  1.2 \\
+0.2 \times 2 & = &  0.4 \\
+0.4 \times 2 & = &  0.8 \\
+0.8 \times 2 & = &  1.6 \\
+\end{eqnarray*}
+}}
+\caption{將0.85轉換成二進位\label{fig:binConvert2}}
+\end{figure}
+
+另一個例子，將23.85轉換成二進位。將整數部分($23 = 10111_2$)轉換成二進位是容易的，但是分數部分呢？圖~\ref{fig:binConvert2}展示了這個計算的開始部分。如果你仔細看了這個數值，就會發現一個無限迴圈。這就意味著0.85是一個無限迴圈的二進位數字(與基數為10的無限迴圈十進位數字相對應)\footnote{不要大驚小怪，一個數值在一種數制下是一個無限迴圈，而在另一種數制下可能不是。考慮下
+$\frac{1}{3}$，以十進位表示，它是一個無窮數，但是以三進制(基數為3)表示，它就為
+$0.1_3$。}。這裏顯示了這個數的計算模式。在這個模式中，你可以看到$0.85 = 0.11\overline{0110}_2$。因此，
+$23.85 = 10111.11\overline{0110}_2$。
+
+上面計算的一個重要結論是23.85不可以用有限的比特位來\emph{精確}表示成二進位數字。
+(就像$\frac{1}{3}$不能表示成有限的十進位數字。)正如這一章展示的，C語言中的{\code float}和{\code double}變數是以二進位儲存的。因此，類似23.85的數值不能精確地儲存到這些變數中。只能儲存23.85的近似值。
+
+為了簡化硬體，採用固定的格式來儲存浮點數。這種格式採用科學計數法(但是是在二進位中，是2的乘方,不是10)。例如，23.85或 $10111.11011001100110\ldots_2$將儲存為：
+\[ 1.011111011001100110\ldots \times 2^{100} \]
+(其中指數(100)是二進位形式)。\emph{規範}的浮點數有下面的形式：
+\[ 1.ssssssssssssssss \times 2^{eeeeeee} \]
+其中$1.sssssssssssss$是\emph{有效數}而$eeeeeeee$是
+\emph{指數}。
+
+\subsection{IEEE浮點表示法\index{浮點!表示法!IEEE|(}}
+
+IEEE(Institute of Electrical and Electronic Engineers，電氣與電子工程師學會)是一個國際組織，它已經設計了存儲浮點數的特殊的二進位格式。這種格式應用在大多數(但不是全部)現在的電腦上。通常電腦本身的硬體就支援它。例如，Intel的數學輔助運算器(從Pentium開始，就嵌入到所有它的CPU中了)就使用它。IEEE為不同的精度定義了不同的格式：單或雙精度。在C語言中，{\code float}變數使用單精確度，而{\code double}變數使用雙精度。
+
+Intel數學輔助運算器使用第三種，更高的精度，稱為
+\emph{擴展精度}。事實上，在數學輔助運算器自身裏的所有資料都是這種格式。當資料從輔助運算器儲存到記憶體中時，將自動轉換成單或雙精度。\footnote{
+有些編譯器的(例如Borland) {\code long double}類型使用這種擴展精度。但是，其他的編譯器的{\code double}和{\code long double}都使用雙精度。(在ANSI C就允許這樣做。)}跟IEEE的浮點雙精度格式相比，擴展精度使用了一種有細微差別的格式，所以將不在這討論。
+
+\subsubsection{IEEE單精確度\index{浮點!表示法!單精確度|(}}
+
+\begin{figure}[t]
+\fbox{
+\centering
+\parbox{5in}{
+\begin{tabular}{|c|c|c|}
+\multicolumn{1}{p{0.3cm}}{31} &
+\multicolumn{1}{p{2.5cm}}{30 \hfill 23} &
+\multicolumn{1}{p{6cm}}{22 \hfill 0} \\
+\hline
+s & e & f \\
+\hline
+\end{tabular}
+\\[0.4cm]
+\begin{tabular}{cp{4.5in}}
+s & sign bit，符號位元 - 0 = 正數, 1 = 負數 \\
+e & biased exponent，偏置指數 (8-bits) = 真實的指數 + 7F (十進位為127)。值00和FF有特殊的含義。(看正文) \\
+f & fraction，分數 - 有效數中，1後面的前23個比特位。
+\end{tabular}
+}}
+\caption{IEEE單精確度\label{fig:IEEEsingle}}
+\end{figure}
+
+單精確度浮點使用32個比特位元來編碼數位。通常它精確到小數點後七位。相比於整數，浮點數的儲存格式更複雜。圖~\ref{fig:IEEEsingle}展示了IEEE單精確度數的基本格式。這種格式有幾個古怪的地方。負的浮點數並不使用補數表示法。它們使用符號量值表示法。如圖顯示，第31位元決定數的符號。
+
+二進位的指數並不會直接儲存。取而代之的是將指數和7F的和儲存到位23~30中。這個
+\emph{偏置指數}總是非負的。
+
+分數部分假定是一個規範的有效數(格式為
+$1.sssssssss$)。因為第一個比特位總是1,所以領頭的1是
+\emph{不儲存的！}這就允許在後面儲存一額外的比特位，稍微地擴展了精度。這個想法稱為
+\emph{隱藏一的表示法}\index{浮點!表示法!隱藏一}.
+
+怎樣儲存23.85呢？\MarginNote{你必須永遠記住：這些\\位元組41 BE CC CD可以用不同的方\\法解釋，使用什麼方法\\解釋取決於程式如何使\\用它們。因為，當作為\\一個單精確度浮點數時\\，它表示23.850000381\\，但是當它作為一個\\雙字整形時，它表示\\1,103,023,309！CPU並\\不知道哪種才是正確的\\解釋！} 首先，它是個正數，所以符號位元為0。其次，真實的指數為4,所以偏置指數為$7\mathrm{F}
++ 4 = 83_{16}$。最後，分數部分應表示為01111101100110011001100
+(記住領頭的1是隱藏的)。把這些放到一起得到
+(為了幫助澄清浮點格式的不同部分，符號位元和分數部分都加了下劃線，而且所有的比特位都分成了四個比特位一組。)：
+\[ \underline{0}\,100\;0001\;1
+   \,\underline{011\;1110\;1100\;1100\;1100\;1100}_2 = 41 \mathrm{BE}
+\mathrm{CC} \mathrm{CC}_{16} \]
+這不是準確的23.85(因為它是一個無限迴圈的二進位數字)。如果你將上面的數值轉換回十進位形式，你會發現它大約等於
+23.849998474。這個數與23.85非常接近，但是它並不準確。實際上，在C語言中，23.85的描述和上面的是一樣的。因為該數的精確描述被截去後的最左邊的位為1,所以最後一個比特位經四捨五入後為1。因此單精確度數23.85將表示成十六進位
+41 BE CC CD。將這個轉換成十進位得23.850000381，這個數就更接近23.85。
+
+怎麼描述-23.85呢？只需要改變符號位元得：C1 BE CC
+CD。\emph{不要}使用補數！
+
+\begin{table}[t]
+\fbox{
+\begin{tabular}{lp{3.1in}}
+$e=0 \quad\mathrm{and}\quad f=0$ & 表示數0(它不可以被規範化)。注意這兒有+0和-0之分。\\
+$e=0 \quad\mathrm{and}\quad f \neq 0$ & 表示一個\emph{非規範數}。它們將在下一節中討論。 \\
+$e=\mathrm{FF} \quad\mathrm{and}\quad f=0$ &  表示無窮大($\infty$)，包括正無窮大和負無窮大。\\
+$e=\mathrm{FF} \quad\mathrm{and}\quad f\neq 0$ &  表示一個不可以定義的結果，稱為\emph{NaN} (Not a
+Number，不是數)。
+\end{tabular}
+} \caption{\emph{f}和\emph{e}的特殊值\label{tab:floatSpecials}}
+\end{table}
+
+IEEE浮點格式中，\emph{e}和\emph{f}的某些組合有特殊的含義。表~\ref{tab:floatSpecials}描述了這些特殊的值。溢出或除以0將產生一個無窮數。一個無效的操作將產生一個不確定的結果，例如：試圖求一個負數的平方根，將兩個無窮數相加，\emph{等等。}
+
+規範的單精確度數的數量級範圍為從
+$1.0 \times 2^{-126}$ ($\approx 1.1755 \times 10^{-35}$) 到
+$1.11111\ldots \times 2^{127}$ ($\approx 3.4028 \times 10^{35}$)。
+
+\subsubsection{非規範化數\index{浮點!表示法!非規範|(}}
+
+非規範化數可以用來表示那些值太小了以致於不能以規範格式描述的數(\emph{也就是}小於$1.0 \times 2^{-126}$)。例如：考慮下數$1.001_2 \times 2^{-129}$
+($\approx 1.6530 \times 10^{-39}$)。在約定的規範格式中，這個指數太小了。但是，它可以用非規範的格式來描述：$0.01001_2 \times 2^{-127}$。為了儲存這個數，偏置指數被置為0(看表~\ref{tab:floatSpecials})，而且分數部分是以$2^{-127}$方式書寫得到的所有有效數
+({\emph{也就是說}儲存了所有的比特位，包括小數點左邊的1).$1.001 \times 2^{-129}$將表示成：
+\[ \underline{0}\,000\;0000\;0
+   \,\underline{001\;0010\;0000\;0000\;0000\;0000} \]
+\index{浮點!表示法!非規範|)}
+\index{浮點!表示法!單精確度|)}
+
+
+\subsubsection{IEEE雙精度\index{浮點!表示法!雙精度|(}}
+
+\begin{figure}[t]
+\centering
+\begin{tabular}{|c|c|c|}
+\multicolumn{1}{p{0.3cm}}{63} &
+\multicolumn{1}{p{3cm}}{62 \hfill 52} &
+\multicolumn{1}{p{7cm}}{51 \hfill 0} \\
+\hline
+s & e & f \\
+\hline
+\end{tabular}
+\caption{IEEE雙精度\label{fig:IEEEdouble}}
+\end{figure}
+
+IEEE雙精度使用64位元來表示數字，而且通常精確到小數點後15位。如圖~\ref{fig:IEEEdouble}所示，基本的結構和單精確度是非常相似的。只是相比於單精確度，它使用了更多的位來描述偏置指數(11)和分數(52)。
+
+更大範圍的偏置指數會導致兩個後果。一是計算的將是真實指數和3FF(1023)的和(而不是單精確度中的
+7F)。二是，允許描述更大範圍的真實的指數(因此也可以描述更大範圍的數量級)。雙精度的數量級範圍大約為從$10^{-308}$到$10^{308}$。
+
+雙精度值中增加的有效位元是增大分數欄位的原因。
+
+作為一個例子，再次考慮下。偏置指令用十六進位表示為
+$4 + \mathrm{3FF} = 403$。因此，該數用雙精度表示為：
+\[ \underline{0}\,100\;0000\;0011\;\underline{0111\;1101\;1001\;1001\;1001\;
+   1001\;1001\;1001\;1001\;1001\;1001\;1001\;1010} \]
+或在十六進位中為40 37 D9 99 99 99 99 9A。如果你將它轉換回十進位，你將得到23.8500000000000014 (這有12個0！)，這個數就更接近23.85。
+
+雙精度和單精確度一樣有一些特殊的值\footnote{唯一的區別是：對於無窮數和不確定的值，偏置指數是7FF，而不是FF。}。非規範化數同樣也是一樣的。最主要的區別是雙精度的非規範數使用$2^{-1023}$替換$2^{-127}$。
+\index{浮點!表示法!雙精度|)}
+\index{浮點!表示法!IEEE|)}
+\index{浮點!表示法|)}
+
+\section{浮點運算\index{浮點!運算|(}}
+
+電子電腦裏的浮點運算和持續精確的數學運算是不同的。數學中，所有的數都可以精確表示。但就如前面的章節所示，在電子電腦裏，許多數不能用有限個比特位來描述。所有的計算都在一定的精度下執行。在這節的例子中，為了簡單化，將使用8位的有效數。
+
+\subsection{加法}
+要將兩個浮點數相加，它們的指數必須是相等的。如果它們並不相等，那麼通過移動較小指數的數的有效數來使它們相等。例如：考慮$10.375 + 6.34375 = 16.71875$或在十進位中：
+\[
+\begin{array}{rr}
+ & 1.0100110 \times 2^3 \\
++& 1.1001011 \times 2^2 \\ \hline
+\end{array}
+\]
+這兩個數位的指數不一樣，所以通過移動有效數使指數相同，然後再相加：
+\[
+\begin{array}{rr@{.}l}
+ &  1&0100110 \times 2^3 \\
++&  0&1100110 \times 2^3 \\ \hline
+ & 10&0001100 \times 2^3
+\end{array}
+\]
+注意，移位丟掉了$1.1001011 \times 2^2$中的末尾的1,經過四捨五入後得$0.1100110 \times 2^3$。加法的結果，$10.0001100 \times 2^3$ (or $1.00001100 \times 2^4$)等於
+$10000.110_2$或16.75。這個數並\emph{不}等於準確的答案
+(16.71875)！它只是一個近似值，是在進行加法操作時四捨五入後的應有誤差。
+
+認識到在電子電腦(或計算器)裏的浮點運算得到的結果經常是近似值是非常重要的。對於電子電腦裏的浮點運算，算術法則不總是對的。算術中假定的無窮精度是任何電子電腦都無法做的。例如，算術法則告訴我們$(a + b) - b = a$；但是，在電子電腦裏，並不能完全保證它正確。
+
+\subsection{減法}
+減法和加法一樣運作，而且有和加法一樣的問題。作為一個例子，考慮$16.75 - 15.9375 = 0.8125$：
+\[
+\begin{array}{rr}
+ & 1.0000110 \times 2^4 \\
+-& 1.1111111 \times 2^3 \\ \hline
+\end{array}
+\]
+移位$1.1111111 \times 2^3$後得到(四捨五入) $1.0000000 \times 2^4$
+\[
+\begin{array}{rr}
+ & 1.0000110 \times 2^4 \\
+-& 1.0000000 \times 2^4 \\ \hline
+ & 0.0000110 \times 2^4
+\end{array}
+\]
+$0.0000110 \times 2^4 = 0.11_2 = 0.75$ 它並不完全正確的。
+
+\subsection{乘法和除法}
+
+對於乘法，有效數執行乘法操作而指數執行相加操作。考慮$10.375 \times 2.5 = 25.9375$：
+\[
+\begin{array}{rr@{}l}
+ &  1.0&100110 \times 2^3 \\
+\times &  1.0&100000 \times 2^1 \\ \hline
+ &     &10100110 \\
++&   10&100110   \\ \hline
+ &   1.1&0011111000000 \times 2^4
+\end{array}
+\]
+當然，真正的結果需四捨五入成8位，得：
+\[1.1010000 \times 2^4 = 11010.000_2 = 26 \]
+
+除法更複雜，但是也有同樣的四捨五入的誤差問題。
+
+\subsection{分支程式設計}
+
+這一節的重點是浮點運算的結果並不準確。程式師必須意識到這點。一個程式師經常犯的浮點運算錯誤就是在假定一個運算是精確的情況下，用它們去比較。例如，考慮一個執行複雜運算的\lstinline|f(x)|函式和一個求這個函式的根的程式\footnote{函式的根是滿足$f(x) = 0$條件的$x$值}。你可能會試圖用下面的語句來檢查\lstinline|x|是不是一個根：
+\begin{lstlisting}[stepnumber=0]{}
+  if ( f(x) == 0.0 )
+\end{lstlisting}
+但是，如果\lstinline|f(x)|返回$1 \times 10^{-30}$又該怎麼辦呢？這個數的最合適的含義是\lstinline|x|是一個實根的\emph{非常}好的近似值。可能沒有一個IEEE浮點值\lstinline|x|能恰好返回0，因為\lstinline|f(x)|的四捨五入誤差。
+
+一個比較好的方法是使用：
+\begin{lstlisting}[stepnumber=0]{}
+  if ( fabs(f(x)) < EPS )
+\end{lstlisting}
+其中的\lstinline|EPS|是一個宏，定義為一個非常小的正數
+(比如說$1 \times 10^{-10}$)。當\lstinline|f(x)|非常接近0時，它就為真。一般來說，一個浮點數(譬如
+\lstinline|x|)和另一個浮點數(\lstinline|y|)的比較，需使用：
+\begin{lstlisting}[stepnumber=0]{}
+  if ( fabs(x - y)/fabs(y) < EPS )
+\end{lstlisting}
+\index{浮點!運算|)}
+
+\section{數字輔助運算器}
+\index{浮點輔助運算器|(}
+\subsection{硬體}
+\index{浮點輔助運算器!硬體|(}
+早期的Intel處理器並沒有提供支援浮點操作的硬體。這並不意味著它們不可以執行浮點操作。它僅僅表示它們需要通過由許多非浮點指令組成的程式來執行這些操作。對於早期的系統，Intel提供了一片額外的稱為\emph{數學輔助運算器}的晶片。相比於使用軟體程式，數學輔助運算器擁有能快速執行許多浮點操作的機器指令(在早期的處理器上，至少快10倍！)。8086/8088的輔助運算器為8087。80286的輔助運算器為80287，80386的為80387。80486DX處理器將數學輔助運算器內置到80486中了。\footnote{但是，80486SX並\emph{沒有}內置數學輔助運算器。這些機器有分離的80487SX晶片。}從Pentium開始，所有生產的80x86\\處理器都內置數學輔助運算器；但是，它依然被規劃成好像它是一個分離的單元。即使是早期沒有輔助運算器的系統都可以安裝一個類比數學輔助運算器的軟體。當一個程式執行了一條輔助運算器指令時，這個類比套裝軟體將自動啟動並執行一個軟體程式來得到與真實輔助運算器一樣的結果(雖然，毫無疑問，會比較慢)。
+
+數學輔助運算器有八個浮點數寄存器。每個寄存器儲存著80位元的資料。在這些寄存器中，浮點數總是儲存成80位元的擴展精度。這些寄存器稱為{\code ST0}，{\code ST1}，{\code
+ST2}，$\ldots$ {\code ST7}。浮點寄存器與主CPU中的整形寄存器的使用方法是不同的。浮點寄存器被當作一個堆疊來管理。回想一下堆疊是一個\emph{後進先出} (LIFO)佇列。{\code ST0}總是指向堆疊頂的值。所有新的數都被加入到堆疊頂中。已經存在的數被壓入到堆疊中，為了為新來的數提供空間。
+
+在數學輔助運算器中同樣有一個狀態寄存器。它有幾個標誌位元。只有4個用來比較的標誌位元將會提到：C$_0$,
+C$_1$, C$_2$ and C$_3$。這些位的使用將在以後討論。
+\index{浮點輔助運算器!硬體|)}
+
+\subsection{指令}
+
+為了很容易地將普通的CPU指令和輔助運算器指令區分開來，所有的輔助運算器助詞符都是以{\code F}開頭。
+
+\subsubsection{導入和儲存\index{浮點輔助運算器!資料的導入和儲存|(}}
+用來將資料導入到輔助運算器寄存器堆疊頂的指令有幾條：\\
+\begin{tabular}{lp{4in}}
+{\code FLD \emph{source}} \index{FLD} &
+從記憶體導入一個浮點數到堆疊頂。
+\emph{source}可以是單，雙或擴展精度數或是一個輔助運算器寄存器。\\
+{\code FILD \emph{source}} \index{FILD} &
+從記憶體中讀出一個\emph{整形數}，將它轉換成浮點數，再將結果儲存到堆疊頂。\emph{source}可以是字，雙字或四字。\\
+{\code FLD1} \index{FLD1} &
+將1儲存到堆疊頂。\\
+{\code FLDZ} \index{FLDZ} &
+將0儲存到堆疊頂。\\
+\end{tabular}
+
+將堆疊中的資料儲存到記憶體的指令同樣也有幾條。其中有幾條指令當它們儲存好一個數後，會將這個數從堆疊中\emph{彈出}(\emph{也就是}刪除)。
+\\
+\begin{tabular}{lp{4in}}
+{\code FST \emph{dest}} \index{FST} &
+將堆疊頂的值({\code ST0})儲存到記憶體中。
+\emph{dest}可以是單，雙精度數或是一個輔助運算器寄存器。\\
+{\code FSTP \emph{dest}} \index{FSTP} &
+像{\code FST}一樣，將堆疊頂的值儲存到記憶體中；但是，當儲存完這個數後，它的值將被彈出堆疊。
+\emph{dest}可以是單，雙或擴展精度數或是一個輔助運算器寄存器。\\
+{\code FIST \emph{dest}} \index{FIST} &
+將堆疊頂的值轉換成整形後再儲存到記憶體中。\emph{dest}可以是字或雙字。堆疊本身的值是不改變的。浮點數如何轉換成整形取決於輔助運算器的\emph{控制字}中的某些比特位。這是一個特殊的(非浮點)字寄存器，用來控制輔助運算器如何工作。缺省情況下，控制字會被初始化，以便於當需要轉換成整形時，它會四捨五入成最接近的整形數。但是，
+{\code FSTCW} (Store Control Word，儲存控制字)和{\code FLDCW} (Load Control Word，導入控制字)指令可以用來改變這種行為。\index{FSTCW} \index{FLDCW} \\
+{\code FISTP \emph{dest}} \index{FIST} & 它和{\code
+FIST}是一樣，除了兩件事：堆疊頂的值會被彈出，\emph{dest}同樣可以是四字的。
+\end{tabular}
+
+同樣有兩條其他的指令用來從堆疊自身中移動或刪除資料。\\
+\begin{tabular}{lp{4in}}
+{\code FXCH ST\emph{n}} \index{FXCH}  &
+將堆疊中的{\code ST0}的值和{\code ST\emph{n}}的值相互交換
+(其中\emph{n}是一個從1到7的寄存器號)。 \\
+{\code FFREE ST\emph{n}} \index{FFREE} &
+通過標記寄存器為未被使用或為空來釋放堆疊中的一個寄存器。
+\end{tabular}
+\index{浮點輔助運算器!資料的導入和儲存|)}
+
+\subsubsection{加法和減法\index{浮點輔助運算器!加法和減法|(}}
+
+每一條加法指令都是計算{\code ST0}和另一個運算元的和。結果總是儲存到一個輔助運算器寄存器中。\\
+\begin{tabular}{p{1.5in}p{3.5in}}
+{\code FADD \emph{src}} \index{FADD} &
+{\code ST0 += \emph{src}}。\emph{src}可以是任何輔助運算器寄存器或記憶體中的單或雙精度數。\\
+{\code FADD \emph{dest}, ST0} &
+{\code \emph{dest} += ST0}。 \emph{dest}可以是任何輔助運算器寄存器。\\
+{\code FADDP \emph{dest}} or \newline {\code FADDP \emph{dest}, STO} \index{FADDP} &
+{\code \emph{dest} += ST0}然後再被彈出堆疊。\emph{dest}可以是任何輔助運算器寄存器。\\
+{\code FIADD \emph{src}} \index{FIADD} &
+{\code ST0 += (float) \emph{src}}。{\code ST0}和一個整形相加。
+\emph{src}必須是記憶體中的字或雙字。
+\end{tabular}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+segment .bss
+array        resq SIZE
+sum          resq 1
+
+segment .text
+      mov    ecx, SIZE
+      mov    esi, array
+      fldz                  ; ST0 = 0
+lp:
+      fadd   qword [esi]    ; ST0 += *(esi)
+      add    esi, 8         ; 移動到下個雙字
+      loop   lp
+      fstp   qword sum      ; 將結果儲存到sum中
+\end{AsmCodeListing}
+\caption{陣列求和的例子\label{fig:addEx}}
+\end{figure}
+
+減法指令是加法指令的兩倍，因為在減法中，運算元的次序是重要的。(\emph{也就是說，}
+$a + b = b + a$，但是，$a - b \neq b - a$！)。對於每一條指令，都有一條跟它次序相反的反向指令。這些反向指令要都是以{\code R}或{\code RP}結尾。圖~\ref{fig:addEx}展示了一小段代碼：對一個雙字陣列的元素求和。在第10和第13行中，你必須指定記憶體運算元的大小。否則彙編器將不會知道記憶體運算元是一個單精確度浮點數(雙字)還是雙精度數(四字)。
+
+\begin{tabular}{p{1.5in}p{3.5in}}
+{\code FSUB \emph{src}} \index{FSUB} &
+{\code ST0 -= \emph{src}}。\emph{src}可以是任何輔助運算器寄存器或記憶體中單，雙精度數。\\
+{\code FSUBR \emph{src}} \index{FSUBR} &
+{\code ST0 = \emph{src} - ST0}。\emph{src}可以是任何輔助運算器寄存器或記憶體中單，雙精度數。\\
+{\code FSUB \emph{dest}, ST0} &
+{\code \emph{dest} -= ST0}。\emph{dest}可以是任何輔助運算器寄存器。\\
+{\code FSUBR \emph{dest}, ST0} &
+{\code \emph{dest} = ST0 - \emph{dest}}。\emph{dest}可以是任何輔助運算器寄存器。\\
+{\code FSUBP \emph{dest}} or \newline {\code FSUBP \emph{dest}, STO} \index{FSUBP} &
+{\code \emph{dest} -= ST0}然後被彈出堆疊。\emph{dest}可以是任何輔助運算器寄存器。\\
+{\code FSUBRP \emph{dest}} or \newline {\code FSUBRP \emph{dest}, STO} \index{FSUBRP} &
+{\code \emph{dest} = ST0 - \emph{dest}}然後被彈出堆疊。\emph{dest}可以是任何輔助運算器寄存器。\\
+{\code FISUB \emph{src}} \index{FISUB} &
+{\code ST0 -= (float) \emph{src}}。用{\code ST0}減去一個整數。
+\emph{src}必須是記憶體中的一個字或雙字。\\
+{\code FISUBR \emph{src}} \index{FISUBR} &
+{\code ST0 = (float) \emph{src} - ST0}。用一個整數減去{\code ST0}。\emph{src}必須是記憶體中的一個字或雙字。
+\end{tabular}
+
+\index{浮點輔助運算器!加法和減法|)}
+
+\subsubsection{乘法和除法\index{浮點輔助運算器!乘法和除法|(}}
+
+乘法指令和加法指令完全類似。\\
+\begin{tabular}{p{1.5in}p{3.5in}}
+{\code FMUL \emph{src}} \index{FMUL} &
+{\code ST0 *= \emph{src}}。\emph{src}可以是任何輔助運算器寄存器或記憶體中的單或雙精度數。\\
+{\code FMUL \emph{dest}, ST0} &
+{\code \emph{dest} *= ST0}。\emph{dest}可以是任何輔助運算器寄存器。\\
+{\code FMULP \emph{dest}} or \newline {\code FMULP \emph{dest}, STO} \index{FMULP} &
+{\code \emph{dest} *= ST0}然後被彈出堆疊。\emph{dest}可以是任何的輔助運算器寄存器。\\
+{\code FIMUL \emph{src}} \index{FMUL} &
+{\code ST0 *= (float) \emph{src}}。{\code ST0}與一個整數相乘。
+\emph{src}必須是記憶體中的一個字或雙字。
+\end{tabular}
+
+不要驚訝，除法指令和減法指令非常類似。除以0結果將是一個無窮數。\\
+\begin{tabular}{p{1.5in}p{3.5in}}
+{\code FDIV \emph{src}} \index{FDIV} &
+{\code ST0 /= \emph{src}}。\emph{src}可以是任何輔助運算器寄存器或記憶體中的單或雙精度數。\\
+{\code FDIVR \emph{src}} \index{FDIVR} &
+{\code ST0 = \emph{src} / ST0}。\emph{src}可以是任何輔助運算器寄存器或記憶體中的單或雙精度數。\\
+{\code FDIV \emph{dest}, ST0} &
+{\code \emph{dest} /= ST0}。\emph{dest}可以是任何輔助運算器寄存器。\\
+{\code FDIVR \emph{dest}, ST0} &
+{\code \emph{dest} = ST0 / \emph{dest}}。\emph{dest}可以是任何輔助運算器寄存器。\\
+{\code FDIVP \emph{dest}} or \newline {\code FDIVP \emph{dest}, STO} \index{FDIVP} &
+{\code \emph{dest} /= ST0}然後被彈出堆疊。\emph{dest}可以是任何輔助運算器寄存器。\\
+{\code FDIVRP \emph{dest}} or \newline {\code FDIVRP \emph{dest}, STO} \index{FDIVRP} &
+{\code \emph{dest} = ST0 / \emph{dest}}然後被彈出堆疊。\emph{dest}可以是任何輔助運算器寄存器。\\
+{\code FIDIV \emph{src}} \index{FIDIV} &
+{\code ST0 /= (float) \emph{src}}。{\code ST0}除以一個整數。
+\emph{src}必須是記憶體中的一個字或雙字。\\
+{\code FIDIVR \emph{src}} \index{FIDIVR} &
+{\code ST0 = (float) \emph{src} / ST0}。一個整數除以{\code ST0}。
+ The \emph{src}必須是記憶體中的一個字或雙字。
+\end{tabular}
+\index{浮點輔助運算器!乘法和除法|)}
+
+\subsubsection{比較 \index{浮點輔助運算器!比較|(}}
+
+輔助運算器同樣能執行浮點數的比較操作。
+{\code FCOM}家族的指令就是執行比較操作的。\\
+\begin{tabular}{lp{4in}}
+{\code FCOM \emph{src}} \index{FCOM} &
+比較{\code ST0}和{\code \emph{src}}。\emph{src}可以是輔助運算器寄存器或記憶體中的單或雙精度數。\\
+{\code FCOMP \emph{src}} \index{FCOMP} &
+比較{\code ST0}和{\code \emph{src}}，然後再彈出堆疊。\emph{src}可以是輔助運算器寄存器或記憶體中的單或雙精度數。\\
+{\code FCOMPP} \index{FCOMPP} &
+比較{\code ST0}和{\code ST1}，然後執行兩次出堆疊操作。\\
+{\code FICOM \emph{src}} \index{FICOM} &
+比較{\code ST0}和{\code (float) \emph{src}}。\emph{src}可以是記憶體中的一個整形字或整形雙字。\\
+{\code FICOMP \emph{src}} \index{FICOMP} &
+比較{\code ST0}和{\code (float)\emph{src}}，然後再彈出堆疊。\emph{src}可以是記憶體中的一個整形字或整形雙字。\\
+{\code FTST } \index{FTST} &
+比較{\code ST0}和0。
+\end{tabular}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+;     if ( x > y )
+;
+      fld    qword [x]       ; ST0 = x
+      fcomp  qword [y]       ; 比較STO和y
+      fstsw  ax              ; 將C狀態標誌位元儲存到FLAGS中
+      sahf
+      jna    else_part       ; 如果x不大於y，則跳轉到else_part
+then_part:
+      ; then部分的代碼
+      jmp    end_if
+else_part:
+      ; else部分的代碼
+end_if:
+\end{AsmCodeListing}
+\caption{比較指令的例子\label{fig:compEx}}
+\end{figure}
+
+這些指令會改變輔助運算器狀態寄存器中的C$_0$，C$_1$，C$_2$和C$_3$比特位的值。不幸的是，CPU直接訪問這些位是不可能的。條件分支指令使用FLAGS寄存器，而不是輔助運算器中的狀態寄存器。但是，使用幾條新的指令可以相當容易地將狀態字的比特位元傳遞到FLAGS寄存器上相同的比特位中。\\
+\begin{tabular}{lp{4in}}
+{\code FSTSW \emph{dest}} \index{FSTSW} &
+存儲輔助運算器狀態字到記憶體的一個字或AX寄存器中。\\
+{\code SAHF} \index{SAHF} &
+將AH寄存器中的值儲存到FLAGS寄存器中。\\
+{\code LAHF} \index{LAHF} &
+將FLAGS寄存器中的比特位導入到AH寄存器中。\\
+\end{tabular}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+global _dmax
+
+segment .text
+; 函式 _dmax
+; 返回兩個參數中的較大的一個
+; C函式原型
+; double dmax( double d1, double d2 )
+; 參數:
+;   d1   - 第一個雙精度數
+;   d2   - 第二個雙精度數
+; 返回值:
+;   d1和d2中較大的一個 (儲存在ST0中)
+%define d1   ebp+8
+%define d2   ebp+16
+_dmax:
+        enter   0, 0
+
+        fld     qword [d2]
+        fld     qword [d1]          ; ST0 = d1, ST1 = d2
+        fcomip  st1                 ; ST0 = d2
+        jna     short d2_bigger
+        fcomp   st0                 ; 從堆疊中彈出d2
+        fld     qword [d1]          ; ST0 = d1
+        jmp     short exit
+d2_bigger:                     ; 如果d2不是較大的那個數，不做任何事
+exit:
+        leave
+        ret
+\end{AsmCodeListing}
+\caption{{\code FCOMIP}指令的例子\label{fig:fcomipEx}}
+\index{FCOMIP}
+\end{figure}
+
+圖~\ref{fig:compEx}展示了一小段樣例代碼。第5行和第6行將C$_0$，C$_1$，C$_2$和C$_3$比特位傳遞到FLAGS寄存器相同的比特位中了。傳遞了這些比特位，所以它們就類似於兩個\emph{無符號}整形的比較結果。這也是為什麼第7行使用{\code JNA}指令的緣故。
+
+Pentium處理器(和它以後的處理器(Pentium II and III))支援兩條新比較指令，用來直接改變CPU中FLAGS寄存器的值。
+
+\begin{tabular}{lp{4in}}
+{\code FCOMI \emph{src}} \index{FCOMI} &
+比較{\code ST0}和{\code \emph{src}}。\emph{src}必須是一個輔助運算器寄存器。\\
+{\code FCOMIP \emph{src}} \index{FCOMIP} &
+比較{\code ST0}和{\code \emph{src}}，然後再彈出堆疊。\emph{src}必須是一個輔助運算器寄存器。\\
+\end{tabular}
+圖~\ref{fig:fcomipEx}展示了一個子程式例子：使用{\code FCOMIP}指令來找出兩個雙精度數的較大值。不要把這些指令和整形比較函式({\code FICOM}
+和{\code FICOMP})混起來。
+\index{浮點輔助運算器!比較|)}
+
+\subsubsection{雜項指令}
+%FINIT?
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+segment .data
+x            dq  2.75          ; 轉換成雙精度格式
+five         dw  5
+
+segment .text
+      fild   dword [five]      ; ST0 = 5
+      fld    qword [x]         ; ST0 = 2.75，ST1 = 5
+      fscale                   ; ST0 = 2.75 * 32，ST1 = 5
+\end{AsmCodeListing}
+\caption{{\code FSCALE}指令的例子\label{fig:fscaleEx}}
+\index{FSCALE}
+\end{figure}
+
+這一節包括了輔助運算器提供的其他雜項指令。
+
+\begin{tabular}{lp{4in}}
+{\code FCHS} \index{FCHS} &
+{\code ST0 = - ST0}改變{\code ST0}的符號位元  \\
+{\code FABS} \index{FABS} &
+$\mathtt{ST0} = |\mathtt{ST0}|$ 求{\code ST0}的絕對值\\
+{\code FSQRT} \index{FSQRT} &
+$\mathtt{ST0} = \sqrt{\mathtt{STO}}$ 求{\code ST0}的平方根 \\
+{\code FSCALE} \index{FSCALE} &
+$\mathtt{ST0} = \mathtt{ST0} \times 2^{\lfloor \mathtt{ST1} \rfloor}$
+快速執行{\code ST0}乘以2的幾次方的操作。{\code ST1}並不會從輔助運算器堆疊中移除。圖~\ref{fig:fscaleEx}展示了一個如何使用這些指令的例子。
+\end{tabular}
+
+
+\subsection{樣例}
+
+\subsection{二次方程求根公式\index{quad.asm|(}}
+
+第一個例子展示了如何用組合語言編寫二次方程求根公式。回憶一下如何用求根公式計算二次方程等式的根：
+\[ a x^2 + b x + c = 0 \]
+公式本身給出兩個根$x$：$x_1$和$x_2$。
+\[ x_1, x_2 = \frac{-b \pm \sqrt{b^2 - 4 a c}}{2 a} \]
+在平方根($b^2 - 4 a c$)裏的運算式稱為
+\emph{判別式}。這個值在判定是下面三種可能的根的情況中的哪一種時非常有用。
+\begin{enumerate}
+\item 只有一個實根。當$b^2 - 4 a c = 0$時
+\item 有兩個實根。當$b^2 - 4 a c > 0$時
+\item 有兩個複根。當$b^2 - 4 a c < 0$時
+\end{enumerate}
+
+這是一個使用彙編副程式的小的C程式：
+\LabelLine{quadt.c}
+\begin{lstlisting}{}
+#include <stdio.h>
+
+int quadratic( double, double, double, double *, double *);
+
+int main()
+{
+  double a,b,c, root1, root2;
+
+  printf("Enter a, b, c: ");
+  scanf("%lf %lf %lf", &a, &b, &c);
+  if (quadratic( a, b, c, &root1, &root2) )
+    printf("roots: %.10g %.10g\n", root1, root2);
+  else
+    printf("No real roots\n");
+  return 0;
+}
+\end{lstlisting}
+\LabelLine{quadt.c}
+
+彙編副程式如下：
+\begin{AsmCodeListing}[label=quad.asm,commentchar=$]
+; 函式 quadratic
+; 求二次等式的根：
+;       a*x^2 + b*x + c = 0
+; C函式原型:
+;   int quadratic( double a, double b, double c,
+;                  double * root1, double *root2 )
+; 參數:
+;   a, b, c - 二次等式中各次方的系統(看上面)
+;   root1   - 指向存儲第一個根的雙精度變數的指標
+;   root2   - 指向存儲第二個根的雙精度變數的指標
+; 返回值:
+;   如果存在實根，則返回1,否則返回0
+
+%define a               qword [ebp+8]
+%define b               qword [ebp+16]
+%define c               qword [ebp+24]
+%define root1           dword [ebp+32]
+%define root2           dword [ebp+36]
+%define disc            qword [ebp-8]
+%define one_over_2a     qword [ebp-16]
+
+segment .data
+MinusFour       dw      -4
+
+segment .text
+        global  _quadratic
+_quadratic:
+        push    ebp
+        mov     ebp, esp
+        sub     esp, 16         ; 分配兩個雙精度數大小的空間(disc & one_over_2a)
+        push    ebx             ; 必須保存原始的ebx值
+
+        fild    word [MinusFour]; stack -4
+        fld     a               ; stack: a, -4
+        fld     c               ; stack: c, a, -4
+        fmulp   st1             ; stack: a*c, -4
+        fmulp   st1             ; stack: -4*a*c
+        fld     b
+        fld     b               ; stack: b, b, -4*a*c
+        fmulp   st1             ; stack: b*b, -4*a*c
+        faddp   st1             ; stack: b*b - 4*a*c
+        ftst                    ; test with 0
+        fstsw   ax
+        sahf
+        jb      no_real_solutions ; 如果disc < 0，則沒有實根
+        fsqrt                   ; stack: sqrt(b*b - 4*a*c)
+        fstp    disc            ; 儲存然後再彈出堆疊
+        fld1                    ; stack: 1.0
+        fld     a               ; stack: a, 1.0
+        fscale                  ; stack: a * 2^(1.0) = 2*a, 1
+        fdivp   st1             ; stack: 1/(2*a)
+        fst     one_over_2a     ; stack: 1/(2*a)
+        fld     b               ; stack: b, 1/(2*a)
+        fld     disc            ; stack: disc, b, 1/(2*a)
+        fsubrp  st1             ; stack: disc - b, 1/(2*a)
+        fmulp   st1             ; stack: (-b + disc)/(2*a)
+        mov     ebx, root1
+        fstp    qword [ebx]     ; store in *root1
+        fld     b               ; stack: b
+        fld     disc            ; stack: disc, b
+        fchs                    ; stack: -disc, b
+        fsubrp  st1             ; stack: -disc - b
+        fmul    one_over_2a     ; stack: (-b - disc)/(2*a)
+        mov     ebx, root2
+        fstp    qword [ebx]     ; 儲存到*root2中
+        mov     eax, 1          ; 返回值為1
+        jmp     short quit
+
+no_real_solutions:
+        mov     eax, 0          ; 返回值為0
+
+quit:
+        pop     ebx
+        mov     esp, ebp
+        pop     ebp
+        ret
+\end{AsmCodeListing}
+\index{quad.asm|)}
+
+\subsection{從檔中讀數組\index{read.asm|(}}
+
+在這個例子中，有一個從檔中讀取雙精度數的組合語言程式。這是一個簡短的C測試程式：
+\LabelLine{readt.c}
+\lstset{escapeinside=`',language=Pascal,%
+}
+\begin{lstlisting}{}
+/*`
+   這個程式用來測試32位元的read\_doubles()組合語言程式。
+   它從stdin中讀取雙精度數。(使用重定向從檔中讀取。)
+ '*/
+#include <stdio.h>
+extern int read_doubles( FILE *, double *, int );
+#define MAX 100
+
+int main()
+{
+  int i,n;
+  double a[MAX];
+
+  n = read_doubles(stdin, a, MAX);
+
+  for( i=0; i < n; i++ )
+    printf("%3d %g\n", i, a[i]);
+  return 0;
+}
+\end{lstlisting}
+\LabelLine{readt.c}
+
+這是組合語言程式：
+\begin{AsmCodeListing}[label=read.asm]
+segment .data
+format  db      "%lf", 0        ; format for fscanf()
+
+segment .text
+        global  _read_doubles
+        extern  _fscanf
+
+%define SIZEOF_DOUBLE   8
+%define FP              dword [ebp + 8]
+%define ARRAYP          dword [ebp + 12]
+%define ARRAY_SIZE      dword [ebp + 16]
+%define TEMP_DOUBLE     [ebp - 8]
+
+;
+; 函式 _read_doubles
+; C函式原型:
+;   int read_doubles( FILE * fp, double * arrayp, int array_size );
+; 這個函式從一個文字檔案中讀取雙精度數，並將它們儲存到一個陣列裏，直到遇到
+; EOF或陣列滿了。
+; 參數:
+;   fp         - 指向需要讀取的檔的指標(必須允許輸入)
+;   arrayp     - 指向寫入的雙精度陣列的指標
+;   array_size - 陣列的元素個數
+; 返回值:
+;   儲存到陣列中的雙精度數的個數(保存在EAX中)
+
+_read_doubles:
+        push    ebp
+        mov     ebp,esp
+        sub     esp, SIZEOF_DOUBLE      ; 在堆疊中定義一個雙精度數
+
+        push    esi                     ; 保存esi
+        mov     esi, ARRAYP             ; esi = ARRAYP
+        xor     edx, edx                ; edx = 陣列的下標(最開始為0)
+
+while_loop:
+        cmp     edx, ARRAY_SIZE         ; edx < ARRAY_SIZE?
+        jnl     short quit              ; 如果不是，退出迴圈
+;
+; 調用fscanf()函式讀一個雙精度數到TEMP_DOUBLE中
+; fscanf()會改變edx，所以需要保存它
+;
+        push    edx                     ; 保存edx
+        lea     eax, TEMP_DOUBLE
+        push    eax                     ; 將&TEMP_DOUBLE壓入堆疊中
+        push    dword format            ; 將&format壓入堆疊中
+        push    FP                      ; 將檔案指針壓入堆疊中
+        call    _fscanf
+        add     esp, 12
+        pop     edx                     ; 恢復edx的值
+        cmp     eax, 1                  ; fscanf函式是否返回1？
+        jne     short quit              ; 如果不是，則退出迴圈
+
+;
+; 複製TEMP_DOUBLE到ARRAYP[edx]中
+; (8個位元組的雙精度數是通過分成兩個4位元組的數來完成複製的)
+;
+        mov     eax, [ebp - 8]
+        mov     [esi + 8*edx], eax      ; 首先複製低4位元組
+        mov     eax, [ebp - 4]
+        mov     [esi + 8*edx + 4], eax  ; 接著複製高4位元組
+
+        inc     edx
+        jmp     while_loop
+
+quit:
+        pop     esi                     ; 恢復esi
+
+        mov     eax, edx                ; 將返回值儲存到eax中
+
+        mov     esp, ebp
+        pop     ebp
+        ret
+\end{AsmCodeListing}
+\index{read.asm|)}
+
+\subsection{查找素數\index{prime2.asm|(}}
+
+最後一個例子又是查找素數的例子。這次的實現方法比以前的方法更有效。它將找到的素數儲存到一個陣列中，而且在查找新的素數時，只除以它已經找到的素數，而不是去除以每一個奇數。
+
+另一個區別是它會計算出猜想的下一個素數的平方根來決定查找因數時應停在哪一個數。它修改了輔助運算器的控制字，所以當它把平方根當作一個整數來儲存時，是通過直接截去來得到整數，而不是四捨五入。這是由控制字中的第10位和第11位來控制的。這些位稱為RC(Rounding Control，四捨五入控制)位。如果這兩位都是0(缺省值)，則輔助運算器轉換成整數時，採用四捨五入的方法。如果是1,則通過直接截去來得到整數。注意：程式必須小心保存好控制字的原始值，當它返回時須恢復它的值。
+
+這是C驅動程式：
+\LabelLine{fprime.c}
+\lstset{escapeinside=`',language=Pascal,%
+}
+\begin{lstlisting}{}
+#include <stdio.h>
+#include <stdlib.h>
+/*`
+ * 函式 find\_primes
+ * 查找給定範圍的素數
+ * 參數:
+ *   a - 保存素數的陣列
+ *   n - 找到的素數的個數
+ '*/
+extern void find_primes( int * a, unsigned n );
+
+int main()
+{
+  int status;
+  unsigned i;
+  unsigned max;
+  int * a;
+
+  printf("How many primes do you wish to find? ");
+  scanf("%u", &max);
+
+  a = calloc( sizeof(int), max);
+
+  if ( a ) {
+
+    find_primes(a,max);
+
+    /* print out the last 20 primes found */
+    for(i= ( max > 20 ) ? max - 20 : 0; i < max; i++ )
+      printf("%3d %d\n", i+1, a[i]);
+
+    free(a);
+    status = 0;
+  }
+  else {
+    fprintf(stderr, "Can not create array of %u ints\n", max);
+    status = 1;
+  }
+
+  return status;
+}
+\end{lstlisting}
+\LabelLine{fprime.c}
+
+下麵是組合語言程式：
+
+
+\begin{AsmCodeListing}[label=prime2.asm]
+segment .text
+        global  _find_primes
+;
+; 函式 find_primes
+; 查找給定範圍的素數
+; 參數:
+;   array  - 保存素數的陣列
+;   n_find - 找到的素數的個數
+; C函式原型：
+;extern void find_primes( int * array, unsigned n_find )
+;
+%define array         ebp + 8
+%define n_find        ebp + 12
+%define n             ebp - 4           ; 目前為止找到的素數的個數
+%define isqrt         ebp - 8           ; 猜想的下一個素數開平方後得到的整數
+%define orig_cntl_wd  ebp - 10          ; 原始控制字
+%define new_cntl_wd   ebp - 12          ; 新的控制字
+
+_find_primes:
+        enter   12,0                    ; 為局部變數分配空間
+
+        push    ebx                     ; 保存可能的寄存器變數
+        push    esi
+
+        fstcw   word [orig_cntl_wd]     ; 得到當前控制字
+        mov     ax, [orig_cntl_wd]
+        or      ax, 0C00h               ; 設置RC位為11(截去)
+        mov     [new_cntl_wd], ax
+        fldcw   word [new_cntl_wd]
+
+        mov     esi, [array]            ; esi指向陣列
+        mov     dword [esi], 2          ; array[0] = 2
+        mov     dword [esi + 4], 3      ; array[1] = 3
+        mov     ebx, 5                  ; ebx = guess = 5
+        mov     dword [n], 2            ; n = 2
+;
+; 這個外部的迴圈用來查找一個新的素數，新的素數將被加到
+; 陣列的末尾。跟以前的查找素數程式不同的是，這個函式
+; 並不是通過除以所有的奇數來決定它是不是素數。它僅僅
+; 除以已經找到的素數。(這也是為什麼它們
+; 被儲存到陣列中的緣故。)
+;
+while_limit:
+        mov     eax, [n]
+        cmp     eax, [n_find]           ; while ( n < n_find )
+        jnb     short quit_limit
+
+        mov     ecx, 1                  ; ecx用來表示陣列的下標
+        push    ebx                     ; 將猜想的素數儲存到堆疊中
+        fild    dword [esp]             ; 將猜想的素數導入到輔助運算器堆疊中
+        pop     ebx                     ; 將猜想的素數移除出堆疊
+        fsqrt                           ; 求sqrt(guess)
+        fistp   dword [isqrt]           ; isqrt = floor(sqrt(quess))
+;
+; 這個內部的迴圈用猜想的素數(ebx)除以已經找到的素數，
+; 直到找到一個猜想的素數的因數(也就意味著這個猜想的素數不是素數)，
+; 或直到猜想的素數除以的找到的素數大於floor(sqrt(guess))
+;
+while_factor:
+        mov     eax, dword [esi + 4*ecx]        ; eax = array[ecx]
+        cmp     eax, [isqrt]                    ; while ( isqrt < array[ecx]
+        jnbe    short quit_factor_prime
+        mov     eax, ebx
+        xor     edx, edx
+        div     dword [esi + 4*ecx]
+        or      edx, edx                        ; && guess % array[ecx] != 0 )
+        jz      short quit_factor_not_prime
+        inc     ecx                             ; 試下一個素數
+        jmp     short while_factor
+
+;
+; found a new prime !
+;
+quit_factor_prime:
+        mov     eax, [n]
+        mov     dword [esi + 4*eax], ebx        ; 將猜想的素數加到陣列的末尾
+        inc     eax
+        mov     [n], eax                        ; inc n
+
+quit_factor_not_prime:
+        add     ebx, 2                          ; 試下一個奇數
+        jmp     short while_limit
+
+quit_limit:
+
+        fldcw   word [orig_cntl_wd]             ; 恢復控制字
+        pop     esi                             ; 恢復寄存器變數
+        pop     ebx
+
+        leave
+        ret
+\end{AsmCodeListing}
+\index{prime2.asm|)}
+\index{浮點輔助運算器|)}
+\index{浮點|)}
+

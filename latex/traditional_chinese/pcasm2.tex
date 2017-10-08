@@ -1,0 +1,807 @@
+
+\chapter{基本組合語言}
+
+\section{整形工作方式 \index{整形|(}}
+
+\subsection{整形表示法 \index{整形!表示法|(}}
+
+\index{整形!無符號|(}
+整形有兩種類型:有符號和無符號。無符號整形(即此類型沒有負數)以一種非常直接的二進位方式來表示。數字200作為一個
+無符號整形數將被表示為11001000(或十六進位C8)。 \index{整形!無符號|)}
+
+\index{整形!有符號|(}
+有符號整形（即此類型可能為正數也可能為負數）以一種更複雜的方式來表示。例如，考慮
+$-56$。$+56$當作一個位元組來考慮時將被表示為00111000。在紙上，你可以將$-56$表示為$-111000$，但是在電腦記憶體中如何以一個位元組來表示，如何儲存這個負號呢？
+
+有三種普遍的技術被用來在電腦記憶體中表示有符號整形。所有的方法都把整形的最大有效位元當作一個\emph{符號位元}來使用。\index{整形!符號位元}如果數為正數，則這一位為0；為負數，這一位就為1。
+\index{整形!有符號|)}
+\subsubsection{原碼 \index{整形!表示法!原碼}}
+
+第一種方法是最簡單的，它被稱為\emph{原碼}。它用兩部分來表示一個整形。第一部分是符號位元，第二部分是整形的原碼。所以56表示成位元組形式為$\underline{0}0111000$
+(符號位元加了下劃線)而$-56$將表示為
+$\underline{1}0111000$。最大的一個位元組的值將是
+$\underline{0}1111111$或$+127$，而最小的一個位元組的值將是
+$\underline{1}1111111$或$-127$。要得到一個數的相反數，只需要將符號位元變反。
+這個方法很簡單直接，但是它有它的缺點。首先，0會有兩個可能的值：$+0$
+($\underline{0}0000000$) 和 $-0$
+($\underline{1}0000000$)。因為0不是正數，也不是負數，所以這些表示法都應該把它表示成一樣。這樣會把CPU的運算邏輯弄得很複雜
+。第二，普通的運算同樣
+是麻煩的。如果10加$-56$，這個將改變為10減去56。同樣，這將會複雜化CPU的邏輯。
+
+\subsubsection{反碼 \index{整形!表示法!反碼}}
+
+第二種方法稱為\emph{反碼}表示法。一個數的反碼可以通過將這個數的每一位求反得到。
+(另外一個得到的方法是：新的位值等於$1 - $老的位值。) 例如：
+$\underline{0}0111000$
+($+56$)的反碼是$\underline{1}1000111$。在反碼表示法中，計算一個數的反碼等價於求反。因此，
+$-56$就可以表示為$\underline{1}1000111$。注意，符號位元在反碼中是自動改變的，你需要兩次求反碼來得到原始的數值。就像第一種方法一樣，0有兩種表示：
+$\underline{0}0000000$ ($+0$)和$\underline{1}1111111$
+($-0$)。用反碼表示的數值的運算同樣是麻煩的。
+
+這有一個小訣竅來得到一個十六進位數值的反碼，而不需要將它轉換成二進位。這個訣竅就是用F（或十進位中的15）減去每一個十六進位位。這個方法假定數中的每一位的數值是由4位元二進位組成的。這有一個例子：$+56$ 用十六進位表示為38。要得到反碼，用F減去每一位，得到C7。這個結果是與上面的結果吻合的。
+
+\subsubsection{補數 \index{整形!表示法!補數|(}
+               \index{補數|(}}
+
+前面描述的兩個方法用在早期的電腦中。現代的電腦使用第三種方法稱為\emph{補數}表示法。一個數的補數可以由下面兩步得到：
+\begin{enumerate}
+\item 找到該數的反碼
+\item 將第一步的結果加1
+\end{enumerate}
+這有一個使用$\underline{0}0111000$ (56)的例子。首先，經計算得到反碼：$\underline{1}1000111$ 。然後加1：
+\[
+\begin{array}{rr}
+ & \underline{1}1000111 \\
++&                    1 \\ \hline
+ & \underline{1}1001000
+\end{array}
+\]
+
+在補數表示法中，計算一個補數等價於對一個數求反。因此，$\underline{1}1001000$
+是$-56$的補數。要得到原始數值需兩次求反。令人驚訝的是補數不符合這個規定。通過對$\underline{1}1001000$的反碼加1得到補數
+。
+\[
+\begin{array}{rr}
+ & \underline{0}0110111 \\
++&                    1 \\ \hline
+ & \underline{0}0111000
+\end{array}
+\]
+
+當在兩個補數運算元間進行加法操作時，最左邊的位相加可能會產生一個進位。這個進位是\emph{不}被使用的。記住在電腦中的所有資料都是有固定大小的(根據位元數多少)。兩個位元組相加通常得到一個位元組的結果
+(就像兩個字相加得到一個字，{\em 等\/}。)
+這個特性對於補數表示法來說是非常重要的。例如，把0作為一個位元組來考慮它的補數形式($\underline{0}0000000$)。計算它的補數形式得到總數：
+\[
+\begin{array}{rr}
+ & \underline{1}1111111 \\
++&                    1 \\ \hline
+c& \underline{0}0000000
+\end{array}
+\]
+其中$c$代表一個進位。(稍後將展示如何偵查到這個進位，但是它在這的結果中不儲存。)因此，在補數表示法中0只有一種表示。這就使得補數的運算比前面的方法簡單。
+
+\begin{table}
+\centering
+\begin{tabular}{||c|c||}
+\hline
+數值 & 十六進位表示 \\
+\hline
+0 & 00 \\
+1 & 01 \\
+127 & 7F \\
+-128 & 80 \\
+-127 & 81 \\
+-2 & FE \\
+-1 & FF \\
+\hline
+\end{tabular}
+\caption{補數表示法 \label{tab:twocomp}}
+\end{table}
+
+使用補數表示法，一個有符號的位元組可以用來代表從$-128$
+到$+127$的數值。表~\ref{tab:twocomp}
+展示一些可選的值。如果使用了16位，那麼可以表示從$-32,768$\\
+到$+32,767$的有符號數值。$+32,767$可以表示為7FFF， $-32,768$ 為8000,
+-128為FF80而-1為FFFF。32位的補數大約可以表示$-20$億到$+20$億的數值範圍。
+
+
+CPU對某一的位元組(或字，雙字)具體表示多少
+並不是很清楚。組合語言並沒有類型的概念，而高階語言有。資料解釋成什麼取決於使用在這個資料上的指令。到底十六進位數FF被看成一個有符號數
+$-1$
+還是無符號數$+255$取決於程式師。C語言定義了有符號和無符號整形。這就使C編譯器能決定使用正確的指令來使用資料。
+
+\index{補數|)} \index{整形!表示法!補數|)} 
+
+\subsection{正負號延伸 \index{整形!正負號延伸|(}}
+
+在組合語言中，所有資料都有一個指定的大小。為了與其他資料一起使用而改變資料大小是不常用的。減小它的大小是最簡單的。
+
+\subsubsection{減小數據的大小}
+
+要減小資料的大小，只需要簡單地將多餘的有效位移位即可。這是一個普通的例子：
+\begin{AsmCodeListing}[numbers=none,frame=none]
+      mov    ax, 0034h      ; ax = 52 (以十六位元儲存)
+      mov    cl, al         ; cl = ax的低八位
+\end{AsmCodeListing}
+
+當然，如果數字不能以更小的大小來正確描述，那麼減小資料的大小將不能工作。例如，如果{\code AX}是
+0134h (或十進位的308) ，那麼上面的代碼仍然將
+{\code CL}置為34h。這種方法對於有符號和無符號數都能工作。考慮有符號數：如果{\code AX}是FFFFh (也就是$-1$)，那麼{\code CL} 將會是FFh (一個位元組表示的$-1$)。然而，注意如果在{\code AX}裏的值是無符號的，這個就不正確了！
+
+無符號數的規則是：為了能轉換正確，所有需要移除的位元都必須是0。有符號數的規則是：需要移除的位元必須要麼都是1,要麼都是0。另外，沒有移除的第一個比特位的值必須等於移除的位的第一位。這一位將會是變小的值的新的符號位元。這一位元與原始符號位元相同是非常重要的！
+
+\subsubsection{增大數據的大小}
+
+增大資料的大小比減小資料的大小更複雜。考慮十六進位位元組：FF。如果它擴展成一個字，那麼這個字的值應該是多少呢？它取決於如何解釋FF。如果FF是一個無符號位元組(十進位中為)，那麼這個字就應該是00FF；但是，如果它是一個有符號位元組(十進位中為$-1$)，那麼這個字就應該為
+FFFF。
+
+一般說來，擴展一個無符號數，你需將所有的新位置為0.因此，FF就變成了00FF。但是，擴展一個有符號數，你必須\emph{擴展}符號位元。\index{整形!符號位元}
+這就意味著所有的新位元通過複製符號位元得到。因為FF的符號位元為1，所以新的位必須全為1，從而得到FFFF。如果有符號數5A
+(十進位中為90)被擴展了，那麼結果應該是005A。
+
+80386提供了好幾條指令用於數的擴展。謹記電腦是不清楚一個數是有符號的或是無符號的。這取決於程式師是否用了正確的指令。
+
+對於無符號數，你可以使用{\code MOV}指令簡單地將高位置0。例如，將一個在AL中的無符號位元組擴展到AX中：
+\begin{AsmCodeListing}[numbers=none,frame=none]
+      mov    ah, 0   ; 輸出高8位為0
+\end{AsmCodeListing}
+但是，使用{\code MOV}指令把一個在AX中的無符號字轉換成在EAX中的無符號雙字是不可能的。為什麼不可以呢？因為在{\code MOV}指令中沒有方法指定EAX的高16位。80386通過提供一個新的指令{\code MOVZX}來解決這個問題。\index{MOVZX} 這個指令有兩個運算元。目的運算元
+(第一個運算元)必須是一個16或32位的寄存器。源運算元(第二個運算元)可以是一個8或16位元的寄存器或記憶體中的一個字。另一個限制是目的運算元必須大於源運算元。(許多指令要求源和目的運算元必須是一樣的大小。) 這兒有幾個例子：
+\begin{AsmCodeListing}[numbers=none,frame=none]
+      movzx  eax, ax      ; 將ax擴展成eax
+      movzx  eax, al      ; 將al擴展成eax
+      movzx  ax, al       ; 將al擴展成ax
+      movzx  ebx, ax      ; 將ax擴展成ebx
+\end{AsmCodeListing}
+
+對於有符號數，在任何情況下，沒有一個簡單的方法來使用{\code MOV}
+指令。8086提供了幾條用來擴展有符號數的指令。{\code CBW} \index{CBW}
+(Convert Byte to
+Word(位元組轉換成字))指令將AL正負號擴展成AX。運算元是不顯示的。{\code
+CWD} \index{CWD} (Convert Word to Double
+word(字轉換成雙字))指令將AX正負號擴展成DX:AX。 \\
+DX:AX表示法表示將DX和AX寄存器當作一個32位寄存器來看待，其中高16位在DX中，低16位在AX中。(記住8086沒有32位寄存器！)
+80386加了好幾條新的指令。{\code CWDE} \index{CWDE} (Convert Word to
+Double word
+Extended(字轉換成擴展的雙字))指令將AX正負號擴展成EAX。{\code CDQ}
+\index{CDQ} (Convert Double word to Quad
+word(雙字擴展成四字))指令將EAX正負號擴展成EDX:EAX\index{寄存器!EDX:EAX}
+(64位!). 最後， {\code MOVSX} \index{MOVSX}指令像{\code
+MOVZX}指令一樣工作，除了它使用有符號數的規則外。
+
+
+\subsubsection{C編程中的應用}
+
+無符號和有符號數的擴展\MarginNote{ANSI C並沒有定義\\{\code char}類型是有符號\\的，還是無符號的，\\它取決於各個編譯\\器的決定。這就是\\為什麼在圖~\ref{fig:charExt}中\\明確指定類型的原因。
+}同樣發生在C中。 C中的變數可以被聲明成有符號的，或無符號的({\code
+int}是有符號的)。考慮在圖~\ref{fig:charExt}中的代碼。在第3行中，變數{\code
+a}使用了無符號數的規則(使用{\code
+MOVZX})進行了擴展，但是在第4行，變數{\code
+b}使用了有符號數的規則(使用 {\code MOVSX})進行了擴展。
+
+\begin{figure}[t]
+\begin{lstlisting}[frame=tlrb]{}
+unsigned char uchar = 0xFF;
+signed char   schar = 0xFF;
+int a = (int) uchar;     /* a = 255 (0x000000FF) */
+int b = (int) schar;     /* b = -1  (0xFFFFFFFF) */
+\end{lstlisting}
+\caption{}
+\label{fig:charExt}
+\end{figure}
+
+這有一個直接與這個主題相關的普遍的C編程中的一個bug。考慮在圖~\ref{fig:IObug}中的代碼。
+{\code fgetc()}的原型{\samepage 是:
+\begin{CodeQuote}
+int fgetc( FILE * );
+\end{CodeQuote}
+一個可能的問題:}為什麼這個函式返回一個{\code
+int}類型，然後又被當作字元類型被讀呢？
+原因是它一般確實是返回一個{\code char}
+類型的值(使用0擴展成一個{\code
+int}類型的值)。但是，有一個值它可能不會以字元的形式返回：{\code
+EOF}。 這是一個宏，通常被定義為 $-1$。因此，{\code
+fgetc()}不是返回一個通過擴展成{\code int}類型得到的{\code
+char}類型的值 (在十六進位中表示為{\code 000000{\em xx}})，就是{\code
+EOF} (在十六進位中表示為{\code FFFFFFFF})。
+
+\begin{figure}[t]
+\lstset{escapeinside=`',language=Pascal,%
+}
+\begin{lstlisting}[stepnumber=0,frame=tlrb]{}
+char ch;
+while( (ch = fgetc(fp)) != EOF ) {
+  /* `對ch做一些事情' */
+}
+\end{lstlisting}
+\caption{} \label{fig:IObug}
+\end{figure}
+
+圖~\ref{fig:IObug}中的程式的基本的問題是
+{\code fgetc()}返回一個{\code int}類型，但是這個值以{\code char}的形式儲存。C將會切去較高順序的位元來使{\code int}類型的值適合{\code char}類型。唯一的問題是數
+(十六進位) {\code 000000FF}和{\code FFFFFFFF}都會被切成位元組{\code FF}。因此，while迴圈不能區別從檔中讀到的位元組{\code FF}和檔的結束。
+
+實際上，在這種情況下代碼會怎麼做，取決於{\code
+char}是有符號的，還是無符號的。為什麼？因為在第2行{\code ch}是與
+{\code EOF}進行比較。 因為{\code EOF}是一個{\code
+int}類型的值\footnote{這是一個普通的誤解：在檔的最後有一個EOF字元。
+這是 \emph{不} 正確的!}，{\code ch}將會擴展成一個{\code
+int}類型，以便於這兩個值在相同大小下比較\footnote{對於這個要求的原因將在下面介紹。}。
+就像圖~\ref{fig:charExt}展示的一樣，變數是有符號的還是無符號的是非常重要的。
+
+如果{\code char}是無符號的，那麼{\code FF}就被擴展成 {\code
+000000FF}。這個拿去與{\code EOF} ({\code FFFFFFFF})比較，它們並不相等。因此，迴圈不會結束。
+
+如果{\code char}是有符號的，{\code FF}就被擴展成{\code
+FFFFFFFF}。這就導致比較相等，迴圈結束。但是，因為位元組{\code FF}可能是從檔中讀到的，迴圈就可能過早地被結束了。
+
+這個問題的解決辦法是定義{\code ch} 變數為
+{\code int}類型，而不是 {\code char}類型。當做了這個改變，在第2行就不會有切去和擴展操作執行了。在迴圈休內，對值進行切去操作是很安全的，因為{\code ch}在這兒 \emph{必須}實際上已經是一個簡單的位元組了。
+
+\index{整形!正負號延伸|)} \index{整形!表示法|)}
+
+\subsection{補數運算 \index{補數!運算|(}}
+
+就像我們早些時候看到的，{\code add}指令執行加法操作，而{\code
+sub}指令的執行減法操作。在FLAGS寄存器中的兩位能被這些指令設置，它們是：\emph{overflow(溢出位)}
+和\emph{carry
+flag(進位元標誌位元)}。如果操作的正確結果太大了以致於不匹配有符號數運算的目的運算元，溢出標誌位元將被置位元。如果在加法中的最高有效位有一個進位或在減法中的最高有效位有一個借位，進位元標誌位元將被置位元。因此，它可以用來檢查無符號數運算的溢出。進位元標誌位元在有符號數運算中的使用將看起來非常簡單。補數的一個最大的優點是加法和減法的規則實際上就與無符號整形的一樣。因此，
+{\code add}和{\code sub}可以同時被用在有符號和無符號整形上。
+\[
+\begin{array}{rrcrr}
+ & 002\mathrm{C} & & & 44\\
++& \mathrm{FFFF} & &+&(-1)\\ \cline{1-2} \cline{4-5}
+ & 002\mathrm{B} & & & 43
+\end{array}
+\]
+這兒有一個進位產生，但是它不是結果的一部分。
+
+\index{整形!乘法|(} \index{MUL|(} \index{IMUL|(}
+這有兩個不同的乘法和除法指令。首先，使用{\code MUL}或{\code IMUL}
+指令來進行乘法運算。 {\code MUL}指令用於無符號數之間相乘，而 {\code
+IMUL}指令用於有符號數之間相乘。為什麼需要兩個不同的指令呢？無符號數和有符號數補數的乘法規則是不同的。為什麼會這樣？考慮位元組FF乘以它本身產生一個字的結果。使用無符號乘法這就是255乘上255，得65025
+(或十六進位的FE01)。使用有符號數乘法這就是 $-1$ 乘上 $-1$，得1
+(或十六進位的0001)。
+
+這兒有乘法指令的幾種格式。最老的格式是像這樣的：
+\begin{AsmCodeListing}[numbers=none,frame=none]
+      mul   source
+\end{AsmCodeListing}
+\emph{source}要麼是一個寄存器，要麼是一個指定的記憶體。它不可以是一個立即數。實際上，乘法怎麼執行取決於源運算元的大小。如果運算元大小是一個位元組，它乘以在AL寄存器中的位元組，而結果被儲存到了16位元寄存器AX中。如果源運算元是16位，它乘以在AX中的字，而32位元的結果被儲存到了DX:AX。如果源運算元是32位的，它乘以在EAX中的數，而結果被儲存到了EDX:EAX\index{寄存器!EDX:EAX}。
+\index{MUL|)}
+
+\begin{table}[t]
+\centering
+\begin{tabular}{|c|c|c|l|}
+\hline { \bf dest} & { \bf source1 } & {\bf source2} &\multicolumn{1}{c|}{\bf 操作} \\ \hline
+            & reg/mem8        &               & AX = AL*source1 \\
+            & reg/mem16       &               & DX:AX = AX*source1 \\
+            & reg/mem32       &               & EDX:EAX = EAX*source1 \\
+reg16       & reg/mem16       &               & dest *= source1 \\
+reg32       & reg/mem32       &               & dest *= source1 \\
+reg16       & immed8          &               & dest *= immed8 \\
+reg32       & immed8          &               & dest *= immed8 \\
+reg16       & immed16         &               & dest *= immed16 \\
+reg32       & immed32         &               & dest *= immed32 \\
+reg16       & reg/mem16       & immed8        & dest = source1*source2 \\
+reg32       & reg/mem32       & immed8        & dest = source1*source2 \\
+reg16       & reg/mem16       & immed16       & dest = source1*source2 \\
+reg32       & reg/mem32       & immed32       & dest = source1*source2 \\
+\hline
+\end{tabular}
+\caption{{\code imul}指令 \label{tab:imul}}
+\end{table}
+
+{\code IMUL}指令擁有與{\code MUL}指令相同的格式，但是同樣增加了其他一些指令格式。這有兩個和三個運算元的格式：
+\begin{AsmCodeListing}[numbers=none,frame=none]
+      imul   dest (目的運算元), source1(源運算元1)
+      imul   dest (目的運算元), source1(源運算元1), source2(源運算元2)
+\end{AsmCodeListing}
+表~\ref{tab:imul}展示可能的組合。
+ \index{IMUL|)} \index{整形!乘法|)}
+
+\index{整形!除法|(} \index{DIV} 兩個除法運算符是{\code DIV}和{\code
+IDIV}。它們分別執行無符號整形和有符號整形的除法。普遍的格式是：
+\begin{AsmCodeListing}[numbers=none,frame=none]
+      div   source
+\end{AsmCodeListing}
+如果源運算元為8位，那麼AX就除以這個運算元。商儲存在AL中，而餘數儲存在AH中。如果源運算元為16位，那麼DX:AX就除以這個運算元。商儲存在AX中，而餘數儲存在DX中。如果源運算元為32位，那麼
+EDX:EAX\index{寄存器!EDX:EAX}就除以這個運算元，同時商儲存在EAX中，餘數儲存在EDX中。{\code
+IDIV} \index{IDIV}指令以同樣的方法進行工作。這沒有像{\code
+IMUL}指令一樣的特殊的{\code IDIV}指令。
+如果商太大了，以致於不匹配它的寄存器，或除數為0,那麼這個程式將被中斷和中止。一個普遍的錯誤是在進行除法之前忘記了初始化DX或EDX。
+\index{整形!除法|)}
+
+{\code NEG} \index{NEG}指令通過計算它的單一的運算元補數來得到這個運算元的相反數。它的運算元可以是任意的8位，16位或32位元寄存器或記憶體區域。
+
+\subsection{程式例子}
+\index{math.asm|(}
+\begin{AsmCodeListing}[label=math.asm]
+%include "asm_io.inc"
+segment .data         ; 輸出字串
+prompt          db    "Enter a number: ", 0
+square_msg      db    "Square of input is ", 0
+cube_msg        db    "Cube of input is ", 0
+cube25_msg      db    "Cube of input times 25 is ", 0
+quot_msg        db    "Quotient of cube/100 is ", 0
+rem_msg         db    "Remainder of cube/100 is ", 0
+neg_msg         db    "The negation of the remainder is ", 0
+
+segment .bss
+input   resd 1
+
+segment .text
+        global  _asm_main
+_asm_main:
+        enter   0,0               ; 開始運行程式
+    pusha
+
+        mov     eax, prompt
+        call    print_string
+
+        call    read_int
+        mov     [input], eax
+
+        imul    eax               ; edx:eax = eax * eax
+        mov     ebx, eax          ; 保存結果到ebx中
+        mov     eax, square_msg
+        call    print_string
+        mov     eax, ebx
+        call    print_int
+        call    print_nl
+
+        mov     ebx, eax
+        imul    ebx, [input]      ; ebx *= [input]
+        mov     eax, cube_msg
+        call    print_string
+        mov     eax, ebx
+        call    print_int
+        call    print_nl
+
+        imul    ecx, ebx, 25      ; ecx = ebx*25
+        mov     eax, cube25_msg
+        call    print_string
+        mov     eax, ecx
+        call    print_int
+        call    print_nl
+
+        mov     eax, ebx
+        cdq                       ; 通過正負號延伸初始化edx
+        mov     ecx, 100          ; 不可以被立即數除
+        idiv    ecx               ; edx:eax / ecx
+        mov     ecx, eax          ; 保存商到ecx中
+        mov     eax, quot_msg
+        call    print_string
+        mov     eax, ecx
+        call    print_int
+        call    print_nl
+        mov     eax, rem_msg
+        call    print_string
+        mov     eax, edx
+        call    print_int
+        call    print_nl
+
+        neg     edx               ; 求這個餘數的相反數
+        mov     eax, neg_msg
+        call    print_string
+        mov     eax, edx
+        call    print_int
+        call    print_nl
+
+        popa
+        mov     eax, 0            ; 返回到C中
+        leave
+        ret
+\end{AsmCodeListing}
+\index{math.asm|)}
+
+\subsection{擴充精度運算 \label{sec:ExtPrecArith} \index{整形!擴充精度數|(}}
+
+組合語言同樣提供允許你執行大於雙字的數的加減法的指令。 這些指令使用了進位元標誌位元。就像上面規定的，{\code ADD}
+\index{ADD}和{\code SUB} \index{SUB}指令在進位元或借位產生時分別修改了進位元標誌位元。儲存在進位元標誌位元裏的資訊可以用來做大的數位的加減法，通過將這些運算元分成小的雙字(或更小) 塊。
+
+{\code ADC} \index{ADC}和{\code SBB} \index{SBB}指令使用了進位元標誌位元裏的資訊。{\code ADC}指令執行下麵的操作：
+\begin{center}
+{\code \emph{operand1} = \emph{operand1} + carry flag + \emph{operand2} }
+\end{center}
+{\code SBB}執行下麵的操作：
+\begin{center}
+{\code \emph{operand1} = \emph{operand1} - carry flag - \emph{operand2} }
+\end{center}
+這些如何使用？考慮在EDX:EAX\index{整形!EDX:EAX}和EBX:ECX中的64位整形的總數。下面的代碼將總數儲存到EDX:EAX中:
+\begin{AsmCodeListing}[frame=none]
+      add    eax, ecx       ; 低32位相加
+      adc    edx, ebx       ; 高32位帶以前總數的進位相加
+\end{AsmCodeListing}
+減法也是一樣的。下面的代碼用EDX:EAX減去EBX:ECX:
+\begin{AsmCodeListing}[frame=none]
+      sub    eax, ecx       ; 低32位相減
+      sbb    edx, ebx       ; 高32位帶借位相減
+\end{AsmCodeListing}
+
+對於\emph{實際上}大的數字，可以使用一個迴圈(看
+小節~\ref{sec:control})。對於一個求和的迴圈，對於每一次重複(替代所有的，除了第一次重複)使用{\code
+ADC}指令將會非常便利。通過在迴圈開始之前使用{\code CLC}
+\index{CLC}(CLear
+Carry(清除進位元))指令初始化進位元標誌位元為0,可以使這個操作正確執行。如果進位元標誌位元為0,那麼{\code
+ADD}和 {\code ADC}指令就沒有區別了。這個在減法中也是一樣的。
+\index{整形!擴充精度數|)} \index{補數!運算|)}
+
+\section{控制結構}
+\label{sec:control} 高階語言提供高級的控制結構(\emph{例如}，
+\emph{if}和\emph{while}語句)來控制執行的順序。組合語言並沒有提供像這樣的複雜控制結構。它使用聲名狼藉的\emph{goto}來替代，如果使用不恰當可能會導致非常複雜的代碼。但是，它\emph{是}能夠寫出結構化的組合語言程式。基本的步驟是使用熟悉的高階語言控制結構來設計程式的邏輯，然後將這個設計翻譯成恰當的組合語言(就像一個編譯器要做的一樣)。
+
+\subsection{比較 \index{整形!比較|(} \index{CMP|(}}
+%TODO: Make a table of all the FLAG bits
+
+\index{整形!FLAGS|(}
+控制結構決定做什麼是基於資料的比較的。在組合語言中，比較的結果儲存在FLAGS寄存器中，以便以後使用。80x86提供{\code
+CMP}指令來執行比較操作。FLAGS寄存器根據{\code
+CMP}指令的兩個運算元的不同來設置。具體的操作是相減，然後FLAGS根據結果來設置，但是結果是\emph{不}在任何地方儲存的。如果你需要結果，可以使用SUB來代替{\code
+CMP}指令。
+
+\index{整形!無符號|(}
+對於無符號整形，有兩個標誌位元(在FLAGS寄存器裏的位)
+是非常重要的：零標誌位元(zero flag(ZF))
+\index{寄存器!FLAGS!ZF}和進位元標誌位元(carry flag(CF))
+\index{寄存器!FLAGS!CF}。 如果比較的結果是0的話，零標誌位元將置成(1)
+。進位元標誌位元在減法中當作一個借位來使用。考慮這個比較：
+\begin{AsmCodeListing}[frame=none, numbers=none]
+      cmp    vleft, vright
+\end{AsmCodeListing}
+{\code
+vleft~-~vright}的差別被計算出來，然後相應地設置標誌位元。如果{\code
+CMP}執行後得到差別為0，即{\code
+vleft~=~vright}那麼ZF就被置位了(\emph{也就是：} 1)，但是CF不被置位
+(\emph{也就是：} 0)。如果{\code
+vleft~>~vright}，那麼ZF就不被置位而且CF也不被置位(沒有借位)。如果
+{\code vleft~<~vright}，那麼ZF就不被置位，而CF就被置位了(有借位)。
+\index{整形!無符號|)}
+
+\index{整形!有符號|(}
+對於有符號整形，有三個標誌位元非常重要：零標誌位元(zero flag
+\index{寄存器!FLAGS!ZF} (ZF))，溢出標誌位元(overflow
+flag\index{寄存器!FLAGS!OF}(OF))和符號標誌位元(sign
+flag\index{寄存器!FLAGS!SF} (SF))。 \MarginNote{如果{\code vleft~>~vright}，\\為什麼SF~=~OF？\\因為如果沒有溢出\\，那麼差別將是一\\個正確的值，而且\\肯定是非負的。因此，\\SF~=~OF~=~0。但是，\\如果有溢出，那麼差\\別將不是一個正\\確的值(而且事實上\\將會是個負數)。因此\\，SF~=~OF~=~1。}如果一個操作的結果上溢(下溢)，那麼溢出標誌位元將被置位元。如果一個操作的結果為負數，那麼符號標誌位元將被置位元。如果{\code
+vleft~=~vright}，那麼ZF將被置位元(正好與無符號整形一樣)。 如果{\code
+vleft~>~vright}，那麼ZF不被設置，而且 SF~=~OF。如果{\code
+vleft~<~vright}，那麼ZF不被設置而且SF~$\neq$~OF。
+\index{整形!有符號|)}
+
+不要忘記其他的指令同樣會改變FLAGS寄存器，不僅僅{\code CMP}可以。
+\index{CMP|)} \index{整形!比較|)} \index{整形!FLAGS|)}
+\index{整形|)}
+
+\subsection{分支指令}
+
+分支指令可以將執行控制權轉移到一個程式的任意一點上。換言之，它們像\emph{goto}一樣運作。有兩種類型的分支：
+無條件的和有條件的。一個無條件的分支就跟goto一樣，它總會產生分支。一個有條件分支可能也可能不產生分支，它取決於在FLAGS寄存器裏的標誌位元。如果一個有條件分支沒有產生分支，控制權將傳遞到下一指令。
+
+\index{JMP|(} {\code JMP}
+(\emph{jump}的簡稱)指令產生無條件分支。它唯一的參數通常是一個指向分支指向的指令的\emph{代碼標號}。彙編器和連接器將用指令的正確位址來替代這個標號。這又是一個乏味的運算元，通過這個，彙編器使得程式師的日子不好過。能認識到在{\code
+JMP}指令後的指令不會被執行，除非另一條分支指令指向它，是非常重要的。
+
+這兒有jump指令的幾個變更形式：
+\begin{description}
+
+\item[SHORT] 這個跳轉類型局限在一小範圍內。它僅僅可以在記憶體中向上或向下移動128位元組。這個類型的好處是相對於其他的，它使用較少的記憶體。它使用一個有符號位元組來儲存跳轉的\emph{位移}。位移表示向前或向後移動的位元組數(位移須加上EIP)。為了指定一個短跳轉，需在{\code JMP}指令裏的變數之前使用關鍵字{\code SHORT}。
+
+\item[NEAR] 這個跳轉類型是無條件和有條件分支的缺省類型，它可以用來跳到一段中的任意地方。事實上，80386支援兩種類型的近跳轉。其中一個的位移使用兩個位元組。它就允許你向上或向下移動32,000個位元組。另一種類型的位移使用四個位元組，當然它就允許你移動到代碼段中的任意位置。四位元組類型是386保護模式的缺省類型。兩個位元組類型可以通過在{\code JMP}指令裏的變數之前放置關鍵字{\code WORD}來指定。
+
+\item[FAR] 這個跳轉類型允許控制轉移到另一個代碼段。在386保護模式下，這種事情是非常鮮見的。
+\end{description}
+
+有效的代碼標號遵守與資料變數一樣的規則。代碼標號通過在代碼段裏把它們放在它們標記的聲明前面來定義它們。有一個冒號放在變數定義的地方的結尾處。這個冒號\emph{不}是名字的一部分。
+\index{JMP|)}
+
+\index{有條件分支|(}
+\begin{table}[t]
+\center
+\begin{tabular}{|ll|}
+\hline
+JZ  & 如果ZF被置位元了，就分支 \\
+JNZ & 如果ZF沒有被置位元了，就分支 \\
+JO  & 如果OF被置位元了，就分支 \\
+JNO & 如果OF沒有被置位元了，就分支 \\
+JS  & 如果SF被置位元了，就分支 \\
+JNS & 如果SF沒有被置位元了，就分支 \\
+JC  & 如果CF被置位元了，就分支 \\
+JNC & 如果CF沒有被置位元了，就分支 \\
+JP  & 如果PF被置位元了，就分支 \\
+JNP & 如果PF沒有被置位元了，就分支 \\
+\hline
+\end{tabular}
+\caption{簡單條件分支 \label{tab:SimpBran} \index{JZ} \index{JNZ}
+        \index{JO} \index{JNO} \index{JS} \index{JNS} \index{JC} \index{JNC}
+        \index{JP} \index{JNP}}
+\end{table}
+
+條件分支有許多不同的指令。它們都使用一個代碼標號作為它們唯一的運算元。最簡單的就是看FLAGS寄存器裏的一個標誌位元來決定是否要分支。看表~\ref{tab:SimpBran}得到關於這些指令的列表。(PF是\emph{奇偶標誌位元(parity
+flag)}
+\index{寄存器!FLAGS!PF}，它表示結果中的低8位1的位數值為奇數個或偶數個。)
+
+下麵的虛擬碼:
+\begin{Verbatim}
+if ( EAX == 0 )
+  EBX = 1;
+else
+  EBX = 2;
+\end{Verbatim}
+可以寫成彙編形式，如：
+\begin{AsmCodeListing}[frame=none]
+      cmp    eax, 0            ; 置標誌位元(如果eax - 0 = 0，ZF就被置位)
+      jz     thenblock         ; 如果ZF被置位了，就跳轉到thenblock
+      mov    ebx, 2            ; IF結構的ELSE部分
+      jmp    next              ; 跳過IF結構中的THEN部分
+thenblock:
+      mov    ebx, 1            ; IF結構的THEN部分
+next:
+\end{AsmCodeListing}
+
+其他比較使用在表~\ref{tab:SimpBran}裏的條件分支並不是很容易。為了舉例說明，考慮下面的虛擬碼：
+\begin{Verbatim}
+if ( EAX >= 5 )
+  EBX = 1;
+else
+  EBX = 2;
+\end{Verbatim}
+如果EAX大於或等於5，ZF可能被置位或不置位，而SF將等於OF。這是測試這些條件的彙編代碼
+(假定EAX是有符號的):
+\begin{AsmCodeListing}[frame=none]
+      cmp    eax, 5
+      js     signon            ; 如果SF = 1，就跳轉到signon
+      jo     elseblock         ; 如果OF = 1而且SF = 0，就跳轉到elseblock
+      jmp    thenblock         ; 如果SF = 0而且OF = 0，就跳轉到thenblock
+signon:
+      jo     thenblock         ; 如果SF = 1而且OF = 1，就跳轉到thenblock
+elseblock:
+      mov    ebx, 2
+      jmp    next
+thenblock:
+      mov    ebx, 1
+next:
+\end{AsmCodeListing}
+
+\begin{table}
+\center
+\begin{tabular}{|ll|ll|}
+\hline
+\multicolumn{2}{|c|}{\textbf{有符號}} & \multicolumn{2}{c|}{\textbf{無符號}} \\
+\hline
+JE & 如果{\code vleft = vright}，則分支 & JE & 如果{\code vleft = vright}，則分支 \\
+JNE & 如果{\code vleft $\neq$ vright}，則分支 & JNE & 如果{\code vleft $\neq$ vright}，則分支 \\
+JL, JNGE & 如果{\code vleft < vright}，則分支 & JB, JNAE & 如果{\code vleft < vright}，則分支 \\
+JLE, JNG & 如果{\code vleft $\leq$ vright}，則分支 & JBE, JNA & 如果{\code vleft $\leq$ vright}，則分支 \\
+JG, JNLE & 如果{\code vleft > vright}，則分支 & JA, JNBE & 如果{\code vleft > vright}，則分支 \\
+JGE, JNL & 如果{\code vleft $\geq$ vright}，則分支 & JAE, JNB & 如果{\code vleft $\geq$ vright}，則分支 \\
+\hline
+\end{tabular}
+\caption{有符號和無符號的比較指令 \label{tab:CompBran} \index{JE}
+\index{JNE}
+         \index{JL} \index{JNGE} \index{JLE} \index{JNG} \index{JG} \index{JNLE} \index{JGE}
+         \index{JNL}}
+\end{table}
+
+上面的代碼使用起來非常不便。幸運的是，80x86提供了額外的分支指令使這種類型的測試條件\emph{更}容易些。每個版本都分為有符號和無符號兩種。表~\ref{tab:CompBran}展示了這些指令。等於或不等於分支(JE和JNE)對於有符號和無符號整形是相同的。(事實上，JE和JZ，
+JNE和JNZ基本上完全相同 。)
+每個其他的分支指令都有兩個同義字。例如：看JL (jump less than)和 JNGE
+(jump not greater than or equal to)。有相同的指令這是因為：
+\[ x < y \Longrightarrow \mathbf{not}( x \geq y ) \]
+無符號分支使用A代表\emph{大於}而B代表\emph{小於}，替換了L和G。
+
+使用這些新的指令，上面的虛擬碼可以更容易地翻譯成組合語言：
+\begin{AsmCodeListing}[frame=none]
+      cmp    eax, 5
+      jge    thenblock
+      mov    ebx, 2
+      jmp    next
+thenblock:
+      mov    ebx, 1
+next:
+\end{AsmCodeListing}
+\index{有條件分支|)}
+
+\subsection{迴圈指令}
+
+80x86提供了幾條專門為實現像\emph{for}一樣的迴圈而設計的指令。每一個這樣的指令帶有一個代碼標號作為它們唯一的運算元。
+\begin{description}
+\item[LOOP]
+\index{迴圈}
+ ECX自減，如果 ECX $\neq$ 0，分支到代碼標號指向的位址
+\item[LOOPE, LOOPZ]
+\index{LOOPE} \index{LOOPZ}
+ ECX自減(FLAGS寄存器沒有被修改)，如果
+                    ECX $\neq$ 0 而且 ZF = 1，則分支
+\item[LOOPNE, LOOPNZ]
+\index{LOOPNE} \index{LOOPNZ}
+ ECX自減(FLAGS沒有改變)，如果 ECX $\neq$ 0
+                      而且 ZF = 0，則分支
+\end{description}
+
+最後兩個迴圈指令對於連續的查找迴圈是非常有用的。下麵的虛擬碼：
+\begin{lstlisting}[stepnumber=0]{}
+sum = 0;
+for( i=10; i >0; i-- )
+  sum += i;
+\end{lstlisting}
+\noindent 可以翻譯在組合語言，如:
+\begin{AsmCodeListing}[frame=none]
+      mov    eax, 0          ; eax是總數(sum)
+      mov    ecx, 10         ; ecx是i
+loop_start:
+      add    eax, ecx
+      loop   loop_start
+\end{AsmCodeListing}
+
+\section{翻譯標準的控制結構}
+
+這一小節講述在高階語言裏的標準控制結構如何應用到組合語言中。
+
+\subsection{If語句 \index{if語句|(}}
+下麵的虛擬碼:
+\lstset{escapeinside=`',language=Pascal,%
+}
+\begin{lstlisting}[stepnumber=0]{}
+if ( `條件' )
+  then_block;
+else
+  else_block;
+\end{lstlisting}
+\noindent 可以像這樣被應用:
+\begin{AsmCodeListing}[frame=none]
+      ; 設置FLAGS的代碼
+      jxx    else_block    ; 選擇xx，如果條件為假，則分支
+      ; then模組的代碼
+      jmp    endif
+else_block:
+      ; else模組的代碼
+endif:
+\end{AsmCodeListing}
+
+如果沒有else語句的話，那麼{\code else\_block}分支可以用{\code endif}分支取代。
+\begin{AsmCodeListing}[frame=none]
+      ; 設置FLAGS的代碼
+      jxx    endif          ; 選擇xx，如果條件為假，則分支
+      ; then模組的代碼
+endif:
+\end{AsmCodeListing}
+\index{if語句|)}
+
+\subsection{While迴圈\index{while迴圈|(}}
+\emph{while}迴圈是一個頂端測試迴圈：
+\lstset{escapeinside=`',language=Pascal,%
+}
+\begin{lstlisting}[stepnumber=0]{}
+while( `條件' ) {
+  `循環體';
+}
+\end{lstlisting}
+\noindent 這個可以翻譯成：
+\begin{AsmCodeListing}[frame=none]
+while:
+      ; 基於條件的設置FLAGS的代碼
+      jxx    endwhile       ; 選擇xx，如果條件為假，則分支
+      ; 循環體
+      jmp    while
+endwhile:
+\end{AsmCodeListing}
+\index{while迴圈|)}
+
+\subsection{Do while迴圈\index{do while迴圈|(}}
+\emph{do while}迴圈是一個末端測試迴圈：
+\lstset{escapeinside=`',language=Pascal,%
+}
+\begin{lstlisting}[stepnumber=0]{}
+do {
+  `循環體';
+} while( `條件' );
+\end{lstlisting}
+\noindent 這個可以翻譯成：
+\begin{AsmCodeListing}[frame=none]
+do:
+      ; 循環體
+      ; 基於條件的設置FLAGS的代碼
+      jxx    do          ; 選擇xx，如果條件為假，則分支
+\end{AsmCodeListing}
+\index{do while迴圈|)}
+
+
+\begin{figure}[t]
+\lstset{escapeinside=`',language=Pascal,%
+}
+\begin{lstlisting}[frame=tlrb]{}
+  unsigned guess;   /* `當前對素數的猜測'  */
+  unsigned factor;  /* `猜測數的可能的因數'  */
+  unsigned limit;   /* `查找這個值以下的素數'  */
+
+  printf("Find primes up to: ");
+  scanf("%u", &limit);
+  printf("2\n");    /* `把頭兩個素數當特殊的事件處理'  */
+  printf("3\n");
+  guess = 5;        /* `初始化猜測數' */
+  while ( guess <= limit ) {
+    /* `查找一個猜測數的因數' */
+    factor = 3;
+    while ( factor*factor < guess &&
+            guess % factor != 0 )
+     factor += 2;
+    if ( guess % factor != 0 )
+      printf("%d\n", guess);
+    guess += 2;    /* `只考慮奇數' */
+  }
+\end{lstlisting}
+\caption{}\label{fig:primec}
+\end{figure}
+
+\section{例子:查找素數}
+這一小節是一個查找素數的程式。根據回憶，素數是一個只能被1和它本身整除的數。沒有公式來做這件事情。這個程式使用的基本方法是在一個給定的範圍內查找所有奇數的因數\footnote{2是唯一的偶數素數。}。
+如果一個奇數沒有找到一個因數，那麼它就是一個素數。圖~\ref{fig:primec}
+展示了用C寫的基本的演算法。
+
+這是組合語言版:
+\index{prime.asm|(}
+\begin{AsmCodeListing}[label=prime.asm]
+%include "asm_io.inc"
+segment .data
+Message         db      "Find primes up to: ", 0
+
+segment .bss
+Limit           resd    1               ; 查找這個值以下的素數
+Guess           resd    1               ; 當前對素數的猜測
+
+segment .text
+        global  _asm_main
+_asm_main:
+        enter   0,0               ; 程式開始運行
+        pusha
+
+        mov     eax, Message
+        call    print_string
+        call    read_int             ; scanf("%u", & limit );
+        mov     [Limit], eax
+
+        mov     eax, 2               ; printf("2\n");
+        call    print_int
+        call    print_nl
+        mov     eax, 3               ; printf("3\n");
+        call    print_int
+        call    print_nl
+
+        mov     dword [Guess], 5     ; Guess = 5;
+while_limit:                         ; while ( Guess <= Limit )
+        mov     eax,[Guess]
+        cmp     eax, [Limit]
+        jnbe    end_while_limit      ; 因為數位為無符號數，所以使用jnbe
+
+        mov     ebx, 3               ; ebx等於factor = 3;
+while_factor:
+        mov     eax,ebx
+        mul     eax                  ; edx:eax = eax*eax
+        jo      end_while_factor     ; 如果結果不匹配eax
+        cmp     eax, [Guess]
+        jnb     end_while_factor     ; if !(factor*factor < guess)
+        mov     eax,[Guess]
+        mov     edx,0
+        div     ebx                  ; edx = edx:eax % ebx
+        cmp     edx, 0
+        je      end_while_factor     ; if !(guess % factor != 0)
+
+        add     ebx,2                ; factor += 2;
+        jmp     while_factor
+end_while_factor:
+        je      end_if               ; if !(guess % factor != 0)
+        mov     eax,[Guess]          ; printf("%u\n")
+        call    print_int
+        call    print_nl
+end_if:
+        add     dword [Guess], 2     ; guess += 2
+        jmp     while_limit
+end_while_limit:
+
+        popa
+        mov     eax, 0            ; 返回到C中
+        leave
+        ret
+\end{AsmCodeListing}
+\index{prime.asm|)}
+

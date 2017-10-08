@@ -1,0 +1,973 @@
+% -*-latex-*-
+\chapter{简介}
+\section{数制}
+
+计算机里的内存由数字组成。计算机内存并没有以十进制(基数为10)来储存这些数字。因为计算机以二进制(基数为2)格式来储存所有信息能极大地简化硬件。首先让我们来回顾一下十进制数制。
+
+\subsection{十进制\index{十进制}}
+
+基数为10的数制由10个数码(0-9)组成。一个数的每一位有基于它在数中的位置相关联的10的乘方值。例如：
+\begin{displaymath}
+234 = 2 \times 10^2 + 3 \times 10^1 + 4 \times 10^0
+\end{displaymath}
+
+\subsection{二进制\index{二进制|(}}
+
+基数为2的数制由2个数码(0和1)组成。一个数的每一位有基于它在数中的位置相关联的2的乘方值。(一个二进制数位被称为一个比特位。)例如：
+\begin{eqnarray*}
+11001_2 & = & 1 \times 2^4 + 1 \times 2^3 + 0 \times 2^2 + 0 \times 2^1
+              + 1 \times 2^0 \\
+ & = & 16 + 8 + 1 \\
+ & = & 25
+\end{eqnarray*}
+
+这些演示了二进制如何转换成十进制。表~\ref{tab:dec-bin}展示了开始的几个十进制数如何以二进制替代。
+\begin{table}[t]
+\begin{center}
+\begin{tabular}{||c|c||cc||c|c||}
+\hline
+十进制 & 二进制 & & & 十进制 & 二进制 \\
+\hline
+0       & 0000   & & & 8       & 1000 \\
+\hline
+1       & 0001   & & & 9       & 1001 \\
+\hline
+2       & 0010   & & & 10      & 1010 \\
+\hline
+3       & 0011   & & & 11      & 1011 \\
+\hline
+4       & 0100   & & & 12      & 1100 \\
+\hline
+5       & 0101   & & & 13      & 1101 \\
+\hline
+6       & 0110   & & & 14      & 1110 \\
+\hline
+7       & 0111   & & & 15      & 1111 \\
+\hline
+\end{tabular}
+\caption{在二进制中十进制0到15的表示\label{tab:dec-bin}}
+\end{center}
+\end{table}
+
+
+\begin{figure}[h]
+\begin{center}
+\begin{tabular}{|rrrrrrrrp{.1cm}|p{.1cm}rrrrrrrr|}
+\hline
+& \multicolumn{7}{c}{以前无进位} & & & \multicolumn{7}{c}{以前有进位} & \\
+\hline
+&  0 & &  0 & &  1 & &  1 & & &  0 & &  0 & &  1 & & 1  & \\
+& +0 & & +1 & & +0 & & +1 & & & +0 & & +1 & & +0 & & +1 &  \\
+\cline{2-2} \cline{4-4} \cline{6-6} \cline{8-8} \cline{11-11} \cline{13-13} \cline{15-15} \cline{17-17}
+& 0  & & 1  & & 1  & & 0  & & & 1  & & 0  & & 0  & & 1 & \\
+&    & &    & &    & & c  & & &    & & c  & & c  & & c & \\
+\hline
+\end{tabular}
+
+\caption{二进制加法(c代表\emph{进位})\label{fig:bin-add}}
+%TODO: Change this so that it is clear that single bits are being added,
+%not 4-bit numbers. Ideas: Table or do sums horizontally.
+\index{二进制!加法}
+\end{center}
+\end{figure}
+
+图~\ref{fig:bin-add} 演示单个的二进制数字({\em 也就是}:
+位)相加。下面是一个例子：
+
+\begin{tabular}{r}
+ $11011_2$ \\
++$10001_2$ \\
+\hline
+$101100_2$ \\
+\end{tabular}
+
+如果有人考虑了下面的十进制的除法：
+\[ 1234 \div 10 = 123\; r\; 4 \]
+他可以看到这个除法除去了这个数的最右边的十进制数而且将其它的十进制数向右移动了一位。除以2也是执行同样的操作，除了是为了得到一个数的二进制位外。考虑下面二进制数的除法\footnote{2这个下标是用来表明这个数字是以二进制表示，而不是十进制
+}：
+\[ 1101_2 \div 10_2 = 110_2\; r\; 1 \]
+这个现象可以用来将一个十进制转换成它的等价的二进制表示形式，像图~\ref{fig:dec-convert}展示的一样。这种方法首先找到最右边的数位，这个数位被称为\emph{最低的有效位}
+(lsb)。最左边的数位称为\emph{最高的有效位}
+(msb)。内存的基本单元由8位组成，称它为一个\emph{字节}。\index{二进制|)}
+
+\begin{figure}[t]
+\centering
+\fbox{\parbox{\textwidth}{
+\begin{eqnarray*}
+%\mathrm{十进制} & \mathrm{二进制} \\
+\mathrm{Decimal} & \mathrm{Binary} \\
+25 \div 2 = 12\;r\;1 & 11001 \div 10 = 1100\;r\;1 \\
+12 \div 2 = 6\;r\;0  & 1100 \div 10 = 110\;r\;0 \\
+6 \div 2 = 3\;r\;0   & 110 \div 10 = 11\;r\;0 \\
+3 \div 2 = 1\;r\;1   & 11 \div 10 = 1\;r\;1 \\
+1 \div 2 = 0\;r\;1   & 1 \div 10 = 0\;r\;1 \\
+\end{eqnarray*}
+
+\centering 因此 $25_{10} = 11001_{2}$ }}
+\caption{十进制转换\label{fig:dec-convert}}
+\end{figure}
+
+\subsection{十六进制\index{十六进制|(}}
+
+十六进制数使用的基数为16。十六进制(或者简短称为\emph{hex})可以用作二进制数的速记形式。十六进制需要16个数码。这就产生了一个问题，因为没有符号可以用来表示在9之后的额外的数字。通过协定，字母被用来表示这些额外的数字。这16个十六进制数字是0-9，然后A，
+B， C， D， E和
+F。数A等价于十进制的10，B是11，等等。一个十六进制的每一位有基于它在数中的位置相关联的16的乘方值。例如：
+\begin{eqnarray*}
+\rm
+2BD_{16} & = & 2 \times 16^2 + 11 \times 16^1 + 13 \times 16^0 \\
+         & = & 512 + 176 + 13 \\
+         & = & 701 \\
+\end{eqnarray*}
+将十进制转换成十六进制，可以使用和二进制转换同样的方法，除了除以16外。看例子图~\ref{fig:hex-conv}。
+
+\begin{figure}[t]
+\centering
+\fbox{\parbox{\textwidth}{
+\begin{eqnarray*}
+589 \div 16 & = & 36\;r\;13 \\
+36 \div 16 & = & 2\;r\;4 \\
+2 \div 16 & = & 0\;r\;2 \\
+\end{eqnarray*}
+
+\centering
+因此 $589 = 24\mathrm{D}_{16}$
+}}
+\caption{\label{fig:hex-conv}}
+\end{figure}
+
+十六进制非常有用的原因是因为十六进制和二进制之间转换有一个非常简单的方法。二进制数非常大而且非常繁锁。十六进制提供一个比较舒服的方法来表示二进制数。
+
+将一个十六进制数转换成二进制数，只需要简单地将每一位十六进制数转换成4位二进制数。例如：$\mathrm{24D}_{16}$转换成\mbox{$0010\;0100\;
+1101_2$}。注意在这些4位二进制数中领头的0非常重要！如果$\mathrm{24D}_{16}$中间的那位的4位二进制数的领头的0没用使用的话，那么结果就是错的。从二进制转换成十六进制同样简单。只需反过来做刚才那个处理，将二进制每4位一段转换成十六进制。从二进制数的最右端开始，而不是最左端。这样就能保证处理过程使用了正确的4位段
+\footnote{如果不明白起点为什么是那样，那么换过来，试着将这个例子从左边开始转换。}.
+例如:\newline
+
+\begin{tabular}{cccccc}
+$110$ & $0000$ & $0101$ & $1010$ & $0111$ & $1110_2$ \\
+  $6$ & $0$    &   $5$  &   A  &  $7$   &    $\mathrm{E}_{16}$ \\
+\end{tabular}\newline
+
+一个四位的数被称为\emph{半字节}
+\index{半字节}。因此每一位十六进制相当于一个半字节。两个半字节为一个字节，所以一个字节可以用两位十六进制数来表示。一个字节值的范围以二进制表示为0到11111111，以十六进制表示为0到FF，以十进制表示为0到255。
+\index{十六进制|)}
+
+\section{计算机结构}
+
+\subsection{内存\index{内存|(}}
+
+内存的基本单元是一个字节。\index{字节}
+\MarginNote{内存以千字节(~$2^{10} = 1，024$字节)，兆字节(~$2^{20} =
+1，048，576$ 字节)和十亿位元组(~$2^{30} = 1，073，741，824$
+字节)来测量。}一台有32兆内存的电脑大概能容纳3200万字节的信息。在内存里的每一个字节通过一个唯一的数字来标识作为它的地址像图~\ref{fig:memory}展示的一样。
+
+\begin{figure}[ht]
+\begin{center}
+\begin{tabular}{rcccccccc}
+Address & 0 & 1 & 2 & 3 & 4 & 5 & 6 & 7 \\
+\cline{2-9}
+Memory & \multicolumn{1}{|c}{2A}  & \multicolumn{1}{|c}{45}
+       & \multicolumn{1}{|c}{B8} & \multicolumn{1}{|c}{20}
+       & \multicolumn{1}{|c}{8F} & \multicolumn{1}{|c}{CD}
+       & \multicolumn{1}{|c}{12} & \multicolumn{1}{|c|}{2E} \\
+\cline{2-9}
+\end{tabular}
+\caption{ 内存地址 \label{fig:memory} }
+\end{center}
+\end{figure}
+
+\begin{table}
+\begin{center}
+\begin{tabular}{|l|l|}\hline
+word(字) & 2个字节 \\ \hline
+double word(双字) & 4个字节 \\ \hline
+quad word(四字) & 8个字节 \\ \hline
+paragraph(一节) & 16个字节 \\ \hline
+\end{tabular}
+\caption{ 内存单元 \label{tab:mem_units} }
+\end{center}
+\end{table}
+
+通常内存都是大块大块地使用而不是单个字节。在PC机结构中，命名了这些内存大块像表~\ref{tab:mem_units}展示的一样。
+
+在内存里的数据都是数字的。字符通过用数字来表示字符的\emph{字符编码}来储存。其中一个最普遍的字符编码称为
+\emph{ASCII}(美国信息互换标准编码)。一个新的，更完全的，正在替代ASCII的编码是Unicode。在这两种编码中最主要的区别是ASCII使用一个字节来编码一个字符，但是Unicode每个字符使用两个字节(或一个
+\emph{字})。例如：ASCII使用$41_{16}$
+($65_{10}$)来表示字符大写\emph{A}；Unicode使用$0041_{16}$来表示。因为ASCII使用一个字节，所以它仅能表示256种不同的字符\footnote{事实上，ASCII仅仅使用低7位，所以只有128种不同的值可以使用。}。Unicode将ASCII的值扩展成一个字，允许表示更多的字符。这对于表示全世界所有的语言非常重要。\index{内存|)}
+
+\subsection{CPU\index{CPU|(}}
+
+中央处理器(CPU)是执行指令的物理设备。 CPU
+执行的指令通常非常简单。指令可能要求它们使用的数据存储在一个CPU称为\emph{寄存器}的特殊的储存位置中。\index{寄存器}CPU可以比访问内存更快地访问寄存器里的数据。然而，在CPU里的寄存器是有限的，所以程序员必须注意只保存现在使用的数据到寄存器中。
+
+各类CPU执行的指令组成了该CPU的\emph{机器语言}。\index{机器语言}机器语言拥有比高级语言更基本的结构。机器语言指令被编码成未加工的数字，而不是友好的文本格式。为了更有效的运行，CPU必须能很快地解译一个指令的目的。机器语言就是为了这个目的设计的，而不是让人们更容易理解而设计。一个其它语言写的程序必须转换成CPU的本地机器语言，才能在电脑上运行。\emph{编译器}
+\index{编译器}是一个将用程序语言写的程序翻译成特殊结构的电脑的机器语言的程序。通常，每一种类型的CPU都有它自己唯一的机器语言。这是为什么为
+Mac 写的程序不能在IBM类型PC机运行的一个原因。
+
+电脑通过使用\emph{时钟}
+\index{时钟}来同步指令的执行\MarginNote{\emph{GHz}代表十万万赫或是每秒十亿次循环。1.5
+GHz 的CPU每秒有15亿的时钟脉冲。}。时钟脉冲在一个固定的频率(称为
+\emph{时钟频率})。当你买了一台1.5 GHz 的电脑，1.5 GHz
+就是时钟频率\footnote{实际上，时钟脉冲使用在许多不同的CPU组件中。其它组件通常使用与CPU不同的时钟频率。}。时钟并不记录分和秒。它以不变的速率简单跳动。电子计算机通过使用这个跳动来正确执行它们的操作，就像节拍器的跳动如何来帮助你以正确的节奏播放音乐。一个指令需要跳动的次数(或就像他们经常说的执行\emph{周期})依赖CPU的产生和模仿。周期的次数取决于在它之前的指令和其它因素。
+
+
+\subsection{CPU 80x86系列\index{CPU!80x86}}
+
+IBM型号的PC机包含了一个来自Intel
+80x86家族(或它的克隆)的CPU。在这个家族的所有CPU都有一些普遍的特征，包括有一种基本的机器语言。无论如何，最近的成员极大地加强了这个特征。
+\begin{description}
+
+\item[8088，8086:] 这些CPU从编程的观点来看是完全相同的。它们是用在早期PC机上的CPU。它们提供一些16位的寄存器：AX，
+BX，CX，DX，\\
+SI，DI，BP，SP，CS，DS，SS， ES，IP，
+FLAGS。它们仅仅支持1M字节的内存，而且只能工作在\emph{实模式}下。在这种模式下，一个程序可以访问任何内存地址，甚至其它程序的内存！这会使排除故障和保证安全变得非常困难！而且，程序的内存需要分成\emph{段}。每段不能大于64K。
+
+
+\item[80286:] 这种CPU使用在AT系列的PC机中。它在8088/86的基本机器语言中加入了一些新的指令。然而，它主要的新的特征是 \emph{16位保护模式}。在这种模式下，它可以访问16M字节的内存和通过阻止访问其它程序的内存来保护程序。可是，程序依然是分成不能大于64K的段。
+
+\item[80386:]
+这种CPU极大地增强了80286的性能。首先，它扩展了许多寄存器来容纳32位数据(EAX，EBX，ECX，EDX，ESI，EDI，EBP，ESP，\\
+EIP)而且增加了两个新的16位寄存器（FS，GS）。它同样增加了一个新的\emph{32位保护模式}。在这种模式下，它可以访问4G字节。程序同样分成段，但是现在每段大小同样可以到4G。
+
+\item[80486/Pentium/Pentium Pro:] 这些80x86家族的成员增加了不多的新的特征。它们主要是提高了指令执行的速度。
+
+\item[Pentium MMX:] 这些处理器在Pentium基础上增加了MMX指令 (多媒体扩展)。这些指令可以提高普通的图像操作的速率。
+
+\item[Pentium II:] 它是拥有 MMX 指令的Pentium处理器。(Pentium III 本质上就是一个更快的Pentium II。)
+\end{description}
+\index{CPU|)}
+
+\subsection{8086 16位 寄存器\index{寄存器|(}}
+
+最初的8086CPU提供4个16位通用寄存器：AX，BX， CX
+和DX。这些寄存器都可以分解成两个8位寄存器。例如：AX寄存器可以分解成AH和AL寄存器，像图~\ref{fig:AX_reg}展示的一样。AH寄存器包含AX的上(或高)8位，而AL包含AX的低8位。通常AH和AL都当做独立的一个字节的寄存器来用；但是，清楚它们不能独立于AX是非常重要的。改变AX的值将会改变AH和AL的值{\em
+反之亦然}\/。通用寄存器多数使用在数据移动和算术指令中。
+
+\begin{figure}
+\begin{center}
+\begin{tabular}{cc}
+\multicolumn{2}{c}{AX} \\
+\hline
+\multicolumn{1}{||c|}{AH} & \multicolumn{1}{c||}{AL} \\
+\hline
+\end{tabular}
+\caption{AX寄存器 \label{fig:AX_reg} }
+\end{center}
+\end{figure}
+
+这有两个16位指针寄存器\index{寄存器!指针}： SI 和 DI
+。通常它们都是当作指针来使用，但是在许多情况下也可以像通用寄存器一样使用。但是，它们不可以分解成8位寄存器。
+
+16位BP和 SP
+寄存器用来指向机器语言堆栈里的数据，被各自称为基址寄存器\index{寄存器!基址}
+和堆栈指针寄存器\index{寄存器!堆栈指针}。这些将在以后讨论。
+
+16位CS，DS，SS 和ES 寄存器是\emph{段寄存器}。\index{寄存器!段}
+它们指出程序不同部分所使用的内存。CS代表代码段， DS 代表数据段， SS
+代表堆栈段和ES代表附加段。ES当作一个暂时段寄存器来使用。这些寄存器的细节描述在小节~\ref{real_mode}
+和\ref{16prot_mode}中。
+
+指令指针寄存器(IP) \index{寄存器!指令指针}
+与CS寄存器一起使用来跟踪CPU下一条执行指令的地址。通常，当一条指令执行时，IP提前指向内存里的下一条指令。
+
+FLAGS\index{寄存器!FLAGS}寄存器储存了前面指令执行结果的重要信息。这些结果在寄存器里以单个的位储存。例如：如果前面指令执行结果是0，Z位为1，反之为0。并不是所有指令都修改FLAGS里的位，查看附录里的表看单个指令是如何影响FLAGS寄存器的。
+
+\subsection{80386 32位 寄存器\index{寄存器!32-bit}}
+
+80386及以后的处理器扩展了寄存器。例如：16位AX寄存器扩展成了32位。为了向后兼容，AX依然表示16位寄存器而
+EAX 用来表示扩展的32位寄存器。AX是 EAX
+的低16位就像AL是AX(EAX)的低8位一样。但是没有直接访问 EAX
+高16位的方法。其它的扩展寄存器是 EBX，ECX，EDX，\\ESI 和 EDI 。
+
+许多其它类型的寄存器同样也扩展了。BP变成了EBP\index{寄存器!基址}；SP
+变成了ESP\index{寄存器!堆栈指针}；FLAGS变成了EFLAGSEFLAGS\index{寄存器!EFLAGS}
+而IP变成了EIP\index{寄存器!EIP}。但是，不同于指针寄存器和通用寄存器，在32位保护模式下(下面将讨论的)只有这此寄存器的扩展形式被使用。
+
+在80386里，段寄存器依然是16位的。这儿有两个新的段寄存器：FS和GS\index{寄存器!段}。它们名字并不代表什么。它们是附加段寄存器(像ES一样)。
+
+术语中\emph{字}\index{字}的一个定义为CPU数据寄存器的大小。对于80x86家族，这个术语现在有一点混乱了。在表~\ref{tab:mem_units}里，可以看到\emph{字}被定义成两个字节。它是当8086第一次发行时被定义成这样的。当80386开发出来后，它被决定依旧保持这个\emph{字}定义不改变，即使寄存器的大小已经改变了。
+\index{寄存器|)}
+
+\subsection{实模式 \label{real_mode} \index{实模式|(}}
+
+在实模式下\MarginNote{那么，无耻的DOS640K限制来自哪里？BIOS为它的代码和硬件设备如显示器要求了1M内存中的一些内存。}，内存被限制为仅有1M字节($2^{20}$
+字节)。有效的地址从00000 \\
+到 FFFFF
+(十六进制)。\@  % \@ means end of sentence
+这些地址需要用20位的数来表示。显然，一个20位的数不适合任何一个8086的16位寄存器。Intel通过利用两个16位数值来决定一个地址的方法来解决这个问题。开始的16位值称为\emph{段地址}(selector)。段地址的值必须存储在段寄存器中。第二个16位值称为\emph{偏移地址}(offset)。用32位\emph{段地址：偏移地址}表示的物理地址可以由下面的公式计算：
+%\[ 16 * {\rm 段地址} + {\rm 偏移地址} \]
+\[ 16 * {\rm selector} + {\rm offset} \]
+在十六进制中乘以16是非常容易的，只需要在数的右边加0。例如：表示为047C:0048的物理地址通过这样得到：
+\begin{center}
+\begin{tabular}{r}
+047C0 \\
++0048 \\
+\hline
+04808 \\
+\end{tabular}
+\end{center}
+实际上，段地址的值是一节的首地址(看表~\ref{tab:mem_units})。
+
+真实的段地址有以下的缺点：
+\begin{itemize}
+\item 一个段地址只能指向64K内存(16位偏移的上限)。如果一个程序拥有大于64K的代码那又怎么办呢？在CS里的一个单一的值不能满足整个程序执行的需要。程序必须分成小于64K的段(\emph{segment}\index{内存!段})。当执行从一段移到另一段时，CS里的值必须改变。同样的问题发生在大量的数据和
+DS 寄存器之间。这样使用是非常不方便的！
+
+\item 每个字节在内存里并不只有唯一的段地址。物理地址04808可以表示为：047C:0048， 047D:0038， 047E:0028
+或047B:0058。\@ 这将使段地址的比较变得复杂。
+
+\end{itemize}
+\index{实模式|)}
+
+\subsection{16位保护模式 \label{16prot_mode} \index{保护模式!16-bit|(}}
+
+在80286的16位保护模式下，段地址的值与实模式相比解释得完全不同。在实模式下，一个段地址的值是物理内存里的一节的首地址。在保护模式下，一个段地址的值是一个指向\emph{描述符表}的\emph{指针}。两种模式下，程序都是被分成段\index{内存:段}。在实模式下，这些段在物理内存的固定位置而且段地址的值表示段开始处所在节的首地址。在保护模式下，这些段不是在物理内存的固定的地址。事实上，它们根本不一定需要在内存中。
+
+保护模式使用了一种叫做\emph{虚拟内存}
+\index{内存!虚拟}的技术。虚拟内存的基本思想是仅仅保存程序现在正在使用的代码和数据到内存中。其它数据和代码暂时储存在硬盘中直到它们再次需要时。当一段从硬盘重新回到内存中，它很有可能放在不同于它移动到硬盘之前时的位置的内存中。所有这些都由操作系统透明地执行。程序并不需要因为要让虚拟内存工作而使用不同的书写方法。
+
+在保护模式下，每一段都分配了一条描述符表里的条目。这个条目拥有系统想知道的关于这段的所有信息。这些信息包括：现在是否在内存中；如果在内存中，在哪；访问权限({\em
+例如：} 只读)。段的条目的指针是储存在段寄存器里的段地址值。
+
+16位保护模式的一个大的缺点是偏移地址依然是16位数\MarginNote{一个非常著名的PC专家称286CPU为``死了的大脑''}。这个的后果就是段的大小依然限制为最大64K。这会导致使用大的数组时会有问题。
+\index{保护模式!16-bit|)}
+
+\subsection{32位保护模式\index{保护模式!32-bit|(}}
+
+80386引入了32位保护模式。386 32位保护模式和286
+16位保护模式之间最主要的区别是：
+\begin{enumerate}
+\item
+
+偏移地址扩展成了32位。这就允许偏移地址范围升至4G。因此，段的大小也升至4G。
+
+\item
+
+段\index{内存!段}可以分成较小的4K大小的单元，称为\emph{内存页}\index{内存!页}。虚拟内存\index{内存!虚拟}系统工作在页的方式下，代替了段方式。这就意味着一段在任何一个时刻只有部分可能在内存中。在28616位保护模式下，要么整个段在内存中，要么整个不在。这样在32位模式下允许的大的段的情况下很不实用。
+
+\end{enumerate}
+
+\index{保护模式!32-bit|)}
+
+在Windows 3.x系统中，\emph{标准模式}为286
+16位保护模式而\emph{增强模式}为32位保护模式。Windows 9X，Windows
+NT/2000/XP，OS/2和Linux都运行在分页管理的32位保护模式下。
+
+\subsection{中断\index{中断}}
+
+有时候普通的程序流必须可以被要求快速反应的处理事件中断。电脑提供了一个称为\emph{中断}的结构来处理这些事件。例如：当一个鼠标移动了，硬件鼠标中断现在的程序来处理鼠标移动(移动鼠标，
+{\em
+等等\/})。中断导致控制权转移到一个\emph{中断处理程序}。中断处理程序是处理中断的程序。每种类型的中断都分配了一个中断号。在物理内存的开始处，存在一张包含中断处理程序段地址的\emph{中断向量}
+表。中断号是这张表中最基本的指针。
+
+外部中断由CPU的外部引起。(鼠标就是这一类型的例子。)许多I/O设备引起中断({\em
+例如：\/}键盘，时钟，硬盘驱动器，CD-ROM和声卡)。内部中断由CPU的内部引起，要么是由一个错误引起，要么由中断指令引起。错误中断称为\emph{陷阱}。由中断指令引起的中断称为\emph{软中断}。DOS使用这些类型的中断来实现它的API(应用程序接口)。许多现代的操作系统(如：Windows和UNIX)使用一个基于C的接口。
+\footnote{然而，它们在内核级可能会使用一个更低等级的接口。}
+
+许多中断处理程序当它执行完成时，将控制权返回给被中断的程序。它们恢复寄存器，里面的值与中断发生之前的值相同。因此，被中断的程序就像没有任何事情发生一样运行(除了它失去了一些CPU周期)。陷阱通常不返回。通常它们中止程序。
+
+\section{汇编语言}
+
+\subsection{机器语言\index{机器语言}}
+
+每种类型的CPU都能理解它们自己的机器语言。机器语言里的指令是以字节形式在内存中储存的数字。每条指令有它唯一的数字码称为\emph{操作代码}，或简称为\emph{操作码}
+\index{操作码}。80x86处理器的指令大小不同。操作码通常是在指令的开始处。许多指令还包含指令使用的数据({\em
+例如：\/}常量或地址)。
+
+机器语言很难直接进行编程。解译这些数字代码指令的意思对人类来说是沉闷的。例如：执行将
+EAX 和 EBX 寄存器相加然后将结果送回到 EAX
+的指令以十六进制码编译如下：
+\begin{quote}
+   03 C3
+\end{quote}
+这个很难理解。幸运的是，一个叫做\emph{汇编的程序}
+\index{汇编器}可以为程序员做这个沉闷的工作。
+
+\subsection{汇编语言\index{汇编语言|(}}
+
+一个汇编语言程序以文本格式储存(正如一个高级语言程序)。每条汇编指令代表确切的一条机器指令。例如：上面描述的加法指令在汇编语言中将描述成：
+\begin{CodeQuote}
+   add eax, ebx
+\end{CodeQuote}
+这里指令的意思比在机器代码表示得\emph{更}清楚。代码{\code
+add}是加法指令的\emph{助记符}
+\index{助记符}。一条汇编指令的通常格式为：
+\begin{CodeQuote}
+  {\em mnemonic(助记符) operand(s)(操作数)}
+\end{CodeQuote}
+
+\emph{汇编程序}
+\index{汇编器}是一个读包含汇编指令的文本文件和将汇编语言转换成机器代码的程序。\emph{编译器}
+\index{编译器}是为高级编程语言做同样转换的程序。一个汇编程序比一个编译器要简单。
+\MarginNote{它花费了电脑科学家几年的时间来揣测如何编写一个编译器！}每条汇编语句接代表一个唯一的机器指令。高级语言\emph{更}复杂而且可能要求更多的机器指令。
+
+汇编和高级语言之间另一个更重要的区别是因为每种不同类型的CPU有它自己的机器代码，所以它同样有它自己的汇编语言。在不同的电脑构造中移植汇编语言比高级语言要困难\emph{得多}。
+
+这本书使用了 Netwide Assembler，或简称为 NASM
+\index{NASM}。它在Internet上是免费提供的(要得到URL，请看前言)。更普遍的汇编程序是Microsoft
+Assembler(MASM) \index{MASM}或Borland Assembler
+(TASM)。\index{TASM}MASM/TASM和 NASM 之间有一些汇编语法区别。
+
+\subsection{指令操作数}
+
+机器代码指令拥有个数和类型不同的操作数；然而，通常每个指令有几个固定的操作数(0到3个)。操作数可以有下面的类型：
+\begin{description}
+\item[寄存器:]
+这些操作数直接指向CPU寄存器里的内容。
+\item[内存:]
+这些操作数指向内存里的数据。数据的地址可能是硬编码到指令里的常量或可能直接使用寄存器的值计算得到。距离段的起始地址的偏移值即为此地址。
+\item[立即数:]
+\index{立即数}
+这些操作数是指令本身列出的固定的值。它们储存在指令本身(在代码段)，而不在数据段。
+\item[暗指的操作数:]
+这些操作数没有明确显示。例如：往寄存器或内存增加1的加法指令。1是暗指的。
+\end{description}
+\index{汇编语言|)}
+
+\subsection{基本指令}
+
+最基本指令是{\code MOV}
+\index{MOV}指令。它将数据从一个地方移到另一个地方(像高级语言里面的赋值操作一样)。它携带两个操作数：
+\begin{CodeQuote}
+  mov {\em dest (目的操作数), src(源操作数)}
+\end{CodeQuote}
+{\em src}指定的数据拷贝到了{\em
+dest\/}。一个指令的两个操作数不能同时是内存操作数。这就指出了一个汇编古怪的地方。通常，对于各种各样指令的使用都有某些强制性的规定。操作数必须是同样的大小。AX里的值就不能储存到
+BL 里去。
+
+这儿有一个例子(分号表示注释\index{注释}的开始)：
+\begin{AsmCodeListing}[frame=none, numbers=none]
+      mov    eax, 3   ; 将3存入 EAX 寄存器(3是一个立即数)。
+      mov    bx, ax   ; 将AX的值存入到BX寄存器。
+\end{AsmCodeListing}
+
+{\code ADD} \index{ADD}指令用来进行整形数据的相加。
+\begin{AsmCodeListing}[frame=none, numbers=none]
+      add    eax, 4   ; eax = eax + 4
+      add    al, ah   ; al = al + ah
+\end{AsmCodeListing}
+
+{\code SUB} \index{SUB}指令用来进行整形数据的相减。
+\begin{AsmCodeListing}[frame=none, numbers=none]
+      sub    bx, 10   ; bx = bx - 10
+      sub    ebx, edi ; ebx = ebx - edi
+\end{AsmCodeListing}
+
+{\code INC} \index{INC}和{\code DEC}
+\index{DEC}指令将值加1或减1。因为1是一个暗指的操作数，{\code INC}
+和{\code DEC}的机器代码比等价的{\code ADD}和{\code SUB}指令要少。
+\begin{AsmCodeListing}[frame=none, numbers=none]
+      inc    ecx      ; ecx++
+      dec    dl       ; dl--
+\end{AsmCodeListing}
+
+\subsection{指示符\index{指示符|(}}
+
+
+\emph{指示符}是由汇编程序产生的而不是由CPU产生。它们通常用来要么指示汇编程序做什么要么提示汇编程序什么。它们并不翻译成机器代码。指示符普遍的应用有：
+\begin{list}{$\bullet$}{\setlength{\itemsep}{0pt}}
+\item 定义常量
+\item 定义用来储存数据的内存
+\item 将内存组合成段
+\item 有条件地包含源代码
+\item 包含其它文件
+\end{list}
+
+NASM代码像C一样要通过一个预处理程序。它拥有许多和C一样的预处理程序。但是，
+NASM 的预处理的指示符以\%开头而不是像C一样以\#开头。
+
+\subsubsection{equ 指示符\index{指示符!equ}}
+
+{\code
+equ}指示符可以用来定义一个\emph{符号}。符号被命名为可以在汇编程序里使用的常量。格式是：
+\begin{quote}
+  \code {\em symbol} equ {\em value}
+\end{quote}
+符号的值以后\emph{不}可以再定义。
+
+\subsubsection{\%define 指示符\index{指示符!\%define}}
+
+这个指示符和C中的{\code
+\#define}非常相似。它通常用来定义一个宏常量，像在C里面一样。
+\begin{AsmCodeListing}[frame=none, numbers=none]
+%define SIZE 100
+      mov    eax, SIZE
+\end{AsmCodeListing}
+上面的代码定义了一个称为 {\code SIZE}的宏通过使用一个{\code
+MOV}指令。宏在两个方面比符号要灵活。宏可以被再次定义而且可以定义比简单的常量数值更大的值。
+
+\subsubsection{数据指示符\index{指示符!data|(}}
+
+\begin{table}[t]
+\centering
+\begin{tabular}{||c|c||} \hline
+{\bf 单位} & {\bf 字母} \\
+\hline
+字节 & B \\
+字 & W \\
+双字 & D \\
+四字 & Q \\
+十个字节 & T \\
+\hline
+\end{tabular}
+\caption{{\code RESX}和{\code DX}指示符的字母
+         \label{tab:size-letters} }
+\end{table}
+
+数据指示符使用在数据段中用来定义内存空间。保留内存有两种方法。第一种方法仅仅为数据定义空间；第二种方法在定义数据空间的同时给与一个初始值。第一种方法使用{\code
+RES{\em X}}\index{指示符!RES\emph{X}}指示符中的一个。{\em
+X}可由字母替代，字母由需要储存的对象的大小来决定。表~\ref{tab:size-letters}给出了可能的值。
+
+第二种方法(同时定义一个初始值)使用{\code D{\em
+X}}指示符中\index{指示符!D\emph{X}}的一个。{\em
+X}可以由字母替代，字母的值与{\code RES{\em X}}里的值一样。
+
+使用\emph{变量}\index{变量}
+来标记内存位置是非常普遍的。变量使得在代码中指向内存位置变得容易。下面是几个例子：
+\begin{AsmCodeListing}[frame=none, numbers=none]
+L1    db     0        ;字节变量L1，初始值为0
+L2    dw     1000     ;字变量L2，初始值为1000
+L3    db     110101b  ;字节变量初始化成110101(十进制为53)
+L4    db     12h      ;字节变量初始化成十六进制12(在十进制中为18)
+L5    db     17o      ;字节变量初始化成八进制17(在十进制中为15)
+L6    dd     1A92h    ;双字变量初始化成十六进制1A92
+L7    resb   1        ;1个未初始化的字节
+L8    db     "A"      ;字节变量初始化成ASCII值A(65)
+\end{AsmCodeListing}
+
+双引号和单引号被同等对待。连续定义的数据储存在连续的内存中。也就是说，字L2就储存在L1的后面。内存的顺序可以同样被定义。
+\begin{AsmCodeListing}[frame=none, numbers=none]
+L9    db     0, 1, 2, 3              ; 定义4个字节
+L10   db     "w", "o", "r", 'd', 0   ; 定义一个等于"word"的C字符串
+L11   db     'word', 0               ; 等同于L10
+\end{AsmCodeListing}
+
+指示符{\code
+DD}\index{指示符!DD}可以用来定义整形和单精度的浮点数常量\footnote{单精度浮点数等价于C里的的{\code
+float}变量}。但是，{\code
+DQ}\index{指示符!DQ}指示符仅仅可以用来定义双精度的数常量。
+
+对于大的序列， NASM 的{\code TIMES}
+\index{指示符!TIMES}指示符常常非常有用。这个指示符每次都重复它的操作对象一个指定的次数。例如：
+\begin{AsmCodeListing}[frame=none, numbers=none]
+L12   times 100 db 0                 ; 等价于100个值为0的字节
+L13   resw   100                     ; 储存空间为100个字
+\end{AsmCodeListing}
+\index{指示符!data|)}
+\index{指示符|)}
+
+\index{变量|(}
+记住变量可以用来表示代码中的数据。变量的使用方法有两种。如果一个平常的变量被使用了，它被解释为数据的地址(或偏移)。如果变量被放置在方括号({\code
+[]})中，它就被解释为在这个地址中的数据。换句话说，你必须把变量当作一个指向数据的\emph{指针}而方括号引用这个指针就像*号在C中一样。(MASM/TASM使用的是另外一个惯例。)在32位模式下，地址是32位。这儿有几个例子：
+\begin{AsmCodeListing}[frame=none]
+      mov    al, [L1]      ; 复制L1里的字节数据到AL
+      mov    eax, L1       ; EAX = 字节变量L1代表的地址
+      mov    [L1], ah      ; 把AH拷贝到字节变量L1
+      mov    eax, [L6]     ; 复制L6里的双字数据到 EAX
+      add    eax, [L6]     ; EAX = EAX + L6里的双字数据
+      add    [L6], eax     ; L6 = L6里的双字数据 + EAX
+      mov    al, [L6]      ; 拷贝L6里的数据的第一个字节到AL
+\end{AsmCodeListing}
+例子的第7行展示了 NASM 一个重要性能。汇编程序并\emph{不}
+保持跟踪变量的数据类型。它由程序员来决定来保证他(或她)正确使用了一个变量。随后它一般将数据的地址储存到寄存器中，然后像在C中一样把寄存器当一个指针变量来使用。同样，没有检查使得指针能正确使用。以这种方式，汇编程序跟C相比有更易出错的倾向。
+
+考虑下面的指令：
+\begin{AsmCodeListing}[frame=none, numbers=none]
+      mov    [L6], 1             ; 储存1到L6中
+\end{AsmCodeListing}
+这条语句产生一个{\code operation size not
+specified}(操作大小没有指定)的错误。为什么？因为汇编程序不知道是把1当作一个字节，还是字，或是双字来储存。为了修正这个，加一个大小指定：
+\begin{AsmCodeListing}[frame=none, numbers=none]
+      mov    dword [L6], 1       ; 储存1到L6中
+\end{AsmCodeListing}
+\index{DWORD}这个告诉汇编程序把1储存在从{\code
+L6}开始的双字中。另一些大小指定为： {\code BYTE}\index{字节}(字节)，
+{\code WORD}\index{字}(字)， {\code QWORD}\index{四字}(四字)和{\code
+TWORD}(十字节)。\footnote{{\code
+TWORD}定义了十个字节大小的内存。浮点数协处理器使用了这种类型的数据}\index{十字节}
+\index{变量|)}
+
+\subsection{输入和输出 \index{I/O|(}}
+
+输入和输出是真正系统依赖的活力。它牵涉到系统硬件的接口问题。高级语言，像C，提供了标准的，简单的，统一的程序I/O接口的程序库。汇编语言不提供标准库。它们必须要么直接访问硬件(在保护模式下为特权级操作)或使用任何操作系统提供的底层的程序。
+
+\index{I/O!asm\_io library|(}
+汇编程序与C交互使用是非常普遍的。这样做的一个优点是汇编代码可以使用标准C
+I/O程序库。但是，你必须清楚C使用的程序之间传递信息的规则。这些规则放在这会非常麻烦。(它们将在以后提到！)为了简单化I/O，作者已经开发出了隐藏在复杂C规则里的自己的程序，而且提供了一个更简单的接口。表~\ref{tab:asmio}描述了提供的程序。所有这些程序保留了所有寄存器的值，除了读的程序外。这些程序确实修改了
+EAX
+的值。为了使用这些程序，你必须包含一个汇编程序需要用到的信息的文件。为了在
+NASM 中包含一个文件，你可以使用{\code
+\%include}预处理指示符。下面几行包含了有作者的I/O程序的文件\footnote{
+{\code asm\_io.inc} (和{\code asm\_io.inc}需要的{\code
+asm\_io}目标文件)在例子代码中，可以从这个指南的网页中下载到：{\code
+http://www.drpaulcarter.com/pcasm}}:
+\begin{AsmCodeListing}[frame=none, numbers=none]
+%include "asm_io.inc"
+\end{AsmCodeListing}
+
+\begin{table}[t]
+\centering
+\begin{tabular}{lp{3.5in}}
+{\bf print\_int} & 在屏幕上显示出储存在 EAX 中的整形值\\
+{\bf print\_char} & 在屏幕上显示出以ASCII形式储存在AL中的字符\\
+{\bf print\_string} & 在屏幕上显示储存在 EAX 里的{\em
+地址}指向的字符串的内容。这个字符串必须是C类型的字符串，({\em
+也就是:}以null结束的字符串)。 \\
+{\bf print\_nl} & 在屏幕上显示换行。 \\
+{\bf read\_int} & 从键盘上读入一整形数据然而把它储存到 EAX 寄存器。 \\
+{\bf read\_char} & 从键盘读入一单个字符然而把它以ASCII形式储存到 EAX
+寄存器。 \\
+\end{tabular}
+\caption{汇编的I/O程序 \label{tab:asmio} \index{I/O!asm\_io
+library!print\_int} \index{I/O!asm\_io library!print\_char}
+\index{I/O!asm\_io library!print\_string} \index{I/O!asm\_io
+library!print\_nl} \index{I/O!asm\_io library!read\_int}
+\index{I/O!asm\_io library!read\_char}}
+\end{table}
+
+为了使用一个打印程序，你必须加载正确的值到 EAX 中，然后用{\code
+CALL}指令调用它。{\code
+CALL}指令等价于在高级语言里的函数call。它跳转到代码的另一段去执行，然后等程序执行完成后又回到原始的地方。下面的程序例子展示了调用这些I/O程序的几个样例。
+
+\subsection{调试\index{调试|(}}
+
+作者的库同样包含一些有用的调试程序。这些调试程序显示关于系统状态的信息但不改变它们。这些程序是一些保存CPU的当前状态后执行一个子程序调用的\emph{宏}。这些宏定义在上面提到的{\code
+asm\_io.inc}文件中。宏可以像普通的指令一样使用。宏的操作数由逗号隔开。
+
+这儿有四个调试程序称为{\code dump\_regs}，{\code dump\_mem}，{\code
+dump\_stack}和{\code
+dump\_math}；它们分别显示寄存器，内存，堆栈和数字协处理器的值。
+\begin{description}
+
+\item[dump\_regs]
+\index{I/O!asm\_io library!dump\_regs}
+这个宏显示系统的寄存器里的值(十六进制)到{\code
+stdout}(\emph{也就是：} 显示器)。它同时显示在FLAGS\footnote{第2章
+将讨论这个寄存器}寄存器里的位。例如，如果零标志位是1，\emph{ZF}是显示的。如果是0，它就不被显示。它携带一个整形参数，这个参数同样被显示出来。这就可以用来区别不同{\code
+dump\_regs}命令的输出。
+
+\item[dump\_mem]
+\index{I/O!asm\_io library!dump\_mem}
+这个宏同样以ASCII字符的形式显示内存区域的值(十六进制)。它带有三个用逗号分开的参数。第一个参数是一个用来标示输出的整形变量(就像{\code
+dump\_regs}参数一样)。第二个参数需要显示的内存的地址。(它可以是个标号。)最后一个参数是在此地址后需要显示的16字节的节数。内存显示将从要求的地址之前的第一节的边界开始。
+\item[dump\_stack]
+\index{I/O!asm\_io library!dump\_stack}
+这个宏显示CPU堆栈的值。(这个堆栈将在第4章中提到。)这个堆栈由双字组成，所以这个程序也以这种格式显示它们。它带有三个用逗号隔开的参数。第一个参数是一个整形变量（像{\code
+dump\_regs}一样）第二个参数是在{\code
+EBP}寄存器里的地址\emph{下面}需要显示的双字的数目而第三个参数是在{\code
+EBP}寄存器里的地址\emph{上面}需要显示的的数目。
+
+\item[dump\_math]
+\index{I/O!asm\_io library!dump\_math}
+这个宏显示数字协处理器寄存器里的值。它只带有一个整形参数，这个参数用来标示输出就像参数{\code
+dump\_regs}做的一样。
+\end{description}
+\index{调试|)}
+\index{I/O!asm\_io library|)} \index{I/O|)}
+
+\section{创建一个程序}
+
+现今，完全用汇编语言写的独立的程序是不经常的。汇编一般用在某些至关重要的程序。为什么？用高级语言来编程比用汇编要简单\emph{得多}。同样，使用汇编将使得程序移植到另一个平台非常困难。事实上，根本很少使用汇编程序。
+
+那么，为什么任何人都需要学习汇编程序呢？
+\begin{enumerate}
+\item 有时，用编程写的代码比起编译器产生的代码要少而且运行得更快。
+\item 汇编允许直接访问系统硬件信息，而这个在高级语言中很难或根本不可能实现。
+\item 学习汇编编程将帮助一个人深刻地理解系统如何运行。
+\item 学习汇编编程将帮助一个人更好地理解编译器和高级语言像C如何工作。
+\end{enumerate}
+这两点表明学习汇编是非常有用的，即使在以后的日子里不在编程里用到它。事实上，作者很少用汇编编程，但是他每天都使用来自它的想法。
+
+\subsection{第一个程序}
+
+\begin{figure}[t]
+\begin{lstlisting}[frame=tlrb]{}
+int main()
+{
+  int ret_status;
+  ret_status = asm_main();
+  return ret_status;
+}
+\end{lstlisting}
+\caption{{\code driver.c}代码 \label{fig:driverProg}
+\index{C驱动器}}
+\end{figure}
+
+在这一节里的初期的程序将全部从图~\ref{fig:driverProg}里的简单C驱动程序开始。它简单地调用另一个称为{\code
+asm\_main}的函数。这个是真正意义将用汇编编写的程序。使用C驱动程序有几个优点。首先，这样使C系统正确配置程序在保护模式下运行。所有的段和它们相关的段寄存器将由C初始化。汇编代码不需要为这个担心。其次，C库同样提供给汇编代码使用。作者的I/O程序利用了这个优点。他们使用了C的I/O函数({\code
+printf}， {\em 等})。下面显示了一个简单的汇编程序。
+
+\begin{AsmCodeListing}[label=first.asm]
+; 文件: first.asm
+; 第一个汇编程序。这个程序总共需要两个整形变量作为输入然后输出它们的和。
+;
+;
+; 利用 djgpp 创建执行文件：
+; nasm -f coff first.asm
+; gcc -o first first.o driver.c asm_io.o
+
+%include "asm_io.inc"
+;
+; 初始化放入到数据段里的数据
+;
+segment .data
+;
+; 这些变量指向用来输出的字符串
+;
+prompt1 db    "Enter a number: ", 0       ; 不要忘记空结束符
+prompt2 db    "Enter another number: ", 0
+outmsg1 db    "You entered ", 0
+outmsg2 db    " and ", 0
+outmsg3 db    ", the sum of these is ", 0
+
+;
+; 初始化放入到.bss段里的数据
+;
+segment .bss
+;
+; 这个变量指向用来储存输入的双字
+;
+input1  resd 1
+input2  resd 1
+
+;
+; 代码放入到.text段
+;
+segment .text
+        global  _asm_main
+_asm_main:
+        enter   0,0               ; 开始运行
+        pusha
+
+        mov     eax, prompt1      ; 输出提示
+        call    print_string
+
+        call    read_int          ; 读整形变量储存到input1
+        mov     [input1], eax     ;
+
+        mov     eax, prompt2      ; 输出提示
+        call    print_string
+
+        call    read_int          ; 读整形变量储存到input2
+        mov     [input2], eax     ;
+
+        mov     eax, [input1]     ; eax = 在input1里的双字
+        add     eax, [input2]     ; eax = eax + 在input2里的双字
+        mov     ebx, eax          ; ebx = eax
+
+        dump_regs 1                ; 输出寄存器值
+        dump_mem  2, outmsg1, 1    ; 输出内存
+;
+; 下面分几步输出结果信息
+;
+        mov     eax, outmsg1
+        call    print_string      ; 输出第一条信息
+        mov     eax, [input1]
+        call    print_int         ; 输出input1
+        mov     eax, outmsg2
+        call    print_string      ; 输出第二条信息
+        mov     eax, [input2]
+        call    print_int         ; 输出input2
+        mov     eax, outmsg3
+        call    print_string      ; 输出第三条信息
+        mov     eax, ebx
+        call    print_int         ; 输出总数(ebx)
+        call    print_nl          ; 换行
+
+        popa
+        mov     eax, 0            ; 回到C中
+        leave
+        ret
+\end{AsmCodeListing}
+
+这个程序的第13行定义了指定储存数据的内存段的部分代码(名称为{\code
+.data})\index{数据段}。只有是初始化的数据才需定义在这个段中。行17到20，声明了几个字符串。它们将通过C库输出，所以必须以\emph{null}字符(ASCII值为0)结束。记住{\code
+0}和{\code '0'}有很大的区别。
+
+不初始化的数据需声明在 bss 段(名为{\code
+.bss}，在26行)\index{bss段}。这个段的名字来自于早期的基于UNIX汇编运算符，意思是``由符号开始的块。''这同样会有一个堆栈段。它将在以后讨论。
+
+代码段\index{代码段}根据惯例被命名为{\code
+.text}。它是放置指令的地方。注意主程序(38行)的代码标号有一个下划线前缀。这个是\emph{在C中称为约定}的一部分。\index{调用约定!C}这个约定指定了编译代码时C使用的规则。C和汇编交互使用时，知道这个约定是非常重要的。以后将会将全部约定呈现；但是，现在你只需要知道所有的C编译器里的C符号({\em
+也就是：}
+函数和全局变量)有一个附加的下划线前缀。(这个规定是为DOS/Windows指定的，在linux下C
+编译器并不为C符号名上加任何东西。)
+
+在37行的全局变量(global){\index{指示符!全局}}指示符告诉汇编定义{\code
+\_asm\_main}为全局变量。与C不同的是，变量在缺省情况下只能使用在\emph{内部范围}中。这就意味着只有在同一模块的代码才能使用这个变量。
+{\code
+global}指示符使指定的变量可以使用在\emph{外部范围}中。这种类型的变量可以被程序里的任意模块访问。{\code
+asm\_io}模块声明了全局变量{\code print\_int}和{\em
+et.al.\/}。这就是为什么在{\code first.asm}模块里能使用它们的缘故。
+
+\subsection{编译器依赖}
+
+上面的汇编代码指定为基于GNU\footnote{GNU是一个以免费软件为基础的计划({\code
+http://www.fsf.org})}的 DJGPP \index{编译器!DJGPP}
+C/C++编译器。\footnote{\code http://www.delorie.com/djgpp}
+这个编译器可以从Internet上免费下载。它要求一个基于386或更好的PC而且需在DOS，
+Windows 95/98 或NT下运行。这个编译器使用 COFF (Common Object File
+Format，普通目标文件格式)格式的目标文件。为了符合这个格式，{\code
+nasm}命令使用{\code
+-f~coff}选项(就像上面代码注释展示的一样)。最终目标文件的扩展名为{\code
+o}。
+
+Linux C编译器同样是一个GNU编译器。\index{编译器!gcc}
+为了转变上面的代码使它能在Linux下运行，只需简单将37到38行里的下划线前缀移除。Linux使用ELF(Executable
+and Linkable
+Format，可执行和可连接格式)格式的目标文件。Linux下使用{\code
+-f~elf}选项。它同样产生一个扩展名为{\code
+o}的目标文件。\MarginNote{指定编译器的例子文件可以从作者的网址上得到，它已经修改成能在恰当的编译器上运行了。}
+
+Borland C/C++ \index{编译器!Borland}是另一个流行的编译器。它使用微软
+OMF 格式的目标文件。Borland编译器使用{\code
+-f~obj}选项。目标文件的扩展名将会是{\code obj}。 OMF
+与其它目标文件格式相比使用了不同的{\code
+段}指示符。数据段（13行）必须改成：
+\begin{CodeQuote}
+segment \_DATA public align=4 class=DATA use32
+\end{CodeQuote}
+ bss 段（26）必须改成：
+\begin{CodeQuote}
+segment \_BSS public align=4 class=BSS use32
+\end{CodeQuote}
+text 段（36）必须改成：
+\begin{CodeQuote}
+segment \_TEXT public align=1 class=CODE use32
+\end{CodeQuote}
+必须在36行之前加上一新行：
+\begin{CodeQuote}
+group DGROUP \_BSS \_DATA
+\end{CodeQuote}
+
+微软C/C++\index{编译器!Microsoft}编译器可以使用 OMF
+或Win32格式的目标文件。(如果给出的是OMF格式，它将从内部把信息转变成Win32格式。)Win32允许像DJGPP和Linux一样来定义段。在这个模式下使用{\code
+-f~win32}选项来输出。目标文件的扩展名将会是{\code obj}。
+
+\subsection{汇编代码}
+
+第一步是汇编代码。在命令行，键入：
+\begin{CodeQuote}
+nasm -f {\em object-format} first.asm
+\end{CodeQuote}
+{\em object-format}要么是{\em coff\/}， {\em elf\/}， {\em
+obj}，要么是{\em
+win32}，它由使用的C编译器决定。(记住在Linux和Borland下，资源文件同样必须改变。)
+
+\subsection{编译C代码}
+
+使用C编译器编译{\code driver.c}文件。对于 DJGPP ，使用：
+\begin{CodeQuote}
+gcc -c driver.c
+\end{CodeQuote}
+{\code
+-c}选项意味着编译，而不是试图现在连接。同样的选项能使用在Linux，
+Borland和Microsoft编译器上。
+
+\subsection{连接目标文件 \label{seq:linking} \index{连接|(}}
+
+连接是一个将在目标文件和库文件里的机器代码和数据结合到一起产生一个可执行文件的过程。就像下面将展示的，这个过程是非常复杂的。
+
+C代码要求运行标准C库和特殊的\emph{启动代码}
+\index{启动代码}。与直接调用连接程序相比，C编译器\emph{更}容易调用带几个正确的参数的连接程序。例如：使用
+DJGPP 来连接第一个程序的代码，\index{编译器!DJGPP}使用:
+\begin{CodeQuote}
+gcc -o first driver.o first.o asm\_io.o
+\end{CodeQuote}
+这样产生一个{\code first.exe}(或在Linux下只是{\code
+first})可执行文件。
+
+对于Borland，\index{编译器!Borland}你需要使用：
+\begin{CodeQuote}
+bcc32 first.obj driver.obj asm\_io.obj
+\end{CodeQuote}
+Borland使用列出的第一个文件名来确定可执行文件名。所以在上面的例子里，程序将被命名为{\code
+first.exe}。
+
+将编译和连接两个步骤结合起来是可能的。例如：
+\begin{CodeQuote}
+gcc -o first {\em driver.c} first.o asm\_io.o
+\end{CodeQuote}
+现在{\code gcc}将编译{\code driver.c}然后连接。 \index{连接|)}
+
+\subsection{理解一个汇编列表文件 \index{列表文件|(}}
+
+{\code -l {\em listing-file}}选项可以用来告诉{\code
+nasm}创建一个指定名字的列表文件。这个文件将显示代码如何被汇编。这儿显示了17和18行(在数据段)在列表文件中如何显示。(行号显示在列表文件中；但是注意在源代码文件中显示的行号可能不同于在列表文件中显示的行号。)
+\begin{Verbatim}[xleftmargin=\AsmMargin]
+48 00000000 456E7465722061206E-     prompt1 db    "Enter a number: ", 0
+49 00000009 756D6265723A2000
+50 00000011 456E74657220616E6F-     prompt2 db    "Enter another number: ", 0
+51 0000001A 74686572206E756D62-
+52 00000023 65723A2000
+ \end{Verbatim}
+每一行的头一列是行号，第二列是数据在段里的偏移地址(十六进制显示)。第三列显示将要储存的十六进制值。这种情况下，十六进制数据符合ASCII编码。最终，显示来自资源文件的正文。列在第二行的偏移地址非常可能\emph{不是}数据存放在完成后的程序中的真实偏移地址。每个模块可能在数据段(或其它段)定义它自己的变量。在连接这一步时(小节~\ref{seq:linking})，所有这些数据段的变量定义结合形成一个数据段。最终的偏移由连接程序计算得到。
+
+这儿有一小部分text段代码(资源文件中54到56行)在列表文件中如何显示：
+\begin{Verbatim}[xleftmargin=\AsmMargin]
+94 0000002C A1[00000000]          mov     eax, [input1]
+95 00000031 0305[04000000]        add     eax, [input2]
+96 00000037 89C3                  mov     ebx, eax
+\end{Verbatim}
+第三列显示了由汇编程序产生的机器代码。通常一个指令的完整代码不能完全计算出来。例如：在94行，{\code
+input1}的偏移(地址)要直到代码连接后才能知道。汇编程序可以算出{\code
+mov}
+指令(在列表中为A1)的操作码，但是它把偏移写在方括号中，因为准确的值还不能算出来。这种情况下，0作为一个暂时偏移被使用，因为{\code
+input1}在这个文件中，被定义在bss段的开始。记住这\emph{不}意味着它会在程序的最终
+bss
+段的开始。当代码连接后，连接程序将在位置上插入正确的偏移。其它指令，如96行，并不涉及任何变量。这儿汇编程序可以算出完整的机器代码。\index{列表文件|)}
+
+\subsubsection{Big和Little Endian 表示法 \index{endianess|(}}
+如果有人仔细看过95行，将会发现机器代码中的方括号里的偏移地址非常奇怪。{\code
+input2}变量的偏移地址为4(像文件定义的一样)；但是显示在内存里偏移不是00000004，而是04000000。为什么？不同的处理器在内存里以不同的顺序储存多字节整形：\emph{big
+endian}和\emph{little endian}。\MarginNote{Endian的发音和
+\emph{indian}一样。}Big
+ endian是一种看起来更自然的方法。最大(\emph{也就是：}
+最高有效位)的字节首先被储存，然后才是第二大的，\emph{依此类推}。例如：双字00000004将被储存为四个字节00~00~00~04。IBM主机，许多
+RISC 处理器和Motorola处理器都使用这种big
+ endian方法。然而，基于Intel的处理器使用little
+ endian方法！首先被储存是最小的有效字节。所以00000004在内存中储存为
+04~00~00~00。这种格式强制连入CPU而且不可能更改。通常情况下，程序员并不需要担心使用的是哪种格式。但是，在下面的情况下，它们是非常重要的。
+
+\begin{enumerate}
+\item 当二进制数据在不同的电脑上传输时(不管来自文件还是网络)。
+\item 当二进制数据作为一个多字节整形写入到内存中然后当作单个单个字节读出，\emph{反之亦然}。
+\end{enumerate}
+
+Endian格式并不应用于数组的排序。数组的第一个元素通常在最低的地址里。这个应用在字符串里(字符数组)。
+Endian格式依然用在数组的单个元素中。 \index{endianess|)}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[label=skel.asm]
+%include "asm_io.inc"
+segment .data
+;
+; 初始化数据放入到这儿的数据段中
+;
+
+segment .bss
+;
+; 未初始化的数据放入到 bss 段中
+;
+
+segment .text
+        global  _asm_main
+_asm_main:
+        enter   0,0               ; 开始运行
+        pusha
+
+;
+; 代码放在text段。不要改变在这个注释之前或之后的代码。
+;
+;
+
+        popa
+        mov     eax, 0            ; 返回到以中
+        leave
+        ret
+\end{AsmCodeListing}
+\caption{骨架程序\label{fig:skel}}
+\end{figure}
+
+\section{骨架文件 \index{骨架文件}}
+
+图~\ref{fig:skel}显示了一个可以用来书写汇编程序的开始部分的骨架文件。

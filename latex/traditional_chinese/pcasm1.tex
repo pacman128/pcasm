@@ -1,0 +1,958 @@
+% -*-latex-*-
+\chapter{簡介}
+\section{數制}
+
+電腦裏的記憶體由數位組成。電腦記憶體並沒有以十進位(基數為10)來儲存這些數位。因為電腦以二進位(基數為2)格式來儲存所有資訊能極大地簡化硬體。首先讓我們來回顧一下十進位數字制。
+
+\subsection{十進位\index{十進位}}
+
+基數為10的數制由10個數碼(0-9)組成。一個數的每一位有基於它在數中的位置相關聯的10的乘方值。例如：
+\begin{displaymath}
+234 = 2 \times 10^2 + 3 \times 10^1 + 4 \times 10^0
+\end{displaymath}
+
+\subsection{二進位\index{二進位|(}}
+
+基數為2的數制由2個數碼(0和1)組成。一個數的每一位有基於它在數中的位置相關聯的2的乘方值。(一個二進位數字位被稱為一個比特位。)例如：
+\begin{eqnarray*}
+11001_2 & = & 1 \times 2^4 + 1 \times 2^3 + 0 \times 2^2 + 0 \times 2^1
+              + 1 \times 2^0 \\
+ & = & 16 + 8 + 1 \\
+ & = & 25
+\end{eqnarray*}
+
+這些演示了二進位如何轉換成十進位。表~\ref{tab:dec-bin}展示了開始的幾個十進位數字如何以二進位替代。
+\begin{table}[t]
+\begin{center}
+\begin{tabular}{||c|c||cc||c|c||}
+\hline
+十進位 & 二進位 & & & 十進位 & 二進位 \\
+\hline
+0       & 0000   & & & 8       & 1000 \\
+\hline
+1       & 0001   & & & 9       & 1001 \\
+\hline
+2       & 0010   & & & 10      & 1010 \\
+\hline
+3       & 0011   & & & 11      & 1011 \\
+\hline
+4       & 0100   & & & 12      & 1100 \\
+\hline
+5       & 0101   & & & 13      & 1101 \\
+\hline
+6       & 0110   & & & 14      & 1110 \\
+\hline
+7       & 0111   & & & 15      & 1111 \\
+\hline
+\end{tabular}
+\caption{在二進位中十進位0到15的表示\label{tab:dec-bin}}
+\end{center}
+\end{table}
+
+
+\begin{figure}[h]
+\begin{center}
+\begin{tabular}{|rrrrrrrrp{.1cm}|p{.1cm}rrrrrrrr|}
+\hline
+& \multicolumn{7}{c}{以前無進位} & & & \multicolumn{7}{c}{以前有進位} & \\
+\hline
+&  0 & &  0 & &  1 & &  1 & & &  0 & &  0 & &  1 & & 1  & \\
+& +0 & & +1 & & +0 & & +1 & & & +0 & & +1 & & +0 & & +1 &  \\
+\cline{2-2} \cline{4-4} \cline{6-6} \cline{8-8} \cline{11-11} \cline{13-13} \cline{15-15} \cline{17-17}
+& 0  & & 1  & & 1  & & 0  & & & 1  & & 0  & & 0  & & 1 & \\
+&    & &    & &    & & c  & & &    & & c  & & c  & & c & \\
+\hline
+\end{tabular}
+
+\caption{二進位加法(c代表\emph{進位})\label{fig:bin-add}}
+%TODO: Change this so that it is clear that single bits are being added,
+%not 4-bit numbers. Ideas: Table or do sums horizontally.
+\index{二進位!加法}
+\end{center}
+\end{figure}
+
+圖~\ref{fig:bin-add} 演示單個的二進位數字字({\em 也就是}:
+位)相加。下面是一個例子：
+
+\begin{tabular}{r}
+ $11011_2$ \\
++$10001_2$ \\
+\hline
+$101100_2$ \\
+\end{tabular}
+
+如果有人考慮了下面的十進位的除法：
+\[ 1234 \div 10 = 123\; r\; 4 \]
+他可以看到這個除法除去了這個數的最右邊的十進位數字而且將其他的十進位數字向右移動了一位。除以2也是執行同樣的操作，除了是為了得到一個數的二進位位元外。考慮下面二進位數字的除法\footnote{2這個下標是用來表明這個數位是以二進位表示，而不是十進位
+}：
+\[ 1101_2 \div 10_2 = 110_2\; r\; 1 \]
+這個現象可以用來將一個十進位轉換成它的等價的二進位表示形式，像圖~\ref{fig:dec-convert}展示的一樣。這種方法首先找到最右邊的數位，這個數位被稱為\emph{最低的有效位}
+(lsb)。最左邊的數位稱為\emph{最高的有效位}
+(msb)。記憶體的基本單元由8位元組成，稱它為一個\emph{位元組}。\index{二進位|)}
+
+\begin{figure}[t]
+\centering
+\fbox{\parbox{\textwidth}{
+\begin{eqnarray*}
+%\mathrm{十進位} & \mathrm{二進位} \\
+\mathrm{Decimal} & \mathrm{Binary} \\
+25 \div 2 = 12\;r\;1 & 11001 \div 10 = 1100\;r\;1 \\
+12 \div 2 = 6\;r\;0  & 1100 \div 10 = 110\;r\;0 \\
+6 \div 2 = 3\;r\;0   & 110 \div 10 = 11\;r\;0 \\
+3 \div 2 = 1\;r\;1   & 11 \div 10 = 1\;r\;1 \\
+1 \div 2 = 0\;r\;1   & 1 \div 10 = 0\;r\;1 \\
+\end{eqnarray*}
+
+\centering 因此 $25_{10} = 11001_{2}$ }}
+\caption{十進位轉換\label{fig:dec-convert}}
+\end{figure}
+
+\subsection{十六進位\index{十六進位|(}}
+
+十六進位數使用的基數為16。十六進位(或者簡短稱為\emph{hex})可以用作二進位數字的速記形式。十六進位需要16個數碼。這就產生了一個問題，因為沒有符號可以用來表示在9之後的額外的數字。通過協定，字母被用來表示這些額外的數位。這16個十六進位數字是0-9，然後A，
+B， C， D， E和
+F。數A等價於十進位的10，B是11，等等。一個十六進位的每一位有基於它在數中的位置相關聯的16的乘方值。例如：
+\begin{eqnarray*}
+\rm
+2BD_{16} & = & 2 \times 16^2 + 11 \times 16^1 + 13 \times 16^0 \\
+         & = & 512 + 176 + 13 \\
+         & = & 701 \\
+\end{eqnarray*}
+將十進位轉換成十六進位，可以使用和二進位轉換同樣的方法，除了除以16外。看例子圖~\ref{fig:hex-conv}。
+
+\begin{figure}[t]
+\centering
+\fbox{\parbox{\textwidth}{
+\begin{eqnarray*}
+589 \div 16 & = & 36\;r\;13 \\
+36 \div 16 & = & 2\;r\;4 \\
+2 \div 16 & = & 0\;r\;2 \\
+\end{eqnarray*}
+
+\centering
+因此 $589 = 24\mathrm{D}_{16}$
+}}
+\caption{\label{fig:hex-conv}}
+\end{figure}
+
+十六進位非常有用的原因是因為十六進位和二進位之間轉換有一個非常簡單的方法。二進位數字非常大而且非常繁鎖。十六進位提供一個比較舒服的方法來表示二進位數字。
+
+將一個十六進位數轉換成二進位數字，只需要簡單地將每一位十六進位數轉換成4位二進位數字。例如：$\mathrm{24D}_{16}$轉換成\mbox{$0010\;0100\;
+1101_2$}。注意在這些4位二進位數字中領頭的0非常重要！如果$\mathrm{24D}_{16}$中間的那位的4位二進位數字的領頭的0沒用使用的話，那麼結果就是錯的。從二進位轉換成十六進位同樣簡單。只需反過來做剛才那個處理，將二進位每4位元一段轉換成十六進位。從二進位數字的最右端開始，而不是最左端。這樣就能保證處理過程使用了正確的4位段
+\footnote{如果不明白起點為什麼是那樣，那麼換過來，試著將這個例子從左邊開始轉換。}.
+例如:\newline
+
+\begin{tabular}{cccccc}
+$110$ & $0000$ & $0101$ & $1010$ & $0111$ & $1110_2$ \\
+  $6$ & $0$    &   $5$  &   A  &  $7$   &    $\mathrm{E}_{16}$ \\
+\end{tabular}\newline
+
+一個四位元的數被稱為\emph{半位元組}
+\index{半位元組}。因此每一位元十六進位相當於一個半位元組。兩個半位元組為一個位元組，所以一個位元組可以用兩位元十六進位數來表示。一個位元組值的範圍以二進位表示為0到11111111，以十六進位表示為0到FF，以十進位表示為0到255。
+\index{十六進位|)}
+
+\section{電腦結構}
+
+\subsection{記憶體\index{記憶體|(}}
+
+記憶體的基本單元是一個位元組。\index{位元組}
+\MarginNote{記憶體以千位元組\\(~$2^{10} = 1024$位\\元組)，百萬位元組\\(~$2^{20} =1048576$ 位\\元組)和十億位元元組\\(~$2^{30} = 1073741824$\\位元組)來測量。}一台有32兆記憶體的電腦大概能容納3200萬位元組的資訊。在記憶體裏的每一個位元組通過一個唯一的數位來標識作為它的位址像圖~\ref{fig:memory}展示的一樣。
+
+\begin{figure}[ht]
+\begin{center}
+\begin{tabular}{rcccccccc}
+Address & 0 & 1 & 2 & 3 & 4 & 5 & 6 & 7 \\
+\cline{2-9}
+Memory & \multicolumn{1}{|c}{2A}  & \multicolumn{1}{|c}{45}
+       & \multicolumn{1}{|c}{B8} & \multicolumn{1}{|c}{20}
+       & \multicolumn{1}{|c}{8F} & \multicolumn{1}{|c}{CD}
+       & \multicolumn{1}{|c}{12} & \multicolumn{1}{|c|}{2E} \\
+\cline{2-9}
+\end{tabular}
+\caption{ 記憶體位址 \label{fig:memory} }
+\end{center}
+\end{figure}
+
+\begin{table}
+\begin{center}
+\begin{tabular}{|l|l|}\hline
+word(字) & 2個位元組 \\ \hline
+double word(雙字) & 4個位元組 \\ \hline
+quad word(四字) & 8個位元組 \\ \hline
+paragraph(一節) & 16個位元組 \\ \hline
+\end{tabular}
+\caption{ 記憶體單元 \label{tab:mem_units} }
+\end{center}
+\end{table}
+
+通常記憶體都是大塊大塊地使用而不是單個位元組。在PC機結構中，命名了這些記憶體大塊像表~\ref{tab:mem_units}展示的一樣。
+
+在記憶體裏的資料都是數位的。字元通過用數位來表示字元的\emph{字元編碼}來儲存。其中一個最普遍的字元編碼稱為
+\emph{ASCII}(美國資訊互換標準編碼)。一個新的，更完全的，正在替代ASCII的編碼是Unicode。在這兩種編碼中最主要的區別是ASCII使用一個位元組來編碼一個字元，但是Unicode每個字元使用兩個位元組(或一個
+\emph{字})。例如：ASCII使用$41_{16}$
+($65_{10}$)來表示字元大寫\emph{A}；Unicode使用$0041_{16}$來表示。因為ASCII使用一個位元組，所以它僅能表示256種不同的字元\footnote{事實上，ASCII僅僅使用低7位，所以只有128種不同的值可以使用。}。Unicode將ASCII的值擴展成一個字，允許表示更多的字元。這對於表示全世界所有的語言非常重要。\index{記憶體|)}
+
+\subsection{CPU\index{CPU|(}}
+
+中央處理器(CPU)是執行指令的物理設備。 CPU
+執行的指令通常非常簡單。指令可能要求它們使用的資料存儲在一個CPU稱為\emph{寄存器}的特殊的儲存位置中。\index{寄存器}CPU可以比訪問記憶體更快地訪問寄存器裏的資料。然而，在CPU裏的寄存器是有限的，所以程式師必須注意只保存現在使用的資料到寄存器中。
+
+各類CPU執行的指令組成了該CPU的\emph{機器語言}。\index{機器語言}機器語言擁有比高階語言更基本的結構。機器語言指令被編碼成未加工的數位，而不是友好的文本格式。為了更有效的運行，CPU必須能很快地解譯一個指令的目的。機器語言就是為了這個目的設計的，而不是讓人們更容易理解而設計。一個其他語言寫的程式必須轉換成CPU的本地機器語言，才能在電腦上運行。\emph{編譯器}
+\index{編譯器}是一個將用程式語言寫的程式翻譯成特殊結構的電腦的機器語言的程式。通常，每一種類型的CPU都有它自己唯一的機器語言。這是為什麼為
+Mac 寫的程式不能在IBM類型PC機運行的一個原因。
+
+電腦通過使用\emph{時鐘}
+\index{時鐘}來同步指令的執行\MarginNote{\emph{GHz}代表十萬萬赫\\或是每秒十億次迴\\圈。1.5GHz 的CPU\\每秒有15億的時鐘\\脈衝。}。時鐘脈衝在一個固定的頻率(稱為\emph{時鐘頻率})。當你買了一台1.5 GHz 的電腦，1.5 GHz就是時鐘頻率\footnote{實際上，時鐘脈衝使用在許多不同的CPU元件中。其他元件通常使用與CPU不同的時鐘頻率。}。時鐘並不記錄分和秒。它以不變的速率簡單跳動。電子電腦通過使用這個跳動來正確執行它們的操作，就像節拍器的跳動如何來幫助你以正確的節奏播放音樂。一個指令需要跳動的次數(或就像他們經常說的執行\emph{週期})依賴CPU的產生和模仿。週期的次數取決於在它之前的指令和其他因素。
+
+
+\subsection{CPU 80x86系列\index{CPU!80x86}}
+
+IBM型號的PC機包含了一個來自Intel
+80x86家族(或它的克隆)的CPU。在這個家族的所有CPU都有一些普遍的特徵，包括有一種基本的機器語言。無論如何，最近的成員極大地加強了這個特徵。
+\begin{description}
+
+\item[8088，8086:] 這些CPU從編程的觀點來看是完全相同的。它們是用在早期PC機上的CPU。它們提供一些16位的寄存器：AX，
+BX，CX，DX，\\
+SI，DI，BP，SP，CS，DS，SS， ES，IP，
+FLAGS。它們僅僅支援1M位元組的記憶體，而且只能工作在\emph{實模式}下。在這種模式下，一個程式可以訪問任何記憶體位址，甚至其他程式的記憶體！這會使排除故障和保證安全變得非常困難！而且，程式的記憶體需要分成\emph{段}。每段不能大於64K。
+
+
+\item[80286:] 這種CPU使用在AT系列的PC機中。它在8088/86的基本機器語言中加入了一些新的指令。然而，它主要的新的特徵是 \emph{16位元保護模式}。在這種模式下，它可以訪問16M位元組的記憶體和通過阻止訪問其他程式的記憶體來保護程式。可是，程式依然是分成不能大於64K的段。
+
+\item[80386:]
+這種CPU極大地增強了80286的性能。首先，它擴展了許多寄存器來容納32位元資料(EAX，EBX，ECX，EDX，ESI，EDI，EBP，ESP，\\
+EIP)而且增加了兩個新的16位寄存器（FS，GS）。它同樣增加了一個新的\emph{32位元保護模式}。在這種模式下，它可以訪問4G位元組。程式同樣分成段，但是現在每段大小同樣可以到4G。
+
+\item[80486/Pentium/Pentium Pro:] 這些80x86家族的成員增加了不多的新的特徵。它們主要是提高了指令執行的速度。
+
+\item[Pentium MMX:] 這些處理器在Pentium基礎上增加了MMX指令 (多媒體擴展)。這些指令可以提高普通的圖像操作的速率。
+
+\item[Pentium II:] 它是擁有 MMX 指令的Pentium處理器。(Pentium III 本質上就是一個更快的Pentium II。)
+\end{description}
+\index{CPU|)}
+
+\subsection{8086 16位 寄存器\index{寄存器|(}}
+
+最初的8086CPU提供4個16位通用寄存器：AX，BX， CX
+和DX。這些寄存器都可以分解成兩個8位寄存器。例如：AX寄存器可以分解成AH和AL寄存器，像圖~\ref{fig:AX_reg}展示的一樣。AH寄存器包含AX的上(或高)8位，而AL包含AX的低8位。通常AH和AL都當做獨立的一個位元組的寄存器來用；但是，清楚它們不能獨立於AX是非常重要的。改變AX的值將會改變AH和AL的值{\em
+反之亦然}\/。通用寄存器多數使用在資料移動和算術指令中。
+
+\begin{figure}
+\begin{center}
+\begin{tabular}{cc}
+\multicolumn{2}{c}{AX} \\
+\hline
+\multicolumn{1}{||c|}{AH} & \multicolumn{1}{c||}{AL} \\
+\hline
+\end{tabular}
+\caption{AX寄存器 \label{fig:AX_reg} }
+\end{center}
+\end{figure}
+
+這有兩個16位指針寄存器\index{寄存器!指針}： SI 和 DI
+。通常它們都是當作指標來使用，但是在許多情況下也可以像通用寄存器一樣使用。但是，它們不可以分解成8位寄存器。
+
+16位BP和 SP
+寄存器用來指向機器語言堆疊裏的資料，被各自稱為基址寄存器\index{寄存器!基址}
+和堆疊指標寄存器\index{寄存器!堆疊指標}。這些將在以後討論。
+
+16位CS，DS，SS 和ES 寄存器是\emph{段寄存器}。\index{寄存器!段}
+它們指出程式不同部分所使用的記憶體。CS代表代碼段， DS 代表資料段， SS
+代表堆疊段和ES代表附加段。ES當作一個暫時段寄存器來使用。這些寄存器的細節描述在小節~\ref{real_mode}
+和\ref{16prot_mode}中。
+
+指令指標寄存器(IP) \index{寄存器!指令指標}
+與CS寄存器一起使用來跟蹤CPU下一條執行指令的位址。通常，當一條指令執行時，IP提前指向記憶體裏的下一條指令。
+
+FLAGS\index{寄存器!FLAGS}寄存器儲存了前面指令執行結果的重要資訊。這些結果在寄存器裏以單個的位元儲存。例如：如果前面指令執行結果是0，Z位為1，反之為0。並不是所有指令都修改FLAGS裏的位，查看附錄裏的表看單個指令是如何影響FLAGS寄存器的。
+
+\subsection{80386 32位 寄存器\index{寄存器!32-bit}}
+
+80386及以後的處理器擴展了寄存器。例如：16位AX寄存器擴展成了32位。為了向後相容，AX依然表示16位寄存器而
+EAX 用來表示擴展的32位寄存器。AX是 EAX
+的低16位就像AL是AX(EAX)的低8位一樣。但是沒有直接訪問 EAX
+高16位的方法。其他的擴展寄存器是 EBX，ECX，EDX，\\ESI 和 EDI 。
+
+許多其他類型的寄存器同樣也擴展了。BP變成了EBP\index{寄存器!基址}；SP
+變成了ESP\index{寄存器!堆疊指標}；FLAGS變成了EFLAGSEFLAGS\index{寄存器!EFLAGS}
+而IP變成了EIP\index{寄存器!EIP}。但是，不同於指標寄存器和通用寄存器，在32位元保護模式下(下面將討論的)只有這此寄存器的擴展形式被使用。
+
+在80386裏，段寄存器依然是16位的。這兒有兩個新的段寄存器：FS和GS\index{寄存器!段}。它們名字並不代表什麼。它們是附加段寄存器(像ES一樣)。
+
+術語中\emph{字}\index{字}的一個定義為CPU資料寄存器的大小。對於80x86家族，這個術語現在有一點混亂了。在表~\ref{tab:mem_units}裏，可以看到\emph{字}被定義成兩個位元組。它是當8086第一次發行時被定義成這樣的。當80386開發出來後，它被決定依舊保持這個\emph{字}定義不改變，即使寄存器的大小已經改變了。
+\index{寄存器|)}
+
+\subsection{實模式 \label{real_mode} \index{實模式|(}}
+
+在實模式下\MarginNote{那麼，無恥的DOS640K\\限制來自哪里？BIOS\\為它的代碼和硬體設\\備如顯示器要求了1M\\記憶體中的一些記\\憶體。}，記憶體被限制為僅有1M位元組($2^{20}$位元組)。有效的位址從00000 \\到 FFFFF(十六進位)。  % \@ means end of sentence
+這些位址需要用20位元的數來表示。顯然，一個20位的數不適合任何一個8086的16位寄存器。Intel通過利用兩個16位數值來決定一個位址的方法來解決這個問題。開始的16位值稱為\emph{段位址}(selector)。段位址的值必須存儲在段寄存器中。第二個16位值稱為\emph{偏移位址}(offset)。用32位\emph{段地址：偏移位址}表示的物理位址可以由下面的公式計算：
+%\[ 16 * {\rm 段位址} + {\rm 偏移位址} \]
+\[ 16 * {\rm selector} + {\rm offset} \]
+在十六進位中乘以16是非常容易的，只需要在數的右邊加0。例如：表示為047C:0048的物理位址通過這樣得到：
+\begin{center}
+\begin{tabular}{r}
+047C0 \\
++0048 \\
+\hline
+04808 \\
+\end{tabular}
+\end{center}
+實際上，段地址的值是一節的首地址(看表~\ref{tab:mem_units})。
+
+真實的段位址有以下的缺點：
+\begin{itemize}
+\item 一個段位址只能指向64K記憶體(16位元偏移的上限)。如果一個程式擁有大於64K的代碼那又怎麼辦呢？在CS裏的一個單一的值不能滿足整個程式執行的需要。程式必須分成小於64K的段(\emph{segment}\index{記憶體!段})。當執行從一段移到另一段時，CS裏的值必須改變。同樣的問題發生在大量的資料和
+DS 寄存器之間。這樣使用是非常不方便的！
+
+\item 每個位元組在記憶體裏並不只有唯一的段位址。物理位址04808可以表示為：047C:0048， 047D:0038， 047E:0028
+或047B:0058。\@ 這將使段地址的比較變得複雜。
+
+\end{itemize}
+\index{實模式|)}
+
+\subsection{16位元保護模式 \label{16prot_mode} \index{保護模式!16-bit|(}}
+
+在80286的16位元保護模式下，段位址的值與實模式相比解釋得完全不同。在實模式下，一個段位址的值是實體記憶體裏的一節的首地址。在保護模式下，一個段位址的值是一個指向\emph{描述符表}的\emph{指標}。兩種模式下，程式都是被分成段\index{記憶體:段}。在實模式下，這些段在實體記憶體的固定位置而且段位址的值表示段開始處所在節的首位址。在保護模式下，這些段不是在實體記憶體的固定的地址。事實上，它們根本不一定需要在記憶體中。
+
+保護模式使用了一種叫做\emph{虛擬記憶體}
+\index{記憶體!虛擬}的技術。虛擬記憶體的基本思想是僅僅保存程式現在正在使用的代碼和資料到記憶體中。其他資料和代碼暫時儲存在硬碟中直到它們再次需要時。當一段從硬碟重新回到記憶體中，它很有可能放在不同於它移動到硬碟之前時的位置的記憶體中。所有這些都由作業系統透明地執行。程式並不需要因為要讓虛擬記憶體工作而使用不同的書寫方法。
+
+在保護模式下，每一段都分配了一條描述符表裏的條目。這個條目擁有系統想知道的關於這段的所有資訊。這些資訊包括：現在是否在記憶體中；如果在記憶體中，在哪；訪問許可權({\em
+例如：} 唯讀)。段的條目的指標是儲存在段寄存器裏的段位址值。
+
+16位元保護模式的一個大的缺點是偏移位址依然是16位數\MarginNote{一個非常著名的PC\\專家稱286CPU為``死\\了的大腦''}。這個的後果就是段的大小依然限制為最大64K。這會導致使用大的陣列時會有問題。
+\index{保護模式!16-bit|)}
+
+\subsection{32位元保護模式\index{保護模式!32-bit|(}}
+
+80386引入了32位元保護模式。386 32位元保護模式和286
+16位元保護模式之間最主要的區別是：
+\begin{enumerate}
+\item
+
+偏移位址擴展成了32位。這就允許偏移位址範圍升至4G。因此，段的大小也升至4G。
+
+\item
+
+段\index{記憶體!段}可以分成較小的4K大小的單元，稱為\emph{記憶體頁}\index{記憶體!頁}。虛擬記憶體\index{記憶體!虛擬}系統工作在頁的方式下，代替了段方式。這就意味著一段在任何一個時刻只有部分可能在記憶體中。在28616位元保護模式下，要麼整個段在記憶體中，要麼整個不在。這樣在32位元模式下允許的大的段的情況下很不實用。
+
+\end{enumerate}
+
+\index{保護模式!32-bit|)}
+
+在Windows 3.x系統中，\emph{標準模式}為286
+16位元保護模式而\emph{增強模式}為32位元保護模式。Windows 9X，Windows
+NT/2000/XP，OS/2和Linux都運行在分頁管理的32位元保護模式下。
+
+\subsection{中斷\index{中斷}}
+
+有時候普通的程式流必須可以被要求快速反應的處理事件中斷。電腦提供了一個稱為\emph{中斷}的結構來處理這些事件。例如：當一個滑鼠移動了，硬體滑鼠中斷現在的程式來處理滑鼠移動(移動滑鼠，
+{\em
+等等\/})。中斷導致控制權轉移到一個\emph{中斷處理程式}。中斷處理程式是處理中斷的程式。每種類型的中斷都分配了一個中斷號。在實體記憶體的開始處，存在一張包含中斷處理程式段位址的\emph{中斷向量}
+表。中斷號是這張表中最基本的指標。
+
+外部中斷由CPU的外部引起。(滑鼠就是這一類型的例子。)許多I/O設備引起中斷({\em
+例如：\/}鍵盤，時鐘，硬碟驅動器，CD-ROM和音效卡)。內部中斷由CPU的內部引起，要麼是由一個錯誤引起，要麼由中斷指令引起。錯誤中斷稱為\emph{陷阱}。由中斷指令引起的中斷稱為\emph{軟中斷}。DOS使用這些類型的中斷來實現它的API(應用程式介面)。許多現代的作業系統(如：Windows和UNIX)使用一個基於C的介面。
+\footnote{然而，它們在內核級可能會使用一個更低等級的介面。}
+
+許多中斷處理程式當它執行完成時，將控制權返回給被中斷的程式。它們恢復寄存器，裏面的值與中斷發生之前的值相同。因此，被中斷的程式就像沒有任何事情發生一樣運行(除了它失去了一些CPU週期)。陷阱通常不返回。通常它們中止程式。
+
+\section{組合語言}
+
+\subsection{機器語言\index{機器語言}}
+
+每種類型的CPU都能理解它們自己的機器語言。機器語言裏的指令是以位元組形式在記憶體中儲存的數位。每條指令有它唯一的數位碼稱為\emph{操作代碼}，或簡稱為\emph{操作碼}
+\index{操作碼}。80x86處理器的指令大小不同。操作碼通常是在指令的開始處。許多指令還包含指令使用的資料({\em
+例如：\/}常量或地址)。
+
+機器語言很難直接進行編程。解譯這些數位代碼指令的意思對人類來說是沉悶的。例如：執行將
+EAX 和 EBX 寄存器相加然後將結果送回到 EAX
+的指令以十六進位碼編譯如下：
+\begin{quote}
+   03 C3
+\end{quote}
+這個很難理解。幸運的是，一個叫做\emph{彙編的程式}
+\index{彙編器}可以為程式師做這個沉悶的工作。
+
+\subsection{組合語言\index{組合語言|(}}
+
+一個組合語言程式以文本格式儲存(正如一個高階語言程式)。每條彙編指令代表確切的一條機器指令。例如：上面描述的加法指令在組合語言中將描述成：
+\begin{CodeQuote}
+   add eax, ebx
+\end{CodeQuote}
+這裏指令的意思比在機器代碼表示得\emph{更}清楚。代碼{\code
+add}是加法指令的\emph{助記符}
+\index{助記符}。一條彙編指令的通常格式為：
+\begin{CodeQuote}
+  {\em mnemonic(助記符) operand(s)(運算元)}
+\end{CodeQuote}
+
+\emph{組合語言程式}
+\index{彙編器}是一個讀包含彙編指令的文字檔案和將組合語言轉換成機器代碼的程式。\emph{編譯器}
+\index{編譯器}是為高級編程語言做同樣轉換的程式。一個組合語言程式比一個編譯器要簡單。
+\MarginNote{它花費了電腦科學\\家幾年的時間來揣\\測如何編寫一個編\\譯器！}每條彙編語句接代表一個唯一的機器指令。高階語言\emph{更}複雜而且可能要求更多的機器指令。
+
+彙編和高階語言之間另一個更重要的區別是因為每種不同類型的CPU有它自己的機器代碼，所以它同樣有它自己的組合語言。在不同的電腦構造中移植組合語言比高階語言要困難\emph{得多}。
+
+這本書使用了 Netwide Assembler，或簡稱為 NASM
+\index{NASM}。它在Internet上是免費提供的(要得到URL，請看前言)。更普遍的組合語言程式是Microsoft
+Assembler(MASM) \index{MASM}或Borland Assembler
+(TASM)。\index{TASM}MASM/TASM和 NASM 之間有一些彙編語法區別。
+
+\subsection{指令運算元}
+
+機器代碼指令擁有個數和類型不同的運算元；然而，通常每個指令有幾個固定的運算元(0到3個)。運算元可以有下面的類型：
+\begin{description}
+\item[寄存器:]
+這些運算元直接指向CPU寄存器裏的內容。
+\item[記憶體:]
+這些運算元指向記憶體裏的資料。資料的位址可能是硬編碼到指令裏的常量或可能直接使用寄存器的值計算得到。距離段的起始位址的偏移值即為此位址。
+\item[立即數:]
+\index{立即數}
+這些運算元是指令本身列出的固定的值。它們儲存在指令本身(在代碼段)，而不在資料段。
+\item[暗指的運算元:]
+這些運算元沒有明確顯示。例如：往寄存器或記憶體增加1的加法指令。1是暗指的。
+\end{description}
+\index{組合語言|)}
+
+\subsection{基本指令}
+
+最基本指令是{\code MOV}
+\index{MOV}指令。它將資料從一個地方移到另一個地方(像高階語言裏面的賦值操作一樣)。它攜帶兩個運算元：
+\begin{CodeQuote}
+  mov {\em dest (目的運算元), src(源運算元)}
+\end{CodeQuote}
+{\em src}指定的資料拷貝到了{\em
+dest\/}。一個指令的兩個運算元不能同時是記憶體運算元。這就指出了一個彙編古怪的地方。通常，對於各種各樣指令的使用都有某些強制性的規定。運算元必須是同樣的大小。AX裏的值就不能儲存到
+BL 裏去。
+
+這兒有一個例子(分號表示注釋\index{注釋}的開始)：
+\begin{AsmCodeListing}[frame=none, numbers=none]
+      mov    eax, 3   ; 將3存入 EAX 寄存器(3是一個立即數)。
+      mov    bx, ax   ; 將AX的值存入到BX寄存器。
+\end{AsmCodeListing}
+
+{\code ADD} \index{ADD}指令用來進行整形資料的相加。
+\begin{AsmCodeListing}[frame=none, numbers=none]
+      add    eax, 4   ; eax = eax + 4
+      add    al, ah   ; al = al + ah
+\end{AsmCodeListing}
+
+{\code SUB} \index{SUB}指令用來進行整形資料的相減。
+\begin{AsmCodeListing}[frame=none, numbers=none]
+      sub    bx, 10   ; bx = bx - 10
+      sub    ebx, edi ; ebx = ebx - edi
+\end{AsmCodeListing}
+
+{\code INC} \index{INC}和{\code DEC}
+\index{DEC}指令將值加1或減1。因為1是一個暗指的運算元，{\code INC}
+和{\code DEC}的機器代碼比等價的{\code ADD}和{\code SUB}指令要少。
+\begin{AsmCodeListing}[frame=none, numbers=none]
+      inc    ecx      ; ecx++
+      dec    dl       ; dl--
+\end{AsmCodeListing}
+
+\subsection{指示符\index{指示符|(}}
+
+
+\emph{指示符}是由組合語言程式產生的而不是由CPU產生。它們通常用來要麼指示組合語言程式做什麼要麼提示組合語言程式什麼。它們並不翻譯成機器代碼。指示符普遍的應用有：
+\begin{list}{$\bullet$}{\setlength{\itemsep}{0pt}}
+\item 定義常量
+\item 定義用來儲存資料的記憶體
+\item 將記憶體組合成段
+\item 有條件地包含源代碼
+\item 包含其他檔案
+\end{list}
+
+NASM代碼像C一樣要通過一個預處理程式。它擁有許多和C一樣的預處理程式。但是，
+NASM 的預處理的指示符以\%開頭而不是像C一樣以\#開頭。
+
+\subsubsection{equ 指示符\index{指示符!equ}}
+
+{\code
+equ}指示符可以用來定義一個\emph{符號}。符號被命名為可以在組合語言程式裏使用的常量。格式是：
+\begin{quote}
+  \code {\em symbol} equ {\em value}
+\end{quote}
+符號的值以後\emph{不}可以再定義。
+
+\subsubsection{\%define 指示符\index{指示符!\%define}}
+
+這個指示符和C中的{\code
+\#define}非常相似。它通常用來定義一個宏常量，像在C裏面一樣。
+\begin{AsmCodeListing}[frame=none, numbers=none]
+%define SIZE 100
+      mov    eax, SIZE
+\end{AsmCodeListing}
+上面的代碼定義了一個稱為 {\code SIZE}的宏通過使用一個{\code
+MOV}指令。巨集在兩個方面比符號要靈活。宏可以被再次定義而且可以定義比簡單的常量數值更大的值。
+
+\subsubsection{數據指示符\index{指示符!data|(}}
+
+\begin{table}[t]
+\centering
+\begin{tabular}{||c|c||} \hline
+{\bf 單位} & {\bf 字母} \\
+\hline
+位元組 & B \\
+字 & W \\
+雙字 & D \\
+四字 & Q \\
+十個位元組 & T \\
+\hline
+\end{tabular}
+\caption{{\code RESX}和{\code DX}指示符的字母
+         \label{tab:size-letters} }
+\end{table}
+
+資料指示符使用在資料段中用來定義記憶體空間。保留記憶體有兩種方法。第一種方法僅僅為資料定義空間；第二種方法在定義資料空間的同時給與一個初始值。第一種方法使用{\code
+RES{\em X}}\index{指示符!RES\emph{X}}指示符中的一個。{\em
+X}可由字母替代，字母由需要儲存的物件的大小來決定。表~\ref{tab:size-letters}給出了可能的值。
+
+第二種方法(同時定義一個初始值)使用{\code D{\em
+X}}指示符中\index{指示符!D\emph{X}}的一個。{\em
+X}可以由字母替代，字母的值與{\code RES{\em X}}裏的值一樣。
+
+使用\emph{變數}\index{變數}
+來標記記憶體位置是非常普遍的。變數使得在代碼中指向記憶體位置變得容易。下面是幾個例子：
+\begin{AsmCodeListing}[frame=none, numbers=none]
+L1    db     0        ;位元組變數L1，初始值為0
+L2    dw     1000     ;字變數L2，初始值為1000
+L3    db     110101b  ;位元組變數初始化成110101(十進位為53)
+L4    db     12h      ;位元組變數初始化成十六進位12(在十進位中為18)
+L5    db     17o      ;位元組變數初始化成八進制17(在十進位中為15)
+L6    dd     1A92h    ;雙字變數初始化成十六進位1A92
+L7    resb   1        ;1個未初始化的位元組
+L8    db     "A"      ;位元組變數初始化成ASCII值A(65)
+\end{AsmCodeListing}
+
+雙引號和單引號被同等對待。連續定義的資料儲存在連續的記憶體中。也就是說，字L2就儲存在L1的後面。記憶體的順序可以同樣被定義。
+\begin{AsmCodeListing}[frame=none, numbers=none]
+L9    db     0, 1, 2, 3              ; 定義4個位元組
+L10   db     "w", "o", "r", 'd', 0   ; 定義一個等於"word"的C字串
+L11   db     'word', 0               ; 等同於L10
+\end{AsmCodeListing}
+
+指示符{\code
+DD}\index{指示符!DD}可以用來定義整形和單精確度的浮點數常量\footnote{單精確度浮點數等價於C裏的的{\code
+float}變數}。但是，{\code
+DQ}\index{指示符!DQ}指示符僅僅可以用來定義雙精度的數常量。
+
+對於大的序列， NASM 的{\code TIMES}
+\index{指示符!TIMES}指示符常常非常有用。這個指示符每次都重複它的操作物件一個指定的次數。例如：
+\begin{AsmCodeListing}[frame=none, numbers=none]
+L12   times 100 db 0                 ; 等價於100個值為0的位元組
+L13   resw   100                     ; 儲存空間為100個字
+\end{AsmCodeListing}
+\index{指示符!data|)}
+\index{指示符|)}
+
+\index{變數|(}
+記住變數可以用來表示代碼中的資料。變數的使用方法有兩種。如果一個平常的變數被使用了，它被解釋為資料的位址(或偏移)。如果變數被放置在方括號({\code
+[]})中，它就被解釋為在這個位址中的資料。換句話說，你必須把變數當作一個指向資料的\emph{指標}而方括號引用這個指標就像*號在C中一樣。(MASM/TASM使用的是另外一個慣例。)在32位元模式下，位址是32位。這兒有幾個例子：
+\begin{AsmCodeListing}[frame=none]
+      mov    al, [L1]      ; 複製L1裏的位元組資料到AL
+      mov    eax, L1       ; EAX = 位元組變數L1代表的位址
+      mov    [L1], ah      ; 把AH拷貝到位元組變數L1
+      mov    eax, [L6]     ; 複製L6裏的雙字資料到 EAX
+      add    eax, [L6]     ; EAX = EAX + L6裏的雙字數據
+      add    [L6], eax     ; L6 = L6裏的雙字數據 + EAX
+      mov    al, [L6]      ; 拷貝L6裏的資料的第一個位元組到AL
+\end{AsmCodeListing}
+例子的第7行展示了 NASM 一個重要性能。組合語言程式並\emph{不}
+保持跟蹤變數的資料類型。它由程式師來決定來保證他(或她)正確使用了一個變數。隨後它一般將資料的位址儲存到寄存器中，然後像在C中一樣把寄存器當一個指標變數來使用。同樣，沒有檢查使得指標能正確使用。以這種方式，組合語言程式跟C相比有更易出錯的傾向。
+
+考慮下面的指令：
+\begin{AsmCodeListing}[frame=none, numbers=none]
+      mov    [L6], 1             ; 儲存1到L6中
+\end{AsmCodeListing}
+這條語句產生一個{\code operation size not
+specified}(操作大小沒有指定)的錯誤。為什麼？因為組合語言程式不知道是把1當作一個位元組，還是字，或是雙字來儲存。為了修正這個，加一個大小指定：
+\begin{AsmCodeListing}[frame=none, numbers=none]
+      mov    dword [L6], 1       ; 儲存1到L6中
+\end{AsmCodeListing}
+\index{DWORD}這個告訴組合語言程式把1儲存在從{\code
+L6}開始的雙字中。另一些大小指定為： {\code BYTE}\index{位元組}(位元組)，
+{\code WORD}\index{字}(字)， {\code QWORD}\index{四字}(四字)和{\code
+TWORD}(十位元組)。\footnote{{\code
+TWORD}定義了十個位元組大小的記憶體。浮點數輔助運算器使用了這種類型的資料}\index{十位元組}
+\index{變數|)}
+
+\subsection{輸入和輸出 \index{I/O|(}}
+
+輸入和輸出是真正系統依賴的活力。它牽涉到系統硬體的介面問題。高階語言，像C，提供了標準的，簡單的，統一的程式I/O介面的程式庫。組合語言不提供標準庫。它們必須要麼直接訪問硬體(在保護模式下為特權級操作)或使用任何作業系統提供的底層的程式。
+
+\index{I/O!asm\_io library|(}
+組合語言程式與C交互使用是非常普遍的。這樣做的一個優點是彙編代碼可以使用標準C
+I/O程式庫。但是，你必須清楚C使用的程式之間傳遞資訊的規則。這些規則放在這會非常麻煩。(它們將在以後提到！)為了簡單化I/O，作者已經開發出了隱藏在複雜C規則裏的自己的程式，而且提供了一個更簡單的介面。表~\ref{tab:asmio}描述了提供的程式。所有這些程式保留了所有寄存器的值，除了讀的程式外。這些程式確實修改了
+EAX
+的值。為了使用這些程式，你必須包含一個組合語言程式需要用到的資訊的檔。為了在
+NASM 中包含一個檔，你可以使用{\code
+\%include}預處理指示符。下面幾行包含了有作者的I/O程式的檔\footnote{
+{\code asm\_io.inc} (和{\code asm\_io.inc}需要的{\code
+asm\_io}目標檔)在例子代碼中，可以從這個指南的網頁中下載到：{\code
+http://www.drpaulcarter.com/pcasm}}:
+\begin{AsmCodeListing}[frame=none, numbers=none]
+%include "asm_io.inc"
+\end{AsmCodeListing}
+
+\begin{table}[t]
+\centering
+\begin{tabular}{lp{3.5in}}
+{\bf print\_int} & 在螢幕上顯示出儲存在 EAX 中的整形值\\
+{\bf print\_char} & 在螢幕上顯示出以ASCII形式儲存在AL中的字元\\
+{\bf print\_string} & 在螢幕上顯示儲存在 EAX 裏的{\em
+位址}指向的字串的內容。這個字串必須是C類型的字串，({\em
+也就是:}以null結束的字串)。 \\
+{\bf print\_nl} & 在螢幕上顯示換行。 \\
+{\bf read\_int} & 從鍵盤上讀入一整形資料然而把它儲存到 EAX 寄存器。 \\
+{\bf read\_char} & 從鍵盤讀入一單個字元然而把它以ASCII形式儲存到 EAX
+寄存器。 \\
+\end{tabular}
+\caption{彙編的I/O程式 \label{tab:asmio} \index{I/O!asm\_io
+library!print\_int} \index{I/O!asm\_io library!print\_char}
+\index{I/O!asm\_io library!print\_string} \index{I/O!asm\_io
+library!print\_nl} \index{I/O!asm\_io library!read\_int}
+\index{I/O!asm\_io library!read\_char}}
+\end{table}
+
+為了使用一個列印程式，你必須載入正確的值到 EAX 中，然後用{\code
+CALL}指令調用它。{\code
+CALL}指令等價於在高階語言裏的函式call。它跳轉到代碼的另一段去執行，然後等程式執行完成後又回到原始的地方。下面的程式例子展示了調用這些I/O程式的幾個樣例。
+
+\subsection{調試\index{調試|(}}
+
+作者的庫同樣包含一些有用的調試程式。這些調試程式顯示關於系統狀態的資訊但不改變它們。這些程式是一些保存CPU的當前狀態後執行一個子程式調用的\emph{巨集}。這些巨集定義在上面提到的{\code
+asm\_io.inc}檔案中。巨集可以像普通的指令一樣使用。宏的運算元由逗號隔開。
+
+這兒有四個調試程式稱為{\code dump\_regs}，{\code dump\_mem}，{\code
+dump\_stack}和{\code
+dump\_math}；它們分別顯示寄存器，記憶體，堆疊和數位輔助運算器的值。
+\begin{description}
+
+\item[dump\_regs]
+\index{I/O!asm\_io library!dump\_regs}
+這個巨集顯示系統的寄存器裏的值(十六進位)到{\code
+stdout}(\emph{也就是：} 顯示器)。它同時顯示在FLAGS\footnote{第2章
+將討論這個寄存器}寄存器裏的位。例如，如果零標誌位元是1，\emph{ZF}是顯示的。如果是0，它就不被顯示。它攜帶一個整形參數，這個參數同樣被顯示出來。這就可以用來區別不同{\code
+dump\_regs}命令的輸出。
+
+\item[dump\_mem]
+\index{I/O!asm\_io library!dump\_mem}
+這個巨集同樣以ASCII字元的形式顯示記憶體區域的值(十六進位)。它帶有三個用逗號分開的參數。第一個參數是一個用來標示輸出的整形變數(就像{\code
+dump\_regs}參數一樣)。第二個參數需要顯示的記憶體的位址。(它可以是個標號。)最後一個參數是在此位址後需要顯示的16位元組的節數。記憶體顯示將從要求的位址之前的第一節的邊界開始。
+\item[dump\_stack]
+\index{I/O!asm\_io library!dump\_stack}
+這個巨集顯示CPU堆疊的值。(這個堆疊將在第4章中提到。)這個堆疊由雙字組成，所以這個程式也以這種格式顯示它們。它帶有三個用逗號隔開的參數。第一個參數是一個整形變數（像{\code
+dump\_regs}一樣）第二個參數是在{\code
+EBP}寄存器裏的位址\emph{下面}需要顯示的雙字的數目而第三個參數是在{\code
+EBP}寄存器裏的位址\emph{上面}需要顯示的的數目。
+
+\item[dump\_math]
+\index{I/O!asm\_io library!dump\_math}
+這個巨集顯示數位輔助運算器寄存器裏的值。它只帶有一個整形參數，這個參數用來標示輸出就像參數{\code
+dump\_regs}做的一樣。
+\end{description}
+\index{調試|)}
+\index{I/O!asm\_io library|)} \index{I/O|)}
+
+\section{創建一個程式}
+
+現今，完全用組合語言寫的獨立的程式是不經常的。彙編一般用在某些至關重要的程式。為什麼？用高階語言來編程比用彙編要簡單\emph{得多}。同樣，使用彙編將使得程式移植到另一個平臺非常困難。事實上，根本很少使用組合語言程式。
+
+那麼，為什麼任何人都需要學習組合語言程式呢？
+\begin{enumerate}
+\item 有時，用編程寫的代碼比起編譯器產生的代碼要少而且運行得更快。
+\item 彙編允許直接訪問系統硬體資訊，而這個在高階語言中很難或根本不可能實現。
+\item 學習彙編編程將幫助一個人深刻地理解系統如何運行。
+\item 學習彙編編程將幫助一個人更好地理解編譯器和高階語言像C如何工作。
+\end{enumerate}
+這兩點表明學習彙編是非常有用的，即使在以後的日子裏不在編程裏用到它。事實上，作者很少用彙編編程，但是他每天都使用來自它的想法。
+
+\subsection{第一個程式}
+
+\begin{figure}[t]
+\begin{lstlisting}[frame=tlrb]{}
+int main()
+{
+  int ret_status;
+  ret_status = asm_main();
+  return ret_status;
+}
+\end{lstlisting}
+\caption{{\code driver.c}代碼 \label{fig:driverProg}
+\index{C驅動器}}
+\end{figure}
+
+在這一節裏的初期的程式將全部從圖~\ref{fig:driverProg}裏的簡單C驅動程式開始。它簡單地調用另一個稱為{\code
+asm\_main}的函式。這個是真正意義將用彙編編寫的程式。使用C驅動程式有幾個優點。首先，這樣使C系統正確配置程式在保護模式下運行。所有的段和它們相關的段寄存器將由C初始化。彙編代碼不需要為這個擔心。其次，C庫同樣提供給彙編代碼使用。作者的I/O程式利用了這個優點。他們使用了C的I/O函式({\code
+printf}， {\em 等})。下面顯示了一個簡單的組合語言程式。
+
+\begin{AsmCodeListing}[label=first.asm]
+; 檔案: first.asm
+; 第一個組合語言程式。這個程式總共需要兩個整形變數作為輸入然後輸出它們的和。
+;
+;
+; 利用 djgpp 創建執行檔：
+; nasm -f coff first.asm
+; gcc -o first first.o driver.c asm_io.o
+
+%include "asm_io.inc"
+;
+; 初始化放入到資料段裏的數據
+;
+segment .data
+;
+; 這些變數指向用來輸出的字串
+;
+prompt1 db    "Enter a number: ", 0       ; 不要忘記空結束符
+prompt2 db    "Enter another number: ", 0
+outmsg1 db    "You entered ", 0
+outmsg2 db    " and ", 0
+outmsg3 db    ", the sum of these is ", 0
+
+;
+; 初始化放入到.bss段裏的數據
+;
+segment .bss
+;
+; 這個變數指向用來儲存輸入的雙字
+;
+input1  resd 1
+input2  resd 1
+
+;
+; 代碼放入到.text段
+;
+segment .text
+        global  _asm_main
+_asm_main:
+        enter   0,0               ; 開始運行
+        pusha
+
+        mov     eax, prompt1      ; 輸出提示
+        call    print_string
+
+        call    read_int          ; 讀整形變數儲存到input1
+        mov     [input1], eax     ;
+
+        mov     eax, prompt2      ; 輸出提示
+        call    print_string
+
+        call    read_int          ; 讀整形變數儲存到input2
+        mov     [input2], eax     ;
+
+        mov     eax, [input1]     ; eax = 在input1裏的雙字
+        add     eax, [input2]     ; eax = eax + 在input2裏的雙字
+        mov     ebx, eax          ; ebx = eax
+
+        dump_regs 1                ; 輸出寄存器值
+        dump_mem  2, outmsg1, 1    ; 輸出記憶體
+;
+; 下面分幾步輸出結果資訊
+;
+        mov     eax, outmsg1
+        call    print_string      ; 輸出第一條資訊
+        mov     eax, [input1]
+        call    print_int         ; 輸出input1
+        mov     eax, outmsg2
+        call    print_string      ; 輸出第二條資訊
+        mov     eax, [input2]
+        call    print_int         ; 輸出input2
+        mov     eax, outmsg3
+        call    print_string      ; 輸出第三條資訊
+        mov     eax, ebx
+        call    print_int         ; 輸出總數(ebx)
+        call    print_nl          ; 換行
+
+        popa
+        mov     eax, 0            ; 回到C中
+        leave
+        ret
+\end{AsmCodeListing}
+
+這個程式的第13行定義了指定儲存資料的記憶體段的部分代碼(名稱為{\code
+.data})\index{資料段}。只有是初始化的資料才需定義在這個段中。行17到20，聲明了幾個字串。它們將通過C庫輸出，所以必須以\emph{null}字元(ASCII值為0)結束。記住{\code
+0}和{\code '0'}有很大的區別。
+
+不初始化的數據需聲明在 bss 段(名為{\code
+.bss}，在26行)\index{bss段}。這個段的名字來自於早期的基於UNIX彙編運算符，意思是``由符號開始的塊。''這同樣會有一個堆疊段。它將在以後討論。
+
+代碼段\index{代碼段}根據慣例被命名為{\code
+.text}。它是放置指令的地方。注意主程序(38行)的代碼標號有一個下劃線首碼。這個是\emph{在C中稱為約定}的一部分。\index{調用約定!C}這個約定指定了編譯代碼時C使用的規則。C和彙編交互使用時，知道這個約定是非常重要的。以後將會將全部約定呈現；但是，現在你只需要知道所有的C編譯器裏的C符號({\em
+也就是：}
+函式和總體變數)有一個附加的下劃線首碼。(這個規定是為DOS/Windows指定的，在linux下C
+編譯器並不為C符號名上加任何東西。)
+
+在37行的總體變數(global){\index{指示符!全局}}指示符告訴彙編定義{\code
+\_asm\_main}為總體變數。與C不同的是，變數在缺省情況下只能使用在\emph{內部範圍}中。這就意味著只有在同一模組的代碼才能使用這個變數。
+{\code
+global}指示符使指定的變數可以使用在\emph{外部範圍}中。這種類型的變數可以被程式裏的任意模組訪問。{\code
+asm\_io}模組聲明了總體變數{\code print\_int}和{\em
+et.al.\/}。這就是為什麼在{\code first.asm}模組裏能使用它們的緣故。
+
+\subsection{編譯器依賴}
+
+上面的彙編代碼指定為基於GNU\footnote{GNU是一個以免費軟體為基礎的計畫({\code
+http://www.fsf.org})}的 DJGPP \index{編譯器!DJGPP}
+C/C++編譯器。\footnote{\code http://www.delorie.com/djgpp}
+這個編譯器可以從Internet上免費下載。它要求一個基於386或更好的PC而且需在DOS，
+Windows 95/98 或NT下運行。這個編譯器使用 COFF (Common Object File
+Format，普通目標檔格式)格式的目標檔。為了符合這個格式，{\code
+nasm}命令使用{\code
+-f~coff}選項(就像上面代碼注釋展示的一樣)。最終目標檔的副檔名為{\code
+o}。
+
+Linux C編譯器同樣是一個GNU編譯器。\index{編譯器!gcc}
+為了轉變上面的代碼使它能在Linux下運行，只需簡單將37到38行裏的下劃線首碼移除。Linux使用ELF(Executable
+and Linkable
+Format，可執行和可連接格式)格式的目標檔。Linux下使用{\code
+-f~elf}選項。它同樣產生一個副檔名為{\code
+o}的目標檔。\MarginNote{指定編譯器的例子\\檔可以從作者的網\\址上得到，它已經\\修改成能在恰當的\\編譯器上運行了。}
+
+Borland C/C++ \index{編譯器!Borland}是另一個流行的編譯器。它使用微軟
+OMF 格式的目標檔。Borland編譯器使用{\code
+-f~obj}選項。目標檔的副檔名將會是{\code obj}。 OMF
+與其他目標檔格式相比使用了不同的{\code
+段}指示符。資料段（13行）必須改成：
+\begin{CodeQuote}
+segment \_DATA public align=4 class=DATA use32
+\end{CodeQuote}
+ bss 段（26）必須改成：
+\begin{CodeQuote}
+segment \_BSS public align=4 class=BSS use32
+\end{CodeQuote}
+text 段（36）必須改成：
+\begin{CodeQuote}
+segment \_TEXT public align=1 class=CODE use32
+\end{CodeQuote}
+必須在36行之前加上一新行：
+\begin{CodeQuote}
+group DGROUP \_BSS \_DATA
+\end{CodeQuote}
+
+微軟C/C++\index{編譯器!Microsoft}編譯器可以使用 OMF
+或Win32格式的目標檔。(如果給出的是OMF格式，它將從內部把資訊轉變成Win32格式。)Win32允許像DJGPP和Linux一樣來定義段。在這個模式下使用{\code
+-f~win32}選項來輸出。目標檔的副檔名將會是{\code obj}。
+
+\subsection{彙編代碼}
+
+第一步是彙編代碼。在命令行，鍵入：
+\begin{CodeQuote}
+nasm -f {\em object-format} first.asm
+\end{CodeQuote}
+{\em object-format}要麼是{\em coff\/}， {\em elf\/}， {\em
+obj}，要麼是{\em
+win32}，它由使用的C編譯器決定。(記住在Linux和Borland下，資源檔案同樣必須改變。)
+
+\subsection{編譯C代碼}
+
+使用C編譯器編譯{\code driver.c}檔案。對於 DJGPP ，使用：
+\begin{CodeQuote}
+gcc -c driver.c
+\end{CodeQuote}
+{\code
+-c}選項意味著編譯，而不是試圖現在連接。同樣的選項能使用在Linux，
+Borland和Microsoft編譯器上。
+
+\subsection{連接目標檔 \label{seq:linking} \index{連接|(}}
+
+連接是一個將在目標檔和庫檔裏的機器代碼和資料結合到一起產生一個可執行檔的過程。就像下面將展示的，這個過程是非常複雜的。
+
+C代碼要求運行標準C庫和特殊的\emph{啟動代碼}
+\index{啟動代碼}。與直接調用連接程式相比，C編譯器\emph{更}容易調用帶幾個正確的參數的連接程式。例如：使用
+DJGPP 來連接第一個程式的代碼，\index{編譯器!DJGPP}使用:
+\begin{CodeQuote}
+gcc -o first driver.o first.o asm\_io.o
+\end{CodeQuote}
+這樣產生一個{\code first.exe}(或在Linux下只是{\code
+first})可執行檔。
+
+對於Borland，\index{編譯器!Borland}你需要使用：
+\begin{CodeQuote}
+bcc32 first.obj driver.obj asm\_io.obj
+\end{CodeQuote}
+Borland使用列出的第一個檔案名來確定可執行檔案名。所以在上面的例子裏，程式將被命名為{\code
+first.exe}。
+
+將編譯和連接兩個步驟結合起來是可能的。例如：
+\begin{CodeQuote}
+gcc -o first {\em driver.c} first.o asm\_io.o
+\end{CodeQuote}
+現在{\code gcc}將編譯{\code driver.c}然後連接。 \index{連接|)}
+
+\subsection{理解一個彙編列表檔 \index{列表檔|(}}
+
+{\code -l {\em listing-file}}選項可以用來告訴{\code
+nasm}創建一個指定名字的列表檔。這個檔將顯示代碼如何被彙編。這兒顯示了17和18行(在資料段)在列表檔中如何顯示。(行號顯示在列表檔中；但是注意在源代碼檔中顯示的行號可能不同於在列表檔中顯示的行號。)
+\begin{Verbatim}[xleftmargin=\AsmMargin]
+48 00000000 456E7465722061206E-     prompt1 db    "Enter a number: ", 0
+49 00000009 756D6265723A2000
+50 00000011 456E74657220616E6F-     prompt2 db    "Enter another number: ", 0
+51 0000001A 74686572206E756D62-
+52 00000023 65723A2000
+ \end{Verbatim}
+每一行的頭一列是行號，第二列是資料在段裏的偏移位址(十六進位顯示)。第三列顯示將要儲存的十六進位值。這種情況下，十六進位資料符合ASCII編碼。最終，顯示來自資源檔案的正文。列在第二行的偏移位址非常可能\emph{不是}資料存放在完成後的程式中的真實偏移位址。每個模組可能在資料段(或其他段)定義它自己的變數。在連接這一步時(小節~\ref{seq:linking})，所有這些資料段的變數定義結合形成一個資料段。最終的偏移由連接程式計算得到。
+
+這兒有一小部分text段代碼(資源檔案中54到56行)在列表檔中如何顯示：
+\begin{Verbatim}[xleftmargin=\AsmMargin]
+94 0000002C A1[00000000]          mov     eax, [input1]
+95 00000031 0305[04000000]        add     eax, [input2]
+96 00000037 89C3                  mov     ebx, eax
+\end{Verbatim}
+第三列顯示了由組合語言程式產生的機器代碼。通常一個指令的完整代碼不能完全計算出來。例如：在94行，{\code
+input1}的偏移(位址)要直到代碼連接後才能知道。組合語言程式可以算出{\code
+mov}
+指令(在列表中為A1)的操作碼，但是它把偏移寫在方括號中，因為準確的值還不能算出來。這種情況下，0作為一個暫時偏移被使用，因為{\code
+input1}在這個檔中，被定義在bss段的開始。記住這\emph{不}意味著它會在程式的最終
+bss
+段的開始。當代碼連接後，連接程式將在位置上插入正確的偏移。其他指令，如96行，並不涉及任何變數。這兒組合語言程式可以算出完整的機器代碼。\index{列表檔|)}
+
+\subsubsection{Big和Little Endian 表示法 \index{endianess|(}}
+如果有人仔細看過95行，將會發現機器代碼中的方括號裏的偏移地址非常奇怪。{\code
+input2}變數的偏移位址為4(像檔定義的一樣)；但是顯示在記憶體裏偏移不是00000004，而是04000000。為什麼？不同的處理器在記憶體裏以不同的順序儲存多位元組整形：\emph{big
+endian}和\emph{little endian}。\MarginNote{Endian的發音和\emph{indian}\\一樣。}Big endian是一種看起來更自然的方法。最大(\emph{也就是：}最高有效位元)的位元組首先被儲存，然後才是第二大的，\emph{依此類推}。例如：雙字00000004將被儲存為四個位元組00~00~00~04。IBM主機，許多RISC 處理器和Motorola處理器都使用這種big endian方法。然而，基於Intel的處理器使用little endian方法！首先被儲存是最小的有效位元組。所以00000004在記憶體中儲存為04~00~00~00。這種格式強制連入CPU而且不可能更改。通常情況下，程式師並不需要擔心使用的是哪種格式。但是，在下面的情況下，它們是非常重要的。
+
+\begin{enumerate}
+\item 當二進位資料在不同的電腦上傳輸時(不管來自檔還是網路)。
+\item 當二進位資料作為一個多位元組整形寫入到記憶體中然後當作單個單個位元組讀出，\emph{反之亦然}。
+\end{enumerate}
+
+Endian格式並不應用於陣列的排序。陣列的第一個元素通常在最低的位址裏。這個應用在字串裏(字元陣列)。
+Endian格式依然用在陣列的單個元素中。 \index{endianess|)}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[label=skel.asm]
+%include "asm_io.inc"
+segment .data
+;
+; 初始化數據放入到這兒的資料段中
+;
+
+segment .bss
+;
+; 未初始化的數據放入到 bss 段中
+;
+
+segment .text
+        global  _asm_main
+_asm_main:
+        enter   0,0               ; 開始運行
+        pusha
+
+;
+; 代碼放在text段。不要改變在這個注釋之前或之後的代碼。
+;
+;
+
+        popa
+        mov     eax, 0            ; 返回到以中
+        leave
+        ret
+\end{AsmCodeListing}
+\caption{骨架程式\label{fig:skel}}
+\end{figure}
+
+\section{骨架檔案 \index{骨架檔案}}
+
+圖~\ref{fig:skel}顯示了一個可以用來書寫組合語言程式的開始部分的骨架檔。

@@ -1,0 +1,1033 @@
+%-*- latex -*-
+\chapter{副程式}
+
+本章主要著眼於使用副程式來構成模組化程式和得到與高階語言(比如說C)的介面。函式和進程是高階語言中副程式的例子。
+
+調用了一個子程式的代碼和這個子程式必須協商它們之間的資料如何傳輸。資料如何傳輸的這些規則稱為\emph{調用約定}。\index{調用約定}這一章的很大一部分都是在討論使用在彙編副程式和C程式介面上的標準C調用約定。這個約定(和其他約定)通常都是通過傳遞資料的位址(\emph{也就是}指標)來允許副程式訪問記憶體中的資料。
+
+\section{間接定址\index{間接定址|(}}
+
+間接定址允許寄存器像指標變數一樣運作。要指出寄存器像一個指標一樣被間接使用，需要用方括號({\code []})將它括起來。例如：
+\begin{AsmCodeListing}[frame=none]
+      mov    ax, [Data]     ; 一個字的標準的直接記憶體位址
+      mov    ebx, Data      ; ebx = & Data
+      mov    ax, [ebx]      ; ax = *ebx
+\end{AsmCodeListing}
+因為AX可以容納一個字，所以第三行代碼從EBX儲存的位址開始讀取一個字。如果用AL替換AX，那麼只有一個位元組會被讀取。認識到寄存器不像在C中的變數一樣有類型是非常重要的。到底EBX具體指向什麼完全取決於使用了什麼指令。而且，甚至EBX是一個指標這個事實都完全取決於使用的指令。如果EBX錯誤地使用了，通常不會有編譯錯誤；但是，程式將不會正確運行。這就是為什麼相比於高階語言組合語言程式較容易犯錯的原因之一。
+
+所有的32位通用寄存器(EAX， EBX， ECX， EDX)和指標寄存器(ESI, EDI)都可以用來間接定址。一般來說，16位或8位的寄存器是不可以的。
+\index{間接定址|)}
+
+\section{副程式的簡單例子\index{副程式|(}}
+
+副程式是代碼中的一個的獨立的單元，它可以使用在程式的不同的地方。換句話說，一個子程式就像一個C中的函式。可以使用跳轉來調用副程式，但是返回會是一個問題。如果子程式要求能使用在程式中的任何地方，它必須要返回到調用它的代碼段處。因此，副程式的跳轉返回最好不要硬編碼為標號。下面的代碼展示了如何使用{\code
+JMP}指令的間接方式來做這件事。此指令方式使用一個寄存器的值來決定跳轉到哪(因此，這個寄存器與C中的\emph{函式指標}非常相似。)
+下面使用副程式的方法來重寫第一章中的第一個程式。
+\begin{AsmCodeListing}[label=sub1.asm]
+; file: sub1.asm
+; 副程式的簡單例子
+%include "asm_io.inc"
+
+segment .data
+prompt1 db    "Enter a number: ", 0       ; 不要忘記空結束符
+prompt2 db    "Enter another number: ", 0
+outmsg1 db    "You entered ", 0
+outmsg2 db    " and ", 0
+outmsg3 db    ", the sum of these is ", 0
+
+segment .bss
+input1  resd 1
+input2  resd 1
+
+segment .text
+        global  _asm_main
+_asm_main:
+        enter   0,0               ; 程式開始運行
+        pusha
+
+        mov     eax, prompt1      ; 顯示提示資訊
+        call    print_string
+
+        mov     ebx, input1       ; 儲存input1的位址到ebx中
+        mov     ecx, ret1         ; 儲存返回位址到ecx中
+        jmp     short get_int     ; 讀整形
+ret1:
+        mov     eax, prompt2      ; 輸出提示資訊
+        call    print_string
+
+        mov     ebx, input2
+        mov     ecx, $ + 7        ; ecx = 當前地址 + 7
+        jmp     short get_int
+
+        mov     eax, [input1]     ; eax = 在input1中的雙字
+        add     eax, [input2]     ; eax += 在input2中的雙字
+        mov     ebx, eax          ; ebx = eax
+
+        mov     eax, outmsg1
+        call    print_string      ; 輸出第一條資訊
+        mov     eax, [input1]
+        call    print_int         ; 輸出input1
+        mov     eax, outmsg2
+        call    print_string      ; 輸出第二條資訊
+        mov     eax, [input2]
+        call    print_int         ; 輸出input2
+        mov     eax, outmsg3
+        call    print_string      ; 輸出第三條資訊
+        mov     eax, ebx
+        call    print_int         ; 輸出總數(ebx)
+        call    print_nl          ; 換行
+
+        popa
+        mov     eax, 0            ; 返回到C中
+        leave
+        ret
+; 副程式 get_int
+; 參數:
+;   ebx - 儲存整形雙字的位址
+;   ecx - 返回指令的位址
+; 注意：
+;   eax的值被已經被破壞掉了
+get_int:
+        call    read_int
+        mov     [ebx], eax         ; 儲存輸入到記憶體中
+        jmp     ecx                ; 返回到調用處
+\end{AsmCodeListing}
+
+副程式{\code get\_int}使用了一個簡單，基於寄存器的調用約定。它認為EBX寄存器中存的是輸入雙字的儲存位址而ECX寄存器中存的是跳轉返回指令的位址。25行到28行，使用了{\code ret1}標號來計算返回位址。在32行到34行，使用了{\code \$}運算子來計算返回的地址。{\code \$}運算子返回出現\$這一行的當前地址。{\code \$ + 7}運算式計算在36行的{\code MOV}指令的位址。
+
+這兩種計算返回位址的方法都是不方便的。第一種方法要求為每一次子程式調用定義一個標號。第二種方法不需要標號，但是需要仔細的思量。如果使用了近跳轉來替代短跳轉，那麼與{\code \$}相加的數就不會是7！幸運的是，有一個更簡單的方法來調用副程式。這種方法使用\emph{堆疊}。
+
+\section{堆疊\index{堆疊|(}}
+
+許多CPU都支援內置堆疊。堆疊是一個先進後出(\emph{LIFO})的佇列。它是以這種方式組織的一塊記憶體區域。{\code
+PUSH}指令添加一個資料到堆疊中而 {\code
+POP}指令從堆疊中移除數據。移除的資料就是最後入堆疊的資料(這就是稱為先進後出佇列的緣故)。
+
+SS段寄存器指定包含堆疊的段(通常它與儲存資料的段是一樣)。ESP寄存器包含將要移除出堆疊資料的位址。這個資料也被稱為堆疊頂。資料只能以雙字的形式入堆疊。也就是說，你不可以將一個位元組推入堆疊中。
+
+{\code
+PUSH}指令通過把ESP減4來向堆疊中插入一個雙字\footnote{實際上，多字入堆疊也是可以的，但是在32位元保護模式下，在堆疊上最好只操作單個雙字。}，然後把雙字儲存到{\code
+[ESP]}中。 {\code POP}指令從{\code
+[ESP]}中讀取雙字，然後再把ESP加4.下面的代碼演示了這些指令如何工作，假定在ESP初始值為{\code
+1000H}。
+\begin{AsmCodeListing}[frame=none]
+      push   dword 1    ; 1儲存到0FFCh中，ESP = 0FFCh
+      push   dword 2    ; 2儲存到0FF8h中， ESP = 0FF8h
+      push   dword 3    ; 3儲存到0FF4h中， ESP = 0FF4h
+      pop    eax        ; EAX = 3， ESP = 0FF8h
+      pop    ebx        ; EBX = 2， ESP = 0FFCh
+      pop    ecx        ; ECX = 1， ESP = 1000h
+\end{AsmCodeListing}
+
+堆疊可以方便地用來臨時儲存資料。它同樣可以用來形成副程式調用和傳遞參數和局部變數。
+
+80x86同樣提供一條{\code PUSHA}指令來把EAX， EBX， ECX， EDX， ESI，
+EDI\\和EBP寄存器的值推入堆疊中(不是以這個順序)。 {\code
+POPA}指令可以用來將它們移除出堆疊。 \index{堆疊|)}
+
+\section{CALL和RET指令\index{副程式!調用|(}}
+\index{CALL|(}
+\index{RET|(}
+80x86提供了兩條使用堆疊的指令來使副程式調用變得快速而簡單。CALL指令執行一個跳到副程式的無條件跳轉，同時將下一條指令的位址\emph{推入}堆疊中。RET指令\emph{彈出}一個位址並跳轉到這個位址去執行。使用這些指令的時候，正確處理堆疊以便RET指令能彈出正確的數值是非常重要的！
+
+前面的例子可以使用這些新的指令來重寫。把25行到34行改成：
+\begin{AsmCodeListing}[numbers=none]
+      mov    ebx, input1
+      call   get_int
+
+      mov    ebx, input2
+      call   get_int
+\end{AsmCodeListing}
+同時把副程式{\code get\_int}改成:
+\begin{AsmCodeListing}[numbers=none]
+get_int:
+      call   read_int
+      mov    [ebx], eax
+      ret
+\end{AsmCodeListing}
+
+CALL和RET指令有幾個優點：
+\begin{itemize}
+\item 它們很簡單！
+\item 它們使副程式嵌套變得簡單。注意：副程式
+{\code get\_int}調用了{\code read\_int}。這個調用將另一個位址壓入到堆疊中了。在{\code read\_int}代碼的末尾是一條彈出返回位址的RET指令，通過執行指令重新回到{\code get\_int}代碼中去執行。然後，當
+{\code get\_int}的RET指令被執行時，它彈出跳回到{\code asm\_main}的返回地址。這個之所以能正確運行，是因此堆疊的LIFO特性。
+\end{itemize}
+
+記住彈出壓入到堆疊的所有資料是非常重要的。例如，考慮下面的代碼：
+\begin{AsmCodeListing}[frame=none]
+get_int:
+      call   read_int
+      mov    [ebx], eax
+      push   eax
+      ret                  ; 彈出EAX的值，沒有返回地址！！
+\end{AsmCodeListing}
+這個代碼將不會正確返回！
+\index{RET|)}
+\index{CALL|)}
+
+\section{調用約定\index{調用約定|(}}
+
+當調用了一個子程式，調用的代碼和副程式(\emph{被調用的代碼})必須協商好在它們之間如何傳遞資料。高階語言有標準傳遞資料的方法稱為\emph{調用約定}。要讓高階語言介面於組合語言，組合語言代碼就一定要使用與高階語言一樣的約定。不同的編譯器有不同的調用約定或者說不同的約定可能取決於代碼如何被編譯。(\emph{例如：}是否進行了優化)。一個廣泛的約定是：使用一條{\code CALL}指令來調用代碼再通過{\code RET}指令返回。
+
+所有PC的C編譯器支持的調用約定將在本章的後續部分階段進行描述。這些約定允許你創建\emph{可重入的}副程式。一個可重入的副程式可以在程式中的任意一點被安全調用(甚至在副程式內部)。
+
+\subsection{在堆疊上傳遞參數\index{堆疊|(}\index{堆疊!參數|(}}
+
+給副程式的參數需要在堆疊中傳遞。它們在{\code CALL}指令之前就已經被壓入堆疊中了。和在C中是一樣的，如果參數被副程式改變了，那麼需要傳遞的是資料的\emph{位址}，而不是\emph{值}。如果參數的大小小於雙字，它就需要在壓入堆疊之前轉換成雙字。
+
+在堆疊裏的參數並沒有由副程式彈出，取而代之的是：它們自己從堆疊中訪問本身。為什麼？考慮\MarginNote{當使用了間接定址，\\80x86通過看間接定\\址運算式裏使用了\\什麼寄存器來決定\\訪問哪不同的段。ESP\\(和EBP)使用堆疊段，\\而EAX，EBX，ECX和\\EDX使用資料段。但\\是，這個對於保護模式\\通常是不重要的，因為\\對於保護模式資料段和\\堆疊段是同一段。}
+\begin{itemize}
+\item 因為它們在{\code CALL}指令之前被壓入堆疊中，所以返回時首先彈出的是返回位址(然後修改堆疊指標使其指向參數入堆疊以前的值)。
+\item 參數往往將會使用在副程式中幾個的地方。通常在整個程式中，它們不可以保存在一個寄存器中，而應該儲存在記憶體中。把它們留在堆疊裏就相當於把資料複製到了記憶體中，這樣就可以在副程式的任意一點訪問資料。
+\end{itemize}
+
+\begin{figure}
+\centering
+\begin{tabular}{l|c|}
+\cline{2-2}
+&  \\ \cline{2-2}
+ESP + 4 & 參數 \\ \cline{2-2}
+ESP &返回地址\\ \cline{2-2}
+& \\ \cline{2-2}
+\end{tabular}
+\caption{}
+\label{fig:stack1}
+\end{figure}
+通過堆疊傳遞了一個參數的副程式。當副程式被調用了，堆疊狀態如圖~\ref{fig:stack1}。這個參數可以通過間接定址訪問到。({\code
+[ESP+4]}
+\footnote{使用間接定址時，寄存器加上一個常量是合法的。許多更複雜的運算式也是合法的。這個話題將在下一章中介紹。})。
+\begin{figure}
+\centering
+\begin{tabular}{l|c|}
+\cline{2-2}
+&  \\ \cline{2-2}
+ESP + 8 & 參數 \\ \cline{2-2}
+ESP + 4 & 返回地址 \\ \cline{2-2}
+ESP     & 副程式資料 \\ \cline{2-2}
+\end{tabular}
+\caption{}
+\label{fig:stack2}
+\end{figure}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+subprogram_label:
+      push   ebp           ; 把EBP的原始值保存在堆疊中
+      mov    ebp, esp      ; 新EBP的值 = ESP
+; subprogram code
+      pop    ebp           ; 恢復EBP的原始值
+      ret
+\end{AsmCodeListing}
+\caption{副程式的一般格式 \label{fig:subskel1}}
+\end{figure}
+
+如果在副程式內部使用了堆疊儲存資料，那麼與ESP相加的數將要改變。例如：
+圖~\ref{fig:stack2}展示了如果一個雙字壓入堆疊中後堆疊的狀態。現在參數在{\code ESP + 8}中，而不在{\code
+ESP + 4}中。因此，引用參數時若使用ESP就很容易犯錯了。為了解決這個問題，80386提供使用另外一個寄存器：EBP。這個寄存器的唯一目的就 是引用堆疊中的資料。C調用約定要求副程式首先把EBP的值保存到堆疊中，然後再使EBP的值等於ESP。當資料壓入或彈出堆疊時，這就允許ESP值被改變的同時EBP不會被改變。在副程式的結束處，EBP的原始值必須恢復出來
+(這就是為什麼它在副程式的開始處被保存的緣故。)圖~\ref{fig:subskel1}展示了遵循這些約定的副程式的一般格式。
+
+\begin{figure}[t]
+\centering
+\begin{tabular}{ll|c|}
+\cline{3-3} &  & \\ \cline{3-3}
+ESP + 8 & EBP + 8 & 參數 \\ \cline{3-3}
+ESP + 4 & EBP + 4 & 返回地址 \\ \cline{3-3}
+ESP     & EBP     & 保存的EBP值 \\ \cline{3-3}
+\end{tabular}
+\caption{}
+\label{fig:stack3}
+\end{figure}
+
+
+圖~\ref{fig:subskel1}中的第2行和第3行組成了一個子程式的大體上的\emph{開始部分}。第5行和第6行組成了\emph{結束部分}。圖~\ref{fig:stack3}展示了剛執行完開始部分之後堆疊的狀態。現在參數可以在副程式中的任何地方通過{\code [EBP + 8]}來訪問，而不用擔心在副程式中有什麼資料壓入到堆疊中了。
+
+執行完副程式之後，壓入堆疊中的參數必須移除掉。C調用約定\index{調用約定!C}規定調用的代碼必須做這件事。其他約定可能不同。例如：Pascal 調用約定
+\index{調用約定!Pascal}規定副程式必須移除參數。(RET\index{RET}指令的另一種格式可以很容易做這件事。)一些C編譯器同樣支持這種約定。關鍵字{\code pascal}用在函式的原型和定義中來告訴編譯器使用這種約定。事實上，MS Windows API的C函式使用的{\code stdcall}調用約定\index{調用約定!stdcall}同樣以這種方式運作。這種方式有什麼優點？它比C調用約定更有效一點。那為什麼所有的C函式都使用C調用約定呢？一般說來，C允許一個函式的參數為變化的個數(\emph{例如}：{\code printf}和{\code scanf}函式)。對於這種類型的函式，將參數移除出堆疊的操作在這次函式調用中和下次函式調用中是不同的。C調用約定能使指令簡單地執行這種不同的操作。Pascal和stdcall調用約定執行這種操作是非常困難的。因此，
+Pascal調用約定(和Pascal語言一樣)不允許有這種類型的函式。MS Windows只有當它的API函式不可以攜帶變化個數的參數時才可以使用這種約定。
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+      push   dword 1        ; 傳遞參數1
+      call   fun
+      add    esp, 4         ; 將參數移除出堆疊
+\end{AsmCodeListing}
+\caption{副程式調用示例 \label{fig:subcall}}
+\end{figure}
+
+圖~\ref{fig:subcall}展示了一個將被調用的副程式如何使用C調用約定。第3行通過直接操作堆疊指標將參數移除出堆疊。同樣可以使用{\code POP}指令來做這件事，但是常常使用在要求將無用的結果儲存到一個寄存器的情況下。實際上，對於這種情況，許多編譯器常常使用一條{\code POP ECX}來移除參數。編譯器會使用{\code
+POP}指令來代替{\code ADD}指令，因為{\code ADD}指令需要更多的位元組。但是，{\code POP}會改變ECX的值。下面是一個有兩個副程式的例子，它們使用了上面討論的C調用約定。54行(和其他行)展示了多個資料和文本段可以在同一個原始檔案中聲明。進行連接處理時，它們將會組合成單一的資料段和文本段。把資料和文本段分成單獨的幾段就允許資料定義在副程式代碼附近，這也是副程式經常做的。
+\index{堆疊!參數|)}
+
+\begin{AsmCodeListing}[label=sub3.asm]
+%include "asm_io.inc"
+
+segment .data
+sum     dd   0
+
+segment .bss
+input   resd 1
+
+;
+; 虛擬碼演算法
+; i = 1;
+; sum = 0;
+; while( get_int(i, &input), input != 0 ) {
+;   sum += input;
+;   i++;
+; }
+; print_sum(num);
+segment .text
+        global  _asm_main
+_asm_main:
+        enter   0,0               ; 程式開始運行
+        pusha
+
+        mov     edx, 1            ; edx就是虛擬碼裏的i
+while_loop:
+        push    edx               ; 保存i到堆疊中
+        push    dword input       ; 把input的位址壓入堆疊
+        call    get_int
+        add     esp, 8            ; 將i和&input移除出堆疊
+
+        mov     eax, [input]
+        cmp     eax, 0
+        je      end_while
+
+        add     [sum], eax        ; sum += input
+
+        inc     edx
+        jmp     short while_loop
+
+end_while:
+        push    dword [sum]       ; 將總數壓入堆疊
+        call    print_sum
+        pop     ecx               ; 將[sum]移除出堆疊
+
+        popa
+        leave
+        ret
+
+; 副程式get_int
+; 參數(順序壓入堆疊中)
+;   輸入的個數(儲存在[ebp + 12]中)
+;   儲存輸入字的位址(儲存在[ebp + 8]中)
+; 注意:
+;   eax和ebx的值被毀掉了
+segment .data
+prompt  db      ") Enter an integer number (0 to quit): ", 0
+
+segment .text
+get_int:
+        push    ebp
+        mov     ebp, esp
+
+        mov     eax, [ebp + 12]
+        call    print_int
+
+        mov     eax, prompt
+        call    print_string
+
+        call    read_int
+        mov     ebx, [ebp + 8]
+        mov     [ebx], eax         ; 將輸入儲存到記憶體中
+
+        pop     ebp
+        ret                        ; 返回到調用代碼
+
+; 副程式print_sum
+; 輸出總數
+; 參數:
+;   需要輸出的總數(儲存在[ebp+8]中)
+; 注意: eax的值被毀掉了
+;
+segment .data
+result  db      "The sum is ", 0
+
+segment .text
+print_sum:
+        push    ebp
+        mov     ebp, esp
+
+        mov     eax, result
+        call    print_string
+
+        mov     eax, [ebp+8]
+        call    print_int
+        call    print_nl
+
+        pop     ebp
+        ret
+\end{AsmCodeListing}
+
+
+\subsection{堆疊上的局部變數\index{堆疊!局部變數|(}}
+
+堆疊可以方便地用來儲存局部變數。這實際上也是C儲存普通變數(或C
+lingo中的\emph{自動變數})的地方。如果你希望副程式是可重入的，那麼使用堆疊存儲變數是非常重要的。一個可重入的副程式不管在任何地方被調用都能正常運行，包括副程式本身。換句話說，可重入副程式可以\emph{嵌套}調用。儲存變數的堆疊同樣在記憶體中。不儲存在堆疊裏的資料從程式開始到程式結束都使用記憶體(C稱這種類型的變數為
+\emph{總體變數}或\emph{靜態變數})。儲存在堆疊裏的資料只有當定義它們的副程式是活動的時候才使用記憶體。
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+subprogram_label:
+      push   ebp                ; 保存原始EBP值到堆疊中
+      mov    ebp, esp           ; 新EBP的值 = ESP
+      sub    esp, LOCAL_BYTES   ; = #局部變數需要的位元組數
+; subprogram code
+      mov    esp, ebp           ; 釋放局部變數
+      pop    ebp                ; 恢復原始EBP值
+      ret
+\end{AsmCodeListing}
+\caption{帶有局部變數的副程式的一般格式\label{fig:subskel2}}
+\end{figure}
+
+\begin{figure}[t]
+\begin{lstlisting}[frame=tlrb]{}
+void calc_sum( int n, int * sump )
+{
+  int i, sum = 0;
+
+  for( i=1; i <= n; i++ )
+    sum += i;
+  *sump = sum;
+}
+\end{lstlisting}
+\caption{求總數的C語言版 \label{fig:Csum}}
+\end{figure}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+cal_sum:
+      push   ebp
+      mov    ebp, esp
+      sub    esp, 4               ; 為局部變數sum分配空間
+
+      mov    dword [ebp - 4], 0   ; sum = 0
+      mov    ebx, 1               ; ebx (i) = 1
+for_loop:
+      cmp    ebx, [ebp+8]         ; is i <= n?
+      jnle   end_for
+
+      add    [ebp-4], ebx         ; sum += i
+      inc    ebx
+      jmp    short for_loop
+
+end_for:
+      mov    ebx, [ebp+12]        ; ebx = sump
+      mov    eax, [ebp-4]         ; eax = sum
+      mov    [ebx], eax           ; *sump = sum;
+
+      mov    esp, ebp
+      pop    ebp
+      ret
+\end{AsmCodeListing}
+\caption{求總數的組合語言版 \label{fig:Asmsum}}
+\end{figure}
+
+\MarginNote{儘管{\code ENTER}和{\code LEAVE}指令\\事實上簡化了開始部分\\和結束部分，但是它們\\並沒有經常被使用。這\\是為什麼呢？因為與等\\價的簡單的指令相比，\\它們執行較慢！當你並\\不認為執行一隊指令序\\列比執行一條複合的指\\令要快的時候，這就是\\一個榜樣。}在堆疊中，局部變數恰好儲存在保存的EBP值之後。它們通過在副程式的開始部分用ESP減去一定的位元組數來分配存儲空間。
+圖~\ref{fig:subskel2}展示了副程式新的骨架。EBP用來訪問局部變數。考慮圖~\ref{fig:Csum}中的C函式。 圖~\ref{fig:Asmsum}
+展示如何用組合語言編寫等價的副程式。
+
+\begin{figure}[t]
+\centering
+\begin{tabular}{ll|c|}
+\cline{3-3}
+ESP + 16 & EBP + 12 & {\code sump} \\ \cline{3-3}
+ESP + 12 & EBP + 8  & {\code n} \\ \cline{3-3}
+ESP + 8  & EBP + 4  & Return address \\ \cline{3-3}
+ESP + 4  & EBP      & saved EBP \\ \cline{3-3}
+ESP      & EBP - 4  & {\code sum} \\ \cline{3-3}
+\end{tabular}
+\caption{}
+\label{fig:SumStack}
+\end{figure}
+
+圖~\ref{fig:SumStack}展示了執行完圖~\ref{fig:Asmsum}中程式的開始部分後的堆疊狀態。這一節的堆疊包含了參數，返回資訊和局部變數，這樣堆疊稱為一個\emph{堆疊幀}。C函式的每一次調用都會在堆疊上創建一個新的堆疊幀。
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+subprogram_label:
+      enter  LOCAL_BYTES, 0     ; = #局部變數需要的位元組數
+; subprogram code
+      leave
+      ret
+\end{AsmCodeListing}
+\caption{通過使用{\code ENTER}和{\code LEAVE}指令，帶有局部變數的副程式的一般格式
+\label{fig:subskel3}}
+\end{figure}
+
+可以使用兩條專門的指令來簡化一個子程式的開始部分和結束部分，它們是為這個目的而專門設計的。{\code
+ENTER}指令執行開始部分的代碼，而 {\code
+LEAVE}指令執行結束部分。{\code
+ENTER}指令攜帶兩個立即數。對於C調用約定，第二個運算元總是為0。第一個運算元是局部變數所需要的位元組數。{\code
+LEAVE}指令沒有運算元。
+圖~\ref{fig:subskel3}展示了如何使用這些指令。注意程式skeleton(圖~\ref{fig:skel})同樣使用了{\code
+ENTER}和{\code LEAVE}指令。 \index{堆疊!局部變數|)} \index{堆疊|)}
+\index{調用約定|)} \index{副程式!調用|)}
+
+\section{多模組程式\index{多模組程式|(}}
+
+\emph{多模組程式}是由不止一個目標檔組成的程式。這裏出現的所有程式都是多模組程式。它們由C驅動目標檔和彙編目標檔(加上C庫目標檔)組成。回憶一下連接程式將目標檔組合成一個可執行程式。連接程式必須把在一個模組(\emph{也就是}
+目標檔)中引用的每個變數匹配到定義該變數的模組。
+為了讓模組A能使用定義在模組B裏的變數，就必須使用{\code
+extern(外部)}指示符。在{\code extern}
+\index{directive!extern}指示符後面是用逗號隔開的變數列表。這個指示符告訴編譯器把這些變數視為是模組\emph{外部的}。也就是說，這些變數可以在這個模組中使用，但是卻定義在另一模組中。{\code
+asm\_io.inc}檔中就將{\code read\_int}\emph{等}程式定義為外部的。
+
+在編譯語言中，缺省情況下變數不可以由外部程式訪問。如果一個變數可以被一個模組訪問，而這個模組又不是定義它的,那麼在定義它的模組中，它一定被聲明為\emph{global(全局的)}。{\code
+global} \index{指示符!全局}指示符就可以用來做這件事情。圖~\ref{fig:skel}的程式skeleton中的第13行定義了一個總體變數 {\code
+\_asm\_main}。若沒有這個聲明，就可能會出錯。為什麼？因為C代碼將會找不到\emph{內部的} {\code \_asm\_main}變數。
+
+下面是用兩個模組重寫的以前例子的代碼。副程式({\code get\_int}和{\code print\_sum})在不同的原始檔案中，而不是在{\code \_asm\_main}程式中。
+
+\begin{AsmCodeListing}[label=main4.asm,commandchars=\\\{\}]
+%include "asm_io.inc"
+
+segment .data
+sum     dd   0
+
+segment .bss
+input   resd 1
+
+segment .text
+        global  _asm_main
+\textit{        extern  get_int, print_sum}
+_asm_main:
+        enter   0,0               ; 程式開始運行
+        pusha
+
+        mov     edx, 1            ; edx就是虛擬碼中的i
+while_loop:
+        push    edx               ; 保存i到堆疊中
+        push    dword input       ; 把input的位址壓入堆疊
+        call    get_int
+        add     esp, 8            ; 將i和&input移除出堆疊
+
+        mov     eax, [input]
+        cmp     eax, 0
+        je      end_while
+
+        add     [sum], eax        ; sum += input
+
+        inc     edx
+        jmp     short while_loop
+
+end_while:
+        push    dword [sum]       ; 將總數壓入堆疊
+        call    print_sum
+        pop     ecx               ; 將總數[sum]移除出堆疊
+
+        popa
+        leave
+        ret
+\end{AsmCodeListing}
+
+\begin{AsmCodeListing}[label=sub4.asm,commandchars=\\\{\}]
+%include "asm_io.inc"
+
+segment .data
+prompt  db      ") Enter an integer number (0 to quit): ", 0
+
+segment .text
+\textit{        global  get_int, print_sum}
+get_int:
+        enter   0,0
+
+        mov     eax, [ebp + 12]
+        call    print_int
+
+        mov     eax, prompt
+        call    print_string
+
+        call    read_int
+        mov     ebx, [ebp + 8]
+        mov     [ebx], eax         ; 將輸入儲存到記憶體中
+
+        leave
+        ret                        ; 返回到調用代碼
+
+segment .data
+result  db      "The sum is ", 0
+
+segment .text
+print_sum:
+        enter   0,0
+
+        mov     eax, result
+        call    print_string
+
+        mov     eax, [ebp+8]
+        call    print_int
+        call    print_nl
+
+        leave
+        ret
+\end{AsmCodeListing}
+
+上面的例子只有全局的\index{指示符!全局}代碼變數；同樣，全局資料變數也可以使用一模一樣的方法。
+\index{多模組程式|)}
+
+\section{C與彙編的介面技術\index{與C介面|(}\index{調用約定!C|(}}
+
+現今，完全用彙編書寫的程式是非常少的。編譯器能很好地將高階語言轉換成有效的機器代碼。因為用高階語言書寫代碼非常容易，所以高階語言變得很流行。此外，高階語言比組合語言\emph{更}容易移植！
+
+當使用組合語言時，我們經常將它使用在代碼中的一小部分上。有兩種使用組合語言的方法：在C中調用彙編副程式或內嵌彙編。內嵌彙編允許程式師把彙編語句直接放入到C代碼中。這樣是非常方便的；但是，內嵌彙編同樣存在缺點。組合語言的書寫格式必須是編譯器使用的格式。目前沒有一個編譯器支持NASM格式。不同的編譯器要求使用不同的格式。Borland和Microsoft要求使用
+MASM格式。DJGPP和Linux中gcc要求使用GAS\footnote{GAS是所有的GNU編譯器使用的組合語言程式。它使用AT\&T語法，這是一種完全不同於MASM，TASM 和NASM的語法。}
+格式。在PC機上，調用彙編副程式是更標準的技術。
+
+在C中使用組合語言程式通常是因為以下幾個原因：
+\begin{itemize}
+\item 需要直接訪問電腦的硬體特性，而用C語言很難或不可能做到。
+\item 程式執行必須盡可能地快，而且相比于編譯器，程式師手動優化的代碼更好。
+\end{itemize}
+
+最後一個原因不像它以前一樣有根據。因為這些年編譯器技術提高了，而且編譯器通常可以產生非常有效的代碼
+(特別是當開啟編譯器優化的時候)。調用組合語言程式的缺點：可攜性和可讀性減弱了。
+
+絕大部分的C調用約定已經確定了。但是，還需要描述一些額外的特徵。
+
+\subsection{保存寄存器\index{調用約定!C!寄存器|(}}
+首先， \MarginNote{關鍵字{\code register}可以使\\用在一個C變數聲明中\\來暗示編譯器：這個變\\數使用一個寄存器而不\\是記憶體空間。這些變\\數稱為寄存器變數。\\現在的編譯器會自動做\\這件事而不需要給它暗示。}
+C假定副程式保存了下面這幾個寄存器的值：EBX，ESI，EDI，\\EBP，CS，DS，SS，ES。這並不意味著不能在副程式內部修改它們。相反，它表示如果子程式改變了它們的值，那麼在副程式返回之前必須恢復它們的原始值。EBX，ESI和EDI的值不能被改變，因為C將這些寄存器用於\emph{寄存器變數}。通常都是使用堆疊來保存這些寄存器的原始值。
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+segment .data
+x            dd     0
+format       db     "x = %d\n", 0
+
+segment .text
+...
+      push   dword [x]     ; 將x的值壓入堆疊中
+      push   dword format  ; 將format字串的位址壓入堆疊中
+      call   _printf       ; 注意下劃線!
+      add    esp, 8        ; 從堆疊中移除參數
+\end{AsmCodeListing}
+\caption{調用{\code printf} \label{fig:Cprintf}}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\begin{tabular}{l|c|}
+\cline{2-2}
+EBP + 12 & {\code x}的值 \\ \cline{2-2}
+EBP + 8  & format字串的位址 \\ \cline{2-2}
+EBP + 4  & 返回地址 \\ \cline{2-2}
+EBP      & 保存的EBP值 \\ \cline{2-2}
+\end{tabular}
+\caption{{\code printf}的堆疊結構\label{fig:CprintfStack}}
+\end{figure}
+\index{調用約定!C!寄存器|)}
+
+\subsection{函式名\index{調用約定!C!函式名|(}}
+大多數C編譯器都在函式名和全局或靜態變數前附加一個下劃線字元。例如，函式名{\code f}將指定為{\code \_f}。因此，如果這是一個組合語言程式，那麼它必須標記為{\code \_f}，而不是{\code f}。Linux gcc編譯器並\emph{不}附加任何字元。
+在可執行的Linux ELF下，對於C函式{\code f}，你只需要簡單使用函式名{\code f}即可。但是，
+ DJGPP的gcc卻附加了一個下劃線。注意，在組合語言程式skeleton中
+(圖~\ref{fig:skel})，主程序函式名是{\code
+\_asm\_main}。
+\index{調用約定!C!函式名|)}
+
+\subsection{傳遞參數\index{調用約定!C!參數|(}}
+按照C調用約定，一個函式的參數將以一定順序壓入堆疊中，這個順序與它們出現在函式調用裏的順序\emph{相反}。
+
+考慮這條C語句：\verb|printf("x = %d\n",x);|
+圖~\ref{fig:Cprintf}展示了如何編譯這條語句(用等價的NASM格式)。圖~\ref{fig:CprintfStack}展示了執行完{\code printf}函式的開始部分後，堆疊的狀態。{\code printf}函式一個可以攜帶任意個參數的C語言庫函式。C調用約定的規則就是專門為允許這些類型的函式而規定的。\MarginNote{沒有必要使用組合語言\\來處理C中的可變參數\\函式。可以通過移植\\{\code stdarg.h}頭檔中定義的\\宏來處理它們。看一本\\好的C語言的書來得到更\\詳細的資訊。} 因為format字串的位址最後壓入堆疊，所以不管有多少參數傳遞到函式，它在堆疊裏的位置將總是
+{\code EBP + 8}。然後{\code printf}代碼就可以通過看format字串的位置來決定需要傳遞多少參數和在堆疊上如何找到它們。
+
+當然，如果有錯誤發生， \verb|printf("x = %d\n")|，
+{\code printf}代碼仍然會將{\code [EBP + 12]}中的雙字值輸出，而這並不是{\code x}的值！
+\index{調用約定!C!參數|)}
+
+\subsection{計算局部變數的位址\index{堆疊!局部變數|(}}
+
+找到定義在{\code data}或{\code
+bss}段的變數的位址是非常容易的。基本上，連接程式做的就是這件事情。但是，要計算出在堆疊上的一個局部變數(或參數)的位址就不簡單了。可是，當調用副程式的時候，這種需求是非常普通的。考慮傳遞一個變數(讓我們稱它為{\code x})的位址到一個函式(讓我們稱它為
+{\code foo})的情況。如果{\code x}處在堆疊的EBP $-$ 8的位置，你不可以這樣使用：
+\begin{AsmCodeListing}[numbers=none,frame=none]
+      mov    eax, ebp - 8
+\end{AsmCodeListing}
+為什麼？因為指令{\code
+MOV}儲存到EAX裏的值必須能由彙編器計算出來(也就是說，它最後必須是一個常量)。但是，有一條指令能做這種需求的計算。它就是\index{LEA|(}
+{\code LEA}  (即\emph{Load Effective
+Address，載入有效位址})。下面的代碼就能計算出{\code
+x}的位址並將它儲存到EAX中：
+\begin{AsmCodeListing}[numbers=none,frame=none]
+      lea    eax, [ebp - 8]
+\end{AsmCodeListing}
+現在EAX中存有了{\code x}的位址，而且當調用函式{\code foo}的時候，就可以將其壓入到堆疊中。不要搞混了，這條指令看起來是從[EBP\nolinebreak$-$\nolinebreak8]中讀數據；然而，這並\emph{不}正確。{\code LEA}指令\emph{永遠不會}從記憶體中讀數據。它僅僅計算出一個將會被其他指令使用到的位址，然後將這個位址儲存到它的第一個運算元裏。因為它並沒有實際讀記憶體，所以不指定記憶體大小(\emph{例如：}
+{\code dword})是必須的或說是允許的。
+
+\index{LEA|)}
+\index{堆疊!局部變數|)}
+
+\subsection{返回值\index{調用約定!C!返回值|(}}
+
+返回值不為空的C函式執行完後會返回一個值。C調用約定規定了這個要如何去做。返回值需通過寄存器傳遞。所有的整形類型({\code
+char}， {\code int}， {\code enum}，
+\emph{等})通過EAX寄存器返回。如果它們小於32位元，那麼儲存到EAX的時候，它們將被擴展成32位。
+(它們如何擴展取決於是有符號類型還是無符號類型。)
+64位的值通過EDX:EAX\index{寄存器!EDX:EAX}寄存器對返回。浮點數儲存在數學輔助運算器中的ST0寄存器中。
+(這個寄存器將在浮點數這一章來討論。) \index{調用約定!C!返回值|)}
+\index{調用約定!C|)}
+
+\subsection{其他調用約定\index{調用約定|(}}
+
+所有的80x86
+C編譯器中都支援上面描述的標準C調用約定的規則。通常編譯器也支援其他調用約定。當與組合語言進行介面時，知道編譯器調用你的函式時使用的是什麼調用約定是\emph{非常}重要的。通常，缺省時，使用的是標準的調用約定；但是，並不總是這一種情況\footnote{Watcom
+C\index{編譯器!Watcom}編譯器就是一個在缺省情況下\emph{不}使用標準調用的例子。看Watcom的樣例原始檔案代碼來得到更詳細的資訊}。
+使用多種約定的編譯器通常都擁有可以用來改變缺省約定的命令行開關。它們同樣提供擴展的C語法來為單個函式指定調用約定。但是，各個編譯器的這些擴展標準可以是不一樣的。
+
+GCC編譯器允許不同的調用約定。一個函式的調用約定可以通過擴展語法{\code
+\_\_attribute\_\_}
+\index{編譯器!gcc!\_\_attribute\_\_}明確指定。例如，要聲明一個返回值為空的函式{\code
+f}，它帶有一個{\code
+int}參數，使用標準調用約定\index{調用約定!C}，需使用下面的語法來聲明它的原型：
+\begin{lstlisting}[stepnumber=0]{}
+void f( int ) __attribute__((cdecl));
+\end{lstlisting}
+GCC同樣支援\emph{標準call} \index{調用約定!stdcall}調用約定。通過把{\code cdecl}替換成{\code stdcall}，上面的函式可以指定為使用這種約定。{\code stdcall}約定和{\code cdecl}約定的不同點是
+{\code stdcall}要求副程式將參數移除出堆疊(和Pascal調用約定一樣)。因此，{\code stdcall}調用約定只能使用在帶有固定參數的函式上 (\emph{也就是說}，不可以是函式{\code printf}和{\code scanf})。
+
+GCC同樣支持稱為{\code regparm}
+\index{調用約定!寄存器}的約定，這種約定告訴編譯器前3個整形參數通過寄存器傳遞給函式，而不是通過堆疊。這是許多編譯器支援的一個共同的優化模式。
+
+Borland和Microsoft使用一樣語法來聲明調用約定。它們在C代碼中加上關鍵字{\code \_\_cdecl}\index{調用約定!\_\_cdecl}和 {\code \_\_stdcall}\index{調用約定!\_\_stdcall}。這些關鍵字用來修飾函式。在原型聲明中，它們出現在函式名的前面例如，上面的函式{\code f}用Borland和Microsoft定義如下：
+\begin{lstlisting}[stepnumber=0]{}
+void __cdecl f( int );
+\end{lstlisting}
+
+每種調用約定都有各自的優缺點。{\code cdecl}\index{調用約定!C}調用約定的主要優點是它非常簡單而且非常靈活。它可以用於任何類型的C函式和C編譯器。使用其他約定會限制副程式的可攜性。它的主要缺點是與其他約定相比它執行較慢而且使用更多的記憶體(因為函式的每次調用都需要用代碼將參數移除出堆疊。)。
+
+{\code stdcall}\index{調用約定!標準call}調用約定的主要優點是相比於{\code cdecl}它使用較少的記憶體。在{\code CALL}指令之後 ，不需要清理堆疊。它的主要缺點是它不能使用於可變參數的函式。
+
+使用寄存器傳遞參數的調用約定的優點是速度非常快。主要缺點是這種約定太複雜。有些參數可能在寄存器中，而另一些可能在堆疊中。
+
+\index{調用約定|)}
+
+\subsection{樣例}
+
+下面是一個展示組合語言程式如何與C程式介面的例子。(注意：這個程式並沒有使用skeleton組合語言程式(圖~\ref{fig:skel})或driver.c模組。)
+
+\LabelLine{main5.c}
+\lstset{escapeinside=`',language=Pascal,%
+}
+\begin{lstlisting}{}
+#include <stdio.h>
+/* `組合語言程式的原型聲明' */
+void calc_sum( int, int * ) __attribute__((cdecl));
+
+int main( void )
+{
+  int n, sum;
+
+  printf("Sum integers up to: ");
+  scanf("%d", &n);
+  calc_sum(n, &sum);
+  printf("Sum is %d\n", sum);
+  return 0;
+}
+\end{lstlisting}
+\LabelLine{main5.c}
+
+\begin{AsmCodeListing}[label=sub5.asm, commandchars=\\\%|]
+; 副程式 _calc_sum
+; 求整形1到n的和
+; 參數:
+;   n - 從1加到多少(儲存在[ebp + 8])
+;   sump - 指向總數儲存位址的整形指標(儲存在[ebp + 12])
+; C虛擬碼:
+; void calc_sum( int n, int * sump )
+; {
+;   int i, sum = 0;
+;   for( i=1;i <= n; i++ )
+;     sum += i;
+;   *sump = sum;
+; }
+
+segment .text
+        global  _calc_sum
+;
+; 局部變數:
+;   儲存在[ebp-4]裏的sum值
+_calc_sum:
+        enter   4,0               ; 在堆疊上為sum分配空間
+        push    ebx               ; 重要! \label%line:pushebx|
+
+        mov     dword [ebp-4],0   ; sum = 0
+        dump_stack 1, 2, 4        ; 輸出堆疊中從ebp-8到ebp+16的值 \label%line:dumpstack|
+        mov     ecx, 1            ; ecx是虛擬碼中的i
+for_loop:
+        cmp     ecx, [ebp+8]      ; 比較i和n
+        jnle    end_for           ; 如果i > n,則退出迴圈
+
+        add     [ebp-4], ecx      ; sum += i
+        inc     ecx
+        jmp     short for_loop
+
+end_for:
+        mov     ebx, [ebp+12]     ; ebx = sump
+        mov     eax, [ebp-4]      ; eax = sum
+        mov     [ebx], eax
+
+        pop     ebx               ; 恢復ebx的值
+        leave
+        ret
+\end{AsmCodeListing}
+
+\begin{figure}[t]
+\begin{Verbatim}[frame=single]
+Sum integers up to: 10
+Stack Dump # 1
+EBP = BFFFFB70 ESP = BFFFFB68
+ +16  BFFFFB80  080499EC
+ +12  BFFFFB7C  BFFFFB80
+  +8  BFFFFB78  0000000A
+  +4  BFFFFB74  08048501
+  +0  BFFFFB70  BFFFFB88
+  -4  BFFFFB6C  00000000
+  -8  BFFFFB68  4010648C
+Sum is 55
+\end{Verbatim}
+\caption{sub5程式的運行示例 \label{fig:dumpstack}}
+\end{figure}
+
+為什麼程式{\code sub5.asm}中的第~\ref{line:pushebx}行非常重要？因為C調用約定要求EBX的值不能被調用的函式更改。如果沒有做這個，程式很可能不會正確運行。
+
+第~\ref{line:dumpstack}行演示了巨集{\code dump\_stack}如何運作。它的第一個參數只是一個數字標號，第二個參數決定需顯示EBP以下多少個雙字而第三個參數決定需顯示EBP以上多少個雙字。圖~\ref{fig:dumpstack}展示了這個程式的運行示例。對於這次轉儲，你可以看到儲存總數的雙字位址是FBFFFFB80 (儲存在EBP~+~12)；n值為0000000A
+(儲存在EBP~+~8)；程式的返回位址為08048501 (儲存在EBP~+~4)；保存的EBP的值為BFFFFB88 (儲存在EBP)；局部變數的值為
+0(儲存在EBP~-~4)；最後保存的EBX的值為4010648C (儲存在EBP~-~8)。
+
+{\code calc\_sum}函式可以這樣重寫：把sum當作返回值返回，替代使用的指針參數。因為sum是一個整形值，所以應保存到EAX寄存器中。{\code main5.c}檔中的第11行應該改成：
+\begin{lstlisting}[stepnumber=0]{}
+  sum = calc_sum(n);
+\end{lstlisting}
+同樣，{\code calc\_sum}的原型也需要改變。下面是修改後的彙編代碼：
+\begin{AsmCodeListing}[label=sub6.asm]
+; 副程式 _calc_sum
+; 求整形1到n的和 ; 參數:
+;   n - 從1加到多少(儲存在[ebp + 8]
+; 返回值:
+;   sum的值
+; C虛擬碼:
+; int calc_sum( int n )
+; {
+;   int i, sum = 0;
+;   for( i=1; i <= n; i++)
+;     sum += i;
+;   return sum;
+; }
+segment .text
+        global  _calc_sum
+;
+; 局部變數:
+;   儲存在[ebp-4]裏的sum值
+_calc_sum:
+        enter   4,0               ; 在堆疊上為sum分配空間
+
+        mov     dword [ebp-4],0   ; sum = 0
+        mov     ecx, 1            ; ecx是虛擬碼中的i
+for_loop:
+        cmp     ecx, [ebp+8]      ; 比較i和n
+        jnle    end_for           ; 如果i > n,則退出迴圈
+
+        add     [ebp-4], ecx      ; sum += i
+        inc     ecx
+        jmp     short for_loop
+
+end_for:
+        mov     eax, [ebp-4]      ; eax = sum
+
+        leave
+        ret
+\end{AsmCodeListing}
+
+\subsection{在組合語言程式中調用C函式}
+
+\begin{figure}[t]
+\begin{AsmCodeListing}[frame=single]
+segment .data
+format       db "%d", 0
+
+segment .text
+...
+      lea    eax, [ebp-16]
+      push   eax
+      push   dword format
+      call   _scanf
+      add    esp, 8
+...
+\end{AsmCodeListing}
+\caption{在組合語言程式中調用{\code scanf}函式\label{fig:scanf}}
+\end{figure}
+
+C與彙編介面的一個主要優點是允許彙編代碼訪問大型C庫和用戶寫的函式。例如，如果你想調用一下{\code
+scanf}函式來從鍵盤讀一個整形，該怎麼辦？圖~\ref{fig:scanf}展示了完成這件事的代碼。需要記住的非常重要的一點就是{\code
+scanf}函式遵循字面意義的C調用標準。這就意味著它保存了EBX，ESI和\\EDI寄存器的值；但是，
+EAX，ECX和EDX寄存器的值可能會被修改。事實上，EAX肯定會被修改，因為它將保存{\code
+scanf}調用的返回值。至於與C介面的其他例子，可以看用來產生{\code
+asm\_io.obj}的{\code asm\_io.asm}檔中的代碼。 \index{與C介面|)}
+
+\section{可重入和遞迴副程式\index{遞迴|(}}
+
+\index{副程式!可重入|(}
+一個可重入副程式必須滿足下面幾個性質：
+\begin{itemize}
+\item 它不能修改代碼指令。在高階語言中，修改代碼指令是非常難的；但是在組合語言中，一個程式要修改自己的代碼並不是一件很難的事。例如：
+\begin{AsmCodeListing}[frame=none, numbers=none]
+      mov    word [cs:$+7], 5      ; 將5複製到前面七個位元組的字中
+      add    ax, 2                 ; 前面的語句將2改成了5!
+\end{AsmCodeListing}
+這些代碼在實模式下可以運行，但是在保護模式下的作業系統上不行，因為代碼段被標識為唯讀。在這些作業系統上，當執行了上面的第一行代碼，程式將被終止。這種類型的程式從各個方面來看都非常差。它很混亂，很難維護而且不允許代碼共用(看下面)。
+
+\item 它不能修改總體變數(比如在{\code data}和
+{\code bss}段裏的數據)。所有的變數應儲存在堆疊裏。
+
+\end{itemize}
+
+書寫可重入性代碼有幾個好處。
+\begin{itemize}
+\item 一個可重入副程式可以遞迴調用。
+\item 一個可重入程式可以被多個進程共用。在許多多工作業系統上，如果一個程式有許多實例正在運行，那麼只有\emph{一份}代碼的拷貝在記憶體中。共用庫和DLL(\emph{Dynamic Link Libraries，動態連結程式庫})同樣使用了這種技術。
+\item 可重入副程式可以運行在\emph{多線程}
+\footnote{一個多線程程式同時有多條線程在執行。也就是說，程式本身是多工的。} 程式中。 Windows 9x/NT和大多數類
+UNIX作業系統(Solaris， Linux，\emph{等})都支援多線程程式。
+\end{itemize}
+\index{副程式!可重入|)}
+
+\subsection{遞迴副程式}
+
+這種類型的副程式調用它們自己。遞迴可以是
+\emph{直接的}或是\emph{間接的}。當一個名為{\code foo}的副程式在{\code foo}內部調用自己就產生直接遞迴。當一個子程式雖然自己沒有直接調用自己，但是其他副程式調用了它，就產生間接遞迴。例如：副程式{\code foo}可以調用
+{\code bar}且{\code bar}也可以調用{\code foo}。
+
+遞迴副程式必須有一個\emph{終止條件}。當這個條件為真時，就不再進行遞迴調用了。如果一個子程式沒有終止條件或條件永不為真，那麼遞迴將不會結束(非常像一個無窮迴圈)。
+
+\begin{figure}
+\begin{AsmCodeListing}[frame=single]
+; 求n!
+segment .text
+      global _fact
+_fact:
+      enter  0,0
+
+      mov    eax, [ebp+8]    ; eax = n
+      cmp    eax, 1
+      jbe    term_cond       ; 如果n <= 1，則終止
+      dec    eax
+      push   eax
+      call   _fact           ; eax = fact(n-1)
+      pop    ecx             ; 結果在eax中
+      mul    dword [ebp+8]   ; edx:eax = eax * [ebp+8]
+      jmp    short end_fact
+term_cond:
+      mov    eax, 1
+end_fact:
+      leave
+      ret
+\end{AsmCodeListing}
+\caption{求n!的遞迴函式\label{fig:factorial}}
+\end{figure}
+
+\begin{figure}
+\centering
+%\includegraphics{factStack.eps}
+\input{factStack.latex}
+\caption{n!函式的堆疊幀\label{fig:factStack}}
+\end{figure}
+
+圖~\ref{fig:factorial}展示了一個遞迴求n!的函式。在C中它可以這樣被調用：
+\begin{lstlisting}[stepnumber=0]{}
+x = fact(3);         /* find 3! */
+\end{lstlisting}
+圖~\ref{fig:factStack}展示了上面的函式調用的最深點的堆疊狀態。
+
+\begin{figure}[t]
+\begin{lstlisting}[frame=tlrb]{}
+void f( int x )
+{
+  int i;
+  for( i=0; i < x; i++ ) {
+    printf("%d\n", i);
+    f(i);
+  }
+}
+\end{lstlisting}
+\caption{另一個例子(C語言版)\label{fig:rec2C}}
+\end{figure}
+
+\begin{figure}
+\begin{AsmCodeListing}[frame=single]
+%define i ebp-4
+%define x ebp+8          ; useful macros
+segment .data
+format       db "%d", 10, 0     ; 10 = '\n'
+segment .text
+      global _f
+      extern _printf
+_f:
+      enter  4,0           ; 在堆疊上為i分配空間
+
+      mov    dword [i], 0  ; i = 0
+lp:
+      mov    eax, [i]      ; is i < x?
+      cmp    eax, [x]
+      jnl    quit
+
+      push   eax           ; 調用printf
+      push   format
+      call   _printf
+      add    esp, 8
+
+      push   dword [i]     ; 調用f
+      call   _f
+      pop    eax
+
+      inc    dword [i]     ; i++
+      jmp    short lp
+quit:
+      leave
+      ret
+\end{AsmCodeListing}
+\caption{另一個例子(組合語言版)\label{fig:rec2Asm}}
+\end{figure}
+
+圖~\ref{fig:rec2C}展示了另一個更複雜的遞迴樣例的C語言版而\ref{fig:rec2Asm}展示了它的組合語言版。對於{\code f(3)}，輸出是什麼？注意：每一次遞迴調用，{\code ENTER}指令都會在堆疊上給新的{\code i}值分配空間。因此，{\code f}的每一次遞迴調用都有它自己獨立的變數{\code i}。若是在{\code data}段定義{\code i}為一雙字，結果就不一樣了。
+\index{遞迴|)}
+
+\subsection{回顧一下C變數的儲存類型}
+
+C提供了幾種變數儲存類型。
+\begin{description}
+\item[global，全局]
+\index{儲存類型!全局}
+這些變數定義在任何函式的外面，且儲存在固定的記憶體空間中(在{\code data}或{\code
+bss}段)，而且從程式的開始一直到程式的結束都存在。缺省情況下，它們能被程式中的任何一個函式訪問；但是，如果它們被聲明為{\code static}，那麼只有在同一模組中的函式才能訪問它們(\emph{也就是說，} 依照彙編的術語，這個變數是內部的，不是外部的)。
+
+\item[static，靜態]
+\index{儲存類型!靜態}
+在一個函式中，它們是被聲明為{\code靜態}的\emph{局部}變數。(不幸的是，C使用關鍵字{\code
+static}有兩種目的！)這些變數同樣儲存在固定的記憶體空間中(在{\code data}或{\code bss}段)，但是只能被定義它的函式直接訪問。
+
+\item[automatic，自動]
+\index{儲存類型!自動}
+它是定義在一個函式內的C變數的缺省類型。當定義它們的函式被調用了，這些變數就被分配在堆疊上，而當函式返回了又從堆疊中移除。因此，它們沒有固定的記憶體空間。
+
+\item[register，寄存器]
+\index{儲存類型!寄存器}
+這個關鍵字要求編譯器使用寄存器來儲存這個變數的資料。這僅僅是一個\emph{要求}。編譯器並\emph{不}一定要遵循。如果變數的位址使用在程式的任意的地方，那麼就不會遵循(因為寄存器沒有位址)。同樣，只有簡單的整形資料可以是寄存器變數。結構類型不可以；因為它們的大小不匹配寄存器！C編譯器通常會自動將普通的自動變數轉換成寄存器變數，而不需要程式師給予暗示。
+
+\item[volatile，不穩定]
+\index{儲存類型!不穩定}
+這個關鍵字告訴編譯器這個變數值隨時都會改變。這就意味著當變數被更改了，編譯器不能做出任何推斷。通常編譯器會將一個變數的值暫時存在寄存器中，而且在出現這個變數的代碼部分使用這個寄存器。但是，編譯器不能對{\code 不穩定}類型的變數做這種類型的優化。一個不穩定變數的最普遍的例子就是：它可以被多線程程式的兩個線程修改。考慮下面的代碼：
+\begin{lstlisting}{}
+x = 10;
+y = 20;
+z = x;
+\end{lstlisting}
+如果{\code x}可以被另一個線程修改。那麼其他線程可以會在第1行和第3行之間修改{\code x}的值，以致於{\code z}將不會等於10.但是， 如果{\code x}沒有被聲明為不穩定類型，編譯器就會推斷{\code x}沒有改變，然後再將{\code z}置為10。
+
+{\code 不穩定類型}的另一個使用就是避免編譯器為一個變數使用一個寄存器。
+
+\end{description}
+\index{副程式|)}
+

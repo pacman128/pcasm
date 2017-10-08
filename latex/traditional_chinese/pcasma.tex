@@ -1,0 +1,291 @@
+%appendix
+\chapter{80x86指令}
+\section{非浮點指令}
+這一節列出和描述了Intel 80x86CPU家族的非浮點指令的行為和格式。
+
+這些格式使用下面的約定：
+\begin{center}
+\begin{tabular}{|l|l|}
+\hline
+R   & 通用寄存器 \\
+R8  & 8位寄存器 \\
+R16 & 16位寄存器 \\
+R32 & 32位寄存器 \\
+SR  & 段寄存器 \\
+M   & 記憶體 \\
+M8  & 位元組 \\
+M16 & 字 \\
+M32 & 雙字 \\
+I   & 立即數 \\
+\hline
+\end{tabular}
+\end{center}
+上面這些可以結合使用於多運算元指令。例如：格式\emph{R, R}表示指令攜帶兩個寄存器器運算元。許多雙運算元指令允許同樣類型的運算元。約定
+\emph{O2}可以用來表示這些運算元：\emph{R,R R,M R,I M,R M,I}。如果一個運算元可以是8位元的寄存器或記憶體，則使用這樣的約定：
+\emph{R/M8}。
+
+這個表同樣展示了每一條指令如何影響FLAGS寄存器中的不同的位。如果列為空，則表示與它相應的位沒有被影響。如果這些位總是被改為一特定的值，則在相應的列中顯示一個1或0。如果位元的改變的值依賴於指令的運算元，則在相應的列中顯示為\emph{C}。最後，如果位被某種未定義的形式修改，則在列中顯示\emph{?}。因為改變方向標誌位元的唯一指令是{\code CLD}和{\code STD}，所以在FLAGS列中，它們沒有被列出來。
+
+\begin{longtable}{||l|p{1.5in}|p{0.75in}|c|c|c|c|c|c||}
+\hline \hline
+\multicolumn{1}{||c}{} & 
+   \multicolumn{1}{c}{} &
+   \multicolumn{1}{c}{} &
+  \multicolumn{6}{c||}{\textbf{標誌位元}} \\ \cline{4-9}
+\multicolumn{1}{||c}{\textbf{名稱}} & 
+   \multicolumn{1}{c}{\textbf{描述}} &
+   \multicolumn{1}{c}{\textbf{格式}} &
+   \multicolumn{1}{c}{\textbf{O}} &
+   \multicolumn{1}{c}{\textbf{S}} &
+   \multicolumn{1}{c}{\textbf{Z}} &
+   \multicolumn{1}{c}{\textbf{A}} &
+   \multicolumn{1}{c}{\textbf{P}} &
+   \multicolumn{1}{c||}{\textbf{C}} \\ \hline \endhead
+\hline \hline \endfoot
+%                                              O   S   Z   A   P   C
+{\code ADC} & 帶進位相加 & O2            & C & C & C & C & C & C \\
+{\code ADD} & 整數相加   & O2            & C & C & C & C & C & C \\
+{\code AND} & 按位AND    & O2            & 0 & C & C & ? & C & 0 \\
+{\code BSWAP} & 位元組次序變反    & R32           &   &   &   &   &   &  \\
+{\code CALL} & 調用程式  & R M I         &   &   &   &   &   &   \\
+{\code CBW} & 將位元組轉換成字 &         &   &   &   &   &   & \\
+{\code CDQ} & 將雙字轉換成四字 &       &   &   &   &   &   & \\
+{\code CLC} & 進位元標誌位元清0 &                  &   &   &   &   &   & 0 \\
+{\code CLD} & 方向標誌位元清0 &         &   &   &   &   &   & \\
+{\code CMC} & 進位元標誌位元變反 &             &   &   &   &   &   & C \\
+{\code CMP} & 整數比較 & O2          & C & C & C & C & C & C \\
+{\code CMPSB} & 位元組比較 &              & C & C & C & C & C & C \\
+{\code CMPSW} & 字比較 &              & C & C & C & C & C & C \\
+{\code CMPSD} & 雙字比較 &             & C & C & C & C & C & C \\
+{\code CWD} & 將字轉換成雙字，並儲存到DX:AX中 & &   &   &   &   &   & \\
+{\code CWDE} & 將字轉換成雙字，並儲存到EAX中 & &   &   &   &   &   & \\
+{\code DEC} & 整數減一 & R M        & C & C & C & C & C & \\
+{\code DIV} & 無符號數相除 & R M          & ? & ? & ? & ? & ? & ? \\
+{\code ENTER} & 建立堆疊幀 & I,0       &   &   &   &   &   & \\
+{\code IDIV} & 有符號數相除 & R M           & ? & ? & ? & ? & ? & ? \\
+{\code IMUL} & 有符號數相乘 & R M R16,R/M16 R32,R/M32 R16,I R32,I 
+                                       {\small R16,R/M16,I R32,R/M32,I}
+                                             & C & ? & ? & ? & ? & C \\
+{\code INC} & 整數加一 & R M        & C & C & C & C & C & \\
+{\code INT} & 產生中斷 & I         &   &   &   &   &   & \\
+{\code JA } & 如果大於則跳轉 & I                 &   &   &   &   &   & \\
+{\code JAE } & 如果大於等於則跳轉 & I       &   &   &   &   &   & \\
+{\code JB } & 如果小於則跳轉 & I                 &   &   &   &   &   & \\
+{\code JBE } & 如果小於等於則跳轉  & I      &   &   &   &   &   & \\
+{\code JC } & 如果進位為1則跳轉 & I                 &   &   &   &   &   & \\
+{\code JCXZ } & 如果CX = 0則跳轉 & I           &   &   &   &   &   & \\
+{\code JE } & 如果等於則跳轉 & I                 &   &   &   &   &   & \\
+{\code JG } & 如果大於則跳轉 & I               &   &   &   &   &   & \\
+{\code JGE } & 如果大於等於則跳轉 & I     &   &   &   &   &   & \\
+{\code JL } & 如果小於則跳轉 & I                  &   &   &   &   &   & \\
+{\code JLE } & 如果小於等於則跳轉 & I        &   &   &   &   &   & \\
+{\code JMP } & 無條件跳轉 & R M I    &   &   &   &   &   & \\
+{\code JNA } & 如果不大於則跳轉 & I            &   &   &   &   &   & \\
+{\code JNAE } & 如果不大於行於則跳轉 & I   &   &   &   &   &   & \\
+{\code JNB } & 如果不小於則跳轉 & I            &   &   &   &   &   & \\
+{\code JNBE } & 如果不小於等於則跳轉 & I  &   &   &   &   &   & \\
+{\code JNC } & 如果沒有進位則跳轉 & I             &   &   &   &   &   & \\
+{\code JNE } & 如果不等於則跳轉 & I            &   &   &   &   &   & \\
+{\code JNG } & 如果不大於則跳轉 & I          &   &   &   &   &   & \\
+{\code JNGE } & 如果不大於等於則跳轉 & I&   &   &   &   &   & \\
+{\code JNL } & 如果不小於則跳轉 & I             &   &   &   &   &   & \\
+{\code JNLE } & 如果不小於等於則跳轉 & I   &   &   &   &   &   & \\
+{\code JNO } & 如果不溢出則跳轉 & I          &   &   &   &   &   & \\
+{\code JNS } & 如果SF=0則跳轉 & I              &   &   &   &   &   & \\
+{\code JNZ } & 如果ZF=0則跳轉 & I             &   &   &   &   &   & \\
+{\code JO } & 如果溢出則跳轉 & I              &   &   &   &   &   & \\
+{\code JPE } & 如果PF=1則跳轉 & I          &   &   &   &   &   & \\
+{\code JPO } & 如果PF=0則跳轉 & I           &   &   &   &   &   & \\
+{\code JS } & 如果SF=1則跳轉 & I                  &   &   &   &   &   & \\
+{\code JZ } & 如果ZF=1則跳轉 & I                  &   &   &   &   &   & \\
+{\code LAHF} & 將FLAGS的低位元組載入到AH中 &          &   &   &   &   &   & \\
+{\code LEA} & 載入有效的位址 & R32,M &   &   &   &   &   & \\
+{\code LEAVE} & 釋放堆疊幀 &          &   &   &   &   &   & \\
+{\code LODSB} & 載入位元組 &                  &   &   &   &   &   & \\
+{\code LODSW} & 載入字 &                  &   &   &   &   &   & \\
+{\code LODSD} & 載入雙字 &                 &   &   &   &   &   & \\
+{\code LOOP}  & 迴圈       & I               &   &   &   &   &   & \\
+{\code LOOPE/LOOPZ} & 如果ZF=1則迴圈 & I     &   &   &   &   &   & \\
+{\code LOOPNE/LOOPNZ} & 如果ZF=0則迴圈 & I  &   &   &   &   &   & \\
+{\code MOV} & 移動資料 & O2 \mbox{SR,R/M16} R/M16,SR
+                                             &   &   &   &   &   & \\
+{\code MOVSB} & 移動位元組 &                  &   &   &   &   &   & \\
+{\code MOVSW} & 移動字 &                  &   &   &   &   &   & \\
+{\code MOVSD} & 移動雙字 &                 &   &   &   &   &   & \\
+{\code MOVSX} & 符號擴展移動 & R16,R/M8 R32,R/M8 R32,R/M16
+                                             &   &   &   &   &   & \\
+{\code MOVZX} & 零擴展移動 & R16,R/M8 R32,R/M8 R32,R/M16
+                                             &   &   &   &   &   & \\
+{\code MUL} & 無符號數相乘 & R M        & C & ? & ? & ? & ? & C \\
+{\code NEG} & 求反 & R M                   & C & C & C & C & C & C \\
+{\code NOP} & 無操作 &                 &   &   &   &   &   & \\
+{\code NOT} & 非運算 & R M           &   &   &   &   &   & \\
+{\code OR} & 按位OR    & O2              & 0 & C & C & ? & C & 0 \\
+{\code POP} & 出堆疊 & R/M16 R/M32   &   &   &   &   &   & \\
+{\code POPA} & 全部出堆疊 &                     &   &   &   &   &   & \\
+{\code POPF} & 出堆疊送FLAGS &                   & C & C & C & C & C & C \\
+{\code PUSH} & 進堆疊 & R/M16 R/M32 I &   &   &   &   &   & \\
+{\code PUSHA} & 全部進堆疊 &                   &   &   &   &   &   & \\
+{\code PUSHF} & FLAGS進堆疊 &                 &   &   &   &   &   & \\
+{\code RCL} & 帶進位迴圈左移 & R/M,I R/M,CL
+                                             & C &   &   &   &   & C \\
+{\code RCR} & 帶進位迴圈右移 & R/M,I R/M,CL
+                                             & C &   &   &   &   & C \\
+{\code REP} & 重複執行 &                       &   &   &   &   &   & \\
+{\code REPE/REPZ} & 如果ZF=1則重複執行 &        &   &   &   &   &   & \\
+{\code REPNE/REPNZ} & 如果ZF=0則重複執行 &  &   &   &   &   &   & \\
+{\code RET} & 返回 &                       &   &   &   &   &   & \\
+{\code ROL} & 迴圈左移 & R/M,I R/M,CL     & C &   &   &   &   & C \\
+{\code ROR} & 迴圈右移 & R/M,I R/M,CL    & C &   &   &   &   & C \\
+{\code SAHF} & 將AH複製到FLAGS中 &        &   & C & C & C & C & C \\
+{\code SAL} & 算術左移 & R/M,I R/M, CL &   &   &   &   &   & C \\
+{\code SBB}  & 帶借位相減 & O2     & C & C & C & C & C & C \\
+{\code SCASB} & 掃描位元組 &              & C & C & C & C & C & C \\
+{\code SCASW} & 掃描字 &              & C & C & C & C & C & C \\
+{\code SCASD} & 掃描雙字 &             & C & C & C & C & C & C \\
+{\code SETA } & 如果大於則目的位元組置1 & R/M8                 &   &   &   &   &   & \\
+{\code SETAE } & 如果大於等於則目的位元組置1 & R/M8       &   &   &   &   &   & \\
+{\code SETB } & 如果小於則目的位元組置1 & R/M8                 &   &   &   &   &   & \\
+{\code SETBE } & 如果小於等於則目的位元組置1  & R/M8      &   &   &   &   &   & \\
+{\code SETC } & 如果進位元標誌位元為1則目的位元組置1 & R/M8                 &   &   &   &   &   & \\
+{\code SETE } & 如果等於則目的位元組置1 & R/M8                 &   &   &   &   &   & \\
+{\code SETG } & 如果大於則目的位元組置1 & R/M8               &   &   &   &   &   & \\
+{\code SETGE } & 如果大於等於則目的位元組置1 & R/M8     &   &   &   &   &   & \\
+{\code SETL } & 如果小於則目的位元組置1 & R/M8                  &   &   &   &   &   & \\
+{\code SETLE } & 如果小於等於則目的位元組置1 & R/M8        &   &   &   &   &   & \\
+{\code SETNA } & 如果不大於則目的位元組置1 & R/M8            &   &   &   &   &   & \\
+{\code SETNAE } & 如果不大於等於則目的位元組置1 & R/M8   &   &   &   &   &   & \\
+{\code SETNB } & 如果不小於則目的位元組置1 & R/M8            &   &   &   &   &   & \\
+{\code SETNBE } & 如果不小於等於則目的位元組置1 & R/M8  &   &   &   &   &   & \\
+{\code SETNC } & 如果進位元標誌位元為0則目的位元組置1 & R/M8             &   &   &   &   &   & \\
+{\code SETNE } & 如果不等於則目的位元組置1 & R/M8            &   &   &   &   &   & \\
+{\code SETNG } & 如果不大於則目的位元組置1 & R/M8          &   &   &   &   &   & \\
+{\code SETNGE } & 如果不大於等於則目的位元組置1 & R/M8&   &   &   &   &   & \\
+{\code SETNL } & 如果不小於則目的位元組置1 & R/M8             &   &   &   &   &   & \\
+{\code SETNLE } & 如果不小於等於則目的位元組置1 & R/M8   &   &   &   &   &   & \\
+{\code SETNO } & 如果OF=0則目的位元組置1 & R/M8          &   &   &   &   &   & \\
+{\code SETNS } & 如果SF=0則目的位元組置1 & R/M8              &   &   &   &   &   & \\
+{\code SETNZ } & 如果ZF=0則目的位元組置1 & R/M8             &   &   &   &   &   & \\
+{\code SETO } & 如果OF=1則目的位元組置1 & R/M8              &   &   &   &   &   & \\
+{\code SETPE } & 如果PF=1則目的位元組置1 & R/M8          &   &   &   &   &   & \\
+{\code SETPO } & 如果PF=0則目的位元組置1 & R/M8           &   &   &   &   &   & \\
+{\code SETS } & 如果SF=1則目的位元組置1 & R/M8                  &   &   &   &   &   & \\
+{\code SETZ } & 如果ZF=1則目的位元組置1 & R/M8                  &   &   &   &   &   & \\
+
+{\code SAR} & 算術右移 & R/M,I R/M, CL 
+                                             &   &   &   &   &   & C \\
+{\code SHR} & 邏輯右移 & R/M,I R/M, CL 
+                                             &   &   &   &   &   & C \\
+{\code SHL} & 邏輯左移 & R/M,I R/M, CL 
+                                             &   &   &   &   &   & C \\
+{\code STC} & 進位元標誌位置1 &                    &   &   &   &   &   & 1 \\
+{\code STD} & 方向標誌位置1 &           &   &   &   &   &   & \\
+{\code STOSB} & 儲存位元組 &                 &   &   &   &   &   & \\
+{\code STOSW} & 儲存字 &                 &   &   &   &   &   & \\
+{\code STOSD} & 儲存雙字 &                &   &   &   &   &   & \\
+{\code SUB} & 相減 & O2                  & C & C & C & C & C & C\\
+{\code TEST} & 邏輯比較 & R/M,R R/M,I & 0 & C & C & ? & C & 0\\
+{\code XCHG} & 交換 & R/M,R R,R/M        &   &   &   &   &   & \\
+{\code XOR} & 按位XOR    & O2            & 0 & C & C & ? & C & 0 \\
+
+\end{longtable}
+
+\newpage
+\section{浮點數指令}
+
+\renewcommand{\thefootnote}{\fnsymbol{footnote}} 在這一節中，描述了許多80x86數位輔助運算器的指令。說明部分簡要地描述了指令的操作。為了節省空間，關於指令是否出堆疊的資訊並沒有在描述中給出。
+
+格式列展示了每個指令可以使用的運算元類型。使用的是下面的約定：
+\begin{center}
+\begin{tabular}{|l|l|}
+\hline
+ST\emph{n} & 一個輔助運算器寄存器 \\
+F          & 記憶體中的單精確度數 \\
+D          & 記憶體中的雙精度數 \\
+E          & 記憶體中的擴展精度數 \\
+I16        & 記憶體中的整形字 \\
+I32        & 記憶體中的整形雙字 \\
+I64        & 記憶體中的整形四字 \\
+\hline
+\end{tabular}
+\end{center}
+
+需要奔騰或更好的處理器的指令用星號標示出來了(\footnotemark[1])。
+
+\begin{longtable}{||l|l|l||}
+\hline \hline
+\multicolumn{1}{||c}{\textbf{指令}} & 
+  \multicolumn{1}{c}{\textbf{描述}} &
+\multicolumn{1}{c||}{\textbf{格式}} \\
+\hline
+\endhead
+\hline \hline \endfoot
+{\code FABS} & $\mathtt{ST0} = |\mathtt{ST0}|$ & \\
+{\code FADD \emph{src}} & {\code ST0 += \emph{src}} & ST\emph{n} F D \\
+{\code FADD \emph{dest}, ST0} & {\code \emph{dest} += STO} & ST\emph{n} \\
+{\code FADDP \emph{dest}[,ST0]} & {\code \emph{dest} += ST0} & ST\emph{n} \\
+{\code FCHS} & $\mathtt{ST0} = - \mathtt{ST0}$ & \\
+{\code FCOM \emph{src}} & 比較{\code ST0}和{\code \emph{src}} &
+ST\emph{n} F D \\
+{\code FCOMP \emph{src}} & 比較{\code ST0}和{\code \emph{src}} &
+ST\emph{n} F D \\
+{\code FCOMPP \emph{src}} & 比較{\code ST0}和{\code ST1} & \\
+{\code FCOMI\footnotemark[1] \emph{src}} & 比較並設置FLAGS 
+& ST\emph{n} \\
+{\code FCOMIP\footnotemark[1] \emph{src}} & 比較並設置FLAGS 
+& ST\emph{n} \\
+{\code FDIV \emph{src}} & {\code ST0 /= \emph{src}} & ST\emph{n} F D \\
+{\code FDIV \emph{dest}, ST0} & {\code \emph{dest} /= STO} & ST\emph{n} \\
+{\code FDIVP \emph{dest}[,ST0]} & {\code \emph{dest} /= ST0} & ST\emph{n} \\
+{\code FDIVR \emph{src}} & {\code ST0 = \emph{src}/ST0} & ST\emph{n} F D \\
+{\code FDIVR \emph{dest}, ST0} & {\code \emph{dest} = ST0/\emph{dest}} 
+& ST\emph{n} \\
+{\code FDIVRP \emph{dest}[,ST0]} & {\code \emph{dest} = ST0/\emph{dest}} 
+& ST\emph{n} \\
+{\code FFREE \emph{dest}} & Marks as empty & ST\emph{n} \\
+{\code FIADD \emph{src}} & {\code ST0 += \emph{src}} & I16 I32 \\
+{\code FICOM \emph{src}} & 比較{\code ST0}和{\code \emph{src}} &
+I16 I32 \\
+{\code FICOMP \emph{src}} & 比較{\code ST0}和{\code \emph{src}} &
+I16 I32 \\
+{\code FIDIV \emph{src}} & {\code STO /= \emph{src}} & I16 I32 \\
+{\code FIDIVR \emph{src}} & {\code STO = \emph{src}/ST0} & I16 I32 \\
+{\code FILD \emph{src}} & 將\emph{src}壓入堆疊中 & I16 I32 I64 \\
+{\code FIMUL \emph{src}} & {\code ST0 *= \emph{src}} & I16 I32 \\
+{\code FINIT} & 初始化輔助運算器 & \\
+{\code FIST \emph{dest}} & 保存{\code ST0} & I16 I32 \\
+{\code FISTP \emph{dest}} & 保存{\code ST0} & I16 I32 I64\\
+{\code FISUB \emph{src}} & {\code ST0 -= \emph{src}} & I16 I32 \\
+{\code FISUBR \emph{src}} & {\code ST0 = \emph{src} - ST0} & I16 I32 \\
+{\code FLD \emph{src}} & 將\emph{src}壓入堆疊中 & ST\emph{n} F D E \\
+{\code FLD1} & 將1.0壓入堆疊中 & \\
+{\code FLDCW \emph{src}} & 裝載控制字寄存器 & I16 \\
+{\code FLDPI} & 將$\pi$壓入堆疊中 & \\
+{\code FLDZ} & 將0.0壓入堆疊中 & \\
+{\code FMUL \emph{src}} & {\code ST0 *= \emph{src}} & ST\emph{n} F D \\
+{\code FMUL \emph{dest}, ST0} & {\code \emph{dest} *= STO} & ST\emph{n} \\
+{\code FMULP \emph{dest}[,ST0]} & {\code \emph{dest} *= ST0} & ST\emph{n} \\
+{\code FRNDINT} & {\code ST0}取整 & \\
+{\code FSCALE} & $\mathtt{ST0} = \mathtt{ST0} \times 2^{\lfloor \mathtt{ST1} \rfloor}$ & \\
+{\code FSQRT} & $\mathtt{ST0} = \sqrt{\mathtt{STO}}$ & \\
+{\code FST \emph{dest}} & 儲存{\code ST0} & ST\emph{n} F D \\
+{\code FSTP \emph{dest}} & 儲存{\code ST0} & ST\emph{n} F D E \\
+{\code FSTCW \emph{dest}} & 儲存控制字寄存器 & I16 \\
+{\code FSTSW \emph{dest}} & 儲存狀態字寄存器 & I16 AX \\
+{\code FSUB \emph{src}} & {\code ST0 -= \emph{src}} & ST\emph{n} F D \\
+{\code FSUB \emph{dest}, ST0} & {\code \emph{dest} -= STO} & ST\emph{n} \\
+{\code FSUBP \emph{dest}[,ST0]} & {\code \emph{dest} -= ST0} & ST\emph{n} \\
+{\code FSUBR \emph{src}} & {\code ST0 = \emph{src}-ST0} & ST\emph{n} F D \\
+{\code FSUBR \emph{dest}, ST0} & {\code \emph{dest} = ST0-\emph{dest}} 
+& ST\emph{n} \\
+{\code FSUBP \emph{dest}[,ST0]} & {\code \emph{dest} = ST0-\emph{dest}} 
+& ST\emph{n} \\
+{\code FTST} & 比較{\code ST0}和0.0 & \\
+{\code FXCH \emph{dest}} & 將{\code ST0}和{\code \emph{dest}}內容交換 
+& ST\emph{n} \\
+\end{longtable}
+
+\renewcommand{\thefootnote}{\arabic{footnote}}
+
+
+

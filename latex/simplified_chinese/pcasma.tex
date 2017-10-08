@@ -1,0 +1,290 @@
+%appendix
+\chapter{80x86指令}
+\section{非浮点指令}
+这一节列出和描述了Intel 80x86CPU家族的非浮点指令的行为和格式。
+
+这些格式使用下面的约定：
+\begin{center}
+\begin{tabular}{|l|l|}
+\hline
+R   & 通用寄存器 \\
+R8  & 8位寄存器 \\
+R16 & 16位寄存器 \\
+R32 & 32位寄存器 \\
+SR  & 段寄存器 \\
+M   & 内存 \\
+M8  & 字节 \\
+M16 & 字 \\
+M32 & 双字 \\
+I   & 立即数 \\
+\hline
+\end{tabular}
+\end{center}
+上面这些可以结合使用于多操作数指令。例如：格式\emph{R, R}表示指令携带两个寄存器器操作数。许多双操作数指令允许同样类型的操作数。约定
+\emph{O2}可以用来表示这些操作数：\emph{R,R R,M R,I M,R M,I}。如果一个操作数可以是8位的寄存器或内存，则使用这样的约定：
+\emph{R/M8}。
+
+这个表同样展示了每一条指令如何影响FLAGS寄存器中的不同的位。如果列为空，则表示与它相应的位没有被影响。如果这些位总是被改为一特定的值，则在相应的列中显示一个1或0。如果位的改变的值依赖于指令的操作数，则在相应的列中显示为\emph{C}。最后，如果位被某种未定义的形式修改，则在列中显示\emph{?}。因为改变方向标志位的唯一指令是{\code CLD}和{\code STD}，所以在FLAGS列中，它们没有被列出来。
+
+\begin{longtable}{||l|p{1.5in}|p{0.75in}|c|c|c|c|c|c||}
+\hline \hline
+\multicolumn{1}{||c}{} & 
+   \multicolumn{1}{c}{} &
+   \multicolumn{1}{c}{} &
+  \multicolumn{6}{c||}{\textbf{标志位}} \\ \cline{4-9}
+\multicolumn{1}{||c}{\textbf{名称}} & 
+   \multicolumn{1}{c}{\textbf{描述}} &
+   \multicolumn{1}{c}{\textbf{格式}} &
+   \multicolumn{1}{c}{\textbf{O}} &
+   \multicolumn{1}{c}{\textbf{S}} &
+   \multicolumn{1}{c}{\textbf{Z}} &
+   \multicolumn{1}{c}{\textbf{A}} &
+   \multicolumn{1}{c}{\textbf{P}} &
+   \multicolumn{1}{c||}{\textbf{C}} \\ \hline \endhead
+\hline \hline \endfoot
+%                                              O   S   Z   A   P   C
+{\code ADC} & 带进位相加 & O2            & C & C & C & C & C & C \\
+{\code ADD} & 整数相加   & O2            & C & C & C & C & C & C \\
+{\code AND} & 按位AND    & O2            & 0 & C & C & ? & C & 0 \\
+{\code BSWAP} & 字节次序变反    & R32           &   &   &   &   &   &  \\
+{\code CALL} & 调用程序  & R M I         &   &   &   &   &   &   \\
+{\code CBW} & 将字节转换成字 &         &   &   &   &   &   & \\
+{\code CDQ} & 将双字转换成四字 &       &   &   &   &   &   & \\
+{\code CLC} & 进位标志位清0 &                  &   &   &   &   &   & 0 \\
+{\code CLD} & 方向标志位清0 &         &   &   &   &   &   & \\
+{\code CMC} & 进位标志位变反 &             &   &   &   &   &   & C \\
+{\code CMP} & 整数比较 & O2          & C & C & C & C & C & C \\
+{\code CMPSB} & 字节比较 &              & C & C & C & C & C & C \\
+{\code CMPSW} & 字比较 &              & C & C & C & C & C & C \\
+{\code CMPSD} & 双字比较 &             & C & C & C & C & C & C \\
+{\code CWD} & 将字转换成双字，并储存到DX:AX中 & &   &   &   &   &   & \\
+{\code CWDE} & 将字转换成双字，并储存到EAX中 & &   &   &   &   &   & \\
+{\code DEC} & 整数减一 & R M        & C & C & C & C & C & \\
+{\code DIV} & 无符号数相除 & R M          & ? & ? & ? & ? & ? & ? \\
+{\code ENTER} & 建立堆栈帧 & I,0       &   &   &   &   &   & \\
+{\code IDIV} & 有符号数相除 & R M           & ? & ? & ? & ? & ? & ? \\
+{\code IMUL} & 有符号数相乘 & R M R16,R/M16 R32,R/M32 R16,I R32,I 
+                                       {\small R16,R/M16,I R32,R/M32,I}
+                                             & C & ? & ? & ? & ? & C \\
+{\code INC} & 整数加一 & R M        & C & C & C & C & C & \\
+{\code INT} & 产生中断 & I         &   &   &   &   &   & \\
+{\code JA } & 如果大于则跳转 & I                 &   &   &   &   &   & \\
+{\code JAE } & 如果大于等于则跳转 & I       &   &   &   &   &   & \\
+{\code JB } & 如果小于则跳转 & I                 &   &   &   &   &   & \\
+{\code JBE } & 如果小于等于则跳转  & I      &   &   &   &   &   & \\
+{\code JC } & 如果进位为1则跳转 & I                 &   &   &   &   &   & \\
+{\code JCXZ } & 如果CX = 0则跳转 & I           &   &   &   &   &   & \\
+{\code JE } & 如果等于则跳转 & I                 &   &   &   &   &   & \\
+{\code JG } & 如果大于则跳转 & I               &   &   &   &   &   & \\
+{\code JGE } & 如果大于等于则跳转 & I     &   &   &   &   &   & \\
+{\code JL } & 如果小于则跳转 & I                  &   &   &   &   &   & \\
+{\code JLE } & 如果小于等于则跳转 & I        &   &   &   &   &   & \\
+{\code JMP } & 无条件跳转 & R M I    &   &   &   &   &   & \\
+{\code JNA } & 如果不大于则跳转 & I            &   &   &   &   &   & \\
+{\code JNAE } & 如果不大于行于则跳转 & I   &   &   &   &   &   & \\
+{\code JNB } & 如果不小于则跳转 & I            &   &   &   &   &   & \\
+{\code JNBE } & 如果不小于等于则跳转 & I  &   &   &   &   &   & \\
+{\code JNC } & 如果没有进位则跳转 & I             &   &   &   &   &   & \\
+{\code JNE } & 如果不等于则跳转 & I            &   &   &   &   &   & \\
+{\code JNG } & 如果不大于则跳转 & I          &   &   &   &   &   & \\
+{\code JNGE } & 如果不大于等于则跳转 & I&   &   &   &   &   & \\
+{\code JNL } & 如果不小于则跳转 & I             &   &   &   &   &   & \\
+{\code JNLE } & 如果不小于等于则跳转 & I   &   &   &   &   &   & \\
+{\code JNO } & 如果不溢出则跳转 & I          &   &   &   &   &   & \\
+{\code JNS } & 如果SF=0则跳转 & I              &   &   &   &   &   & \\
+{\code JNZ } & 如果ZF=0则跳转 & I             &   &   &   &   &   & \\
+{\code JO } & 如果溢出则跳转 & I              &   &   &   &   &   & \\
+{\code JPE } & 如果PF=1则跳转 & I          &   &   &   &   &   & \\
+{\code JPO } & 如果PF=0则跳转 & I           &   &   &   &   &   & \\
+{\code JS } & 如果SF=1则跳转 & I                  &   &   &   &   &   & \\
+{\code JZ } & 如果ZF=1则跳转 & I                  &   &   &   &   &   & \\
+{\code LAHF} & 将FLAGS的低字节载入到AH中 &          &   &   &   &   &   & \\
+{\code LEA} & 载入有效的地址 & R32,M &   &   &   &   &   & \\
+{\code LEAVE} & 释放堆栈帧 &          &   &   &   &   &   & \\
+{\code LODSB} & 载入字节 &                  &   &   &   &   &   & \\
+{\code LODSW} & 载入字 &                  &   &   &   &   &   & \\
+{\code LODSD} & 载入双字 &                 &   &   &   &   &   & \\
+{\code LOOP}  & 循环       & I               &   &   &   &   &   & \\
+{\code LOOPE/LOOPZ} & 如果ZF=1则循环 & I     &   &   &   &   &   & \\
+{\code LOOPNE/LOOPNZ} & 如果ZF=0则循环 & I  &   &   &   &   &   & \\
+{\code MOV} & 移动数据 & O2 \mbox{SR,R/M16} R/M16,SR
+                                             &   &   &   &   &   & \\
+{\code MOVSB} & 移动字节 &                  &   &   &   &   &   & \\
+{\code MOVSW} & 移动字 &                  &   &   &   &   &   & \\
+{\code MOVSD} & 移动双字 &                 &   &   &   &   &   & \\
+{\code MOVSX} & 符号扩展移动 & R16,R/M8 R32,R/M8 R32,R/M16
+                                             &   &   &   &   &   & \\
+{\code MOVZX} & 零扩展移动 & R16,R/M8 R32,R/M8 R32,R/M16
+                                             &   &   &   &   &   & \\
+{\code MUL} & 无符号数相乘 & R M        & C & ? & ? & ? & ? & C \\
+{\code NEG} & 求反 & R M                   & C & C & C & C & C & C \\
+{\code NOP} & 无操作 &                 &   &   &   &   &   & \\
+{\code NOT} & 非运算 & R M           &   &   &   &   &   & \\
+{\code OR} & 按位OR    & O2              & 0 & C & C & ? & C & 0 \\
+{\code POP} & 出栈 & R/M16 R/M32   &   &   &   &   &   & \\
+{\code POPA} & 全部出栈 &                     &   &   &   &   &   & \\
+{\code POPF} & 出栈送FLAGS &                   & C & C & C & C & C & C \\
+{\code PUSH} & 进栈 & R/M16 R/M32 I &   &   &   &   &   & \\
+{\code PUSHA} & 全部进栈 &                   &   &   &   &   &   & \\
+{\code PUSHF} & FLAGS进栈 &                 &   &   &   &   &   & \\
+{\code RCL} & 带进位循环左移 & R/M,I R/M,CL
+                                             & C &   &   &   &   & C \\
+{\code RCR} & 带进位循环右移 & R/M,I R/M,CL
+                                             & C &   &   &   &   & C \\
+{\code REP} & 重复执行 &                       &   &   &   &   &   & \\
+{\code REPE/REPZ} & 如果ZF=1则重复执行 &        &   &   &   &   &   & \\
+{\code REPNE/REPNZ} & 如果ZF=0则重复执行 &  &   &   &   &   &   & \\
+{\code RET} & 返回 &                       &   &   &   &   &   & \\
+{\code ROL} & 循环左移 & R/M,I R/M,CL     & C &   &   &   &   & C \\
+{\code ROR} & 循环右移 & R/M,I R/M,CL    & C &   &   &   &   & C \\
+{\code SAHF} & 将AH复制到FLAGS中 &        &   & C & C & C & C & C \\
+{\code SAL} & 算术左移 & R/M,I R/M, CL &   &   &   &   &   & C \\
+{\code SBB}  & 带借位相减 & O2     & C & C & C & C & C & C \\
+{\code SCASB} & 扫描字节 &              & C & C & C & C & C & C \\
+{\code SCASW} & 扫描字 &              & C & C & C & C & C & C \\
+{\code SCASD} & 扫描双字 &             & C & C & C & C & C & C \\
+{\code SETA } & 如果大于则目的字节置1 & R/M8                 &   &   &   &   &   & \\
+{\code SETAE } & 如果大于等于则目的字节置1 & R/M8       &   &   &   &   &   & \\
+{\code SETB } & 如果小于则目的字节置1 & R/M8                 &   &   &   &   &   & \\
+{\code SETBE } & 如果小于等于则目的字节置1  & R/M8      &   &   &   &   &   & \\
+{\code SETC } & 如果进位标志位为1则目的字节置1 & R/M8                 &   &   &   &   &   & \\
+{\code SETE } & 如果等于则目的字节置1 & R/M8                 &   &   &   &   &   & \\
+{\code SETG } & 如果大于则目的字节置1 & R/M8               &   &   &   &   &   & \\
+{\code SETGE } & 如果大于等于则目的字节置1 & R/M8     &   &   &   &   &   & \\
+{\code SETL } & 如果小于则目的字节置1 & R/M8                  &   &   &   &   &   & \\
+{\code SETLE } & 如果小于等于则目的字节置1 & R/M8        &   &   &   &   &   & \\
+{\code SETNA } & 如果不大于则目的字节置1 & R/M8            &   &   &   &   &   & \\
+{\code SETNAE } & 如果不大于等于则目的字节置1 & R/M8   &   &   &   &   &   & \\
+{\code SETNB } & 如果不小于则目的字节置1 & R/M8            &   &   &   &   &   & \\
+{\code SETNBE } & 如果不小于等于则目的字节置1 & R/M8  &   &   &   &   &   & \\
+{\code SETNC } & 如果进位标志位为0则目的字节置1 & R/M8             &   &   &   &   &   & \\
+{\code SETNE } & 如果不等于则目的字节置1 & R/M8            &   &   &   &   &   & \\
+{\code SETNG } & 如果不大于则目的字节置1 & R/M8          &   &   &   &   &   & \\
+{\code SETNGE } & 如果不大于等于则目的字节置1 & R/M8&   &   &   &   &   & \\
+{\code SETNL } & 如果不小于则目的字节置1 & R/M8             &   &   &   &   &   & \\
+{\code SETNLE } & 如果不小于等于则目的字节置1 & R/M8   &   &   &   &   &   & \\
+{\code SETNO } & 如果OF=0则目的字节置1 & R/M8          &   &   &   &   &   & \\
+{\code SETNS } & 如果SF=0则目的字节置1 & R/M8              &   &   &   &   &   & \\
+{\code SETNZ } & 如果ZF=0则目的字节置1 & R/M8             &   &   &   &   &   & \\
+{\code SETO } & 如果OF=1则目的字节置1 & R/M8              &   &   &   &   &   & \\
+{\code SETPE } & 如果PF=1则目的字节置1 & R/M8          &   &   &   &   &   & \\
+{\code SETPO } & 如果PF=0则目的字节置1 & R/M8           &   &   &   &   &   & \\
+{\code SETS } & 如果SF=1则目的字节置1 & R/M8                  &   &   &   &   &   & \\
+{\code SETZ } & 如果ZF=1则目的字节置1 & R/M8                  &   &   &   &   &   & \\
+
+{\code SAR} & 算术右移 & R/M,I R/M, CL 
+                                             &   &   &   &   &   & C \\
+{\code SHR} & 逻辑右移 & R/M,I R/M, CL 
+                                             &   &   &   &   &   & C \\
+{\code SHL} & 逻辑左移 & R/M,I R/M, CL 
+                                             &   &   &   &   &   & C \\
+{\code STC} & 进位标志位置1 &                    &   &   &   &   &   & 1 \\
+{\code STD} & 方向标志位置1 &           &   &   &   &   &   & \\
+{\code STOSB} & 储存字节 &                 &   &   &   &   &   & \\
+{\code STOSW} & 储存字 &                 &   &   &   &   &   & \\
+{\code STOSD} & 储存双字 &                &   &   &   &   &   & \\
+{\code SUB} & 相减 & O2                  & C & C & C & C & C & C\\
+{\code TEST} & 逻辑比较 & R/M,R R/M,I & 0 & C & C & ? & C & 0\\
+{\code XCHG} & 交换 & R/M,R R,R/M        &   &   &   &   &   & \\
+{\code XOR} & 按位XOR    & O2            & 0 & C & C & ? & C & 0 \\
+
+\end{longtable}
+
+\newpage
+\section{浮点数指令}
+
+\renewcommand{\thefootnote}{\fnsymbol{footnote}} 在这一节中，描述了许多80x86数字协处理器的指令。说明部分简要地描述了指令的操作。为了节省空间，关于指令是否出栈的信息并没有在描述中给出。
+
+格式列展示了每个指令可以使用的操作数类型。使用的是下面的约定：
+\begin{center}
+\begin{tabular}{|l|l|}
+\hline
+ST\emph{n} & 一个协处理器寄存器 \\
+F          & 内存中的单精度数 \\
+D          & 内存中的双精度数 \\
+E          & 内存中的扩展精度数 \\
+I16        & 内存中的整形字 \\
+I32        & 内存中的整形双字 \\
+I64        & 内存中的整形四字 \\
+\hline
+\end{tabular}
+\end{center}
+
+需要奔腾或更好的处理器的指令用星号标示出来了(\footnotemark[1])。
+
+\begin{longtable}{||l|l|l||}
+\hline \hline
+\multicolumn{1}{||c}{\textbf{指令}} & 
+  \multicolumn{1}{c}{\textbf{描述}} &
+\multicolumn{1}{c||}{\textbf{格式}} \\
+\hline
+\endhead
+\hline \hline \endfoot
+{\code FABS} & $\mathtt{ST0} = |\mathtt{ST0}|$ & \\
+{\code FADD \emph{src}} & {\code ST0 += \emph{src}} & ST\emph{n} F D \\
+{\code FADD \emph{dest}, ST0} & {\code \emph{dest} += STO} & ST\emph{n} \\
+{\code FADDP \emph{dest}[,ST0]} & {\code \emph{dest} += ST0} & ST\emph{n} \\
+{\code FCHS} & $\mathtt{ST0} = - \mathtt{ST0}$ & \\
+{\code FCOM \emph{src}} & 比较{\code ST0}和{\code \emph{src}} &
+ST\emph{n} F D \\
+{\code FCOMP \emph{src}} & 比较{\code ST0}和{\code \emph{src}} &
+ST\emph{n} F D \\
+{\code FCOMPP \emph{src}} & 比较{\code ST0}和{\code ST1} & \\
+{\code FCOMI\footnotemark[1] \emph{src}} & 比较并设置FLAGS 
+& ST\emph{n} \\
+{\code FCOMIP\footnotemark[1] \emph{src}} & 比较并设置FLAGS 
+& ST\emph{n} \\
+{\code FDIV \emph{src}} & {\code ST0 /= \emph{src}} & ST\emph{n} F D \\
+{\code FDIV \emph{dest}, ST0} & {\code \emph{dest} /= STO} & ST\emph{n} \\
+{\code FDIVP \emph{dest}[,ST0]} & {\code \emph{dest} /= ST0} & ST\emph{n} \\
+{\code FDIVR \emph{src}} & {\code ST0 = \emph{src}/ST0} & ST\emph{n} F D \\
+{\code FDIVR \emph{dest}, ST0} & {\code \emph{dest} = ST0/\emph{dest}} 
+& ST\emph{n} \\
+{\code FDIVRP \emph{dest}[,ST0]} & {\code \emph{dest} = ST0/\emph{dest}} 
+& ST\emph{n} \\
+{\code FFREE \emph{dest}} & Marks as empty & ST\emph{n} \\
+{\code FIADD \emph{src}} & {\code ST0 += \emph{src}} & I16 I32 \\
+{\code FICOM \emph{src}} & 比较{\code ST0}和{\code \emph{src}} &
+I16 I32 \\
+{\code FICOMP \emph{src}} & 比较{\code ST0}和{\code \emph{src}} &
+I16 I32 \\
+{\code FIDIV \emph{src}} & {\code STO /= \emph{src}} & I16 I32 \\
+{\code FIDIVR \emph{src}} & {\code STO = \emph{src}/ST0} & I16 I32 \\
+{\code FILD \emph{src}} & 将\emph{src}压入栈中 & I16 I32 I64 \\
+{\code FIMUL \emph{src}} & {\code ST0 *= \emph{src}} & I16 I32 \\
+{\code FINIT} & 初始化协处理器 & \\
+{\code FIST \emph{dest}} & 保存{\code ST0} & I16 I32 \\
+{\code FISTP \emph{dest}} & 保存{\code ST0} & I16 I32 I64\\
+{\code FISUB \emph{src}} & {\code ST0 -= \emph{src}} & I16 I32 \\
+{\code FISUBR \emph{src}} & {\code ST0 = \emph{src} - ST0} & I16 I32 \\
+{\code FLD \emph{src}} & 将\emph{src}压入栈中 & ST\emph{n} F D E \\
+{\code FLD1} & 将1.0压入栈中 & \\
+{\code FLDCW \emph{src}} & 装载控制字寄存器 & I16 \\
+{\code FLDPI} & 将$\pi$压入栈中 & \\
+{\code FLDZ} & 将0.0压入栈中 & \\
+{\code FMUL \emph{src}} & {\code ST0 *= \emph{src}} & ST\emph{n} F D \\
+{\code FMUL \emph{dest}, ST0} & {\code \emph{dest} *= STO} & ST\emph{n} \\
+{\code FMULP \emph{dest}[,ST0]} & {\code \emph{dest} *= ST0} & ST\emph{n} \\
+{\code FRNDINT} & {\code ST0}取整 & \\
+{\code FSCALE} & $\mathtt{ST0} = \mathtt{ST0} \times 2^{\lfloor \mathtt{ST1} \rfloor}$ & \\
+{\code FSQRT} & $\mathtt{ST0} = \sqrt{\mathtt{STO}}$ & \\
+{\code FST \emph{dest}} & 储存{\code ST0} & ST\emph{n} F D \\
+{\code FSTP \emph{dest}} & 储存{\code ST0} & ST\emph{n} F D E \\
+{\code FSTCW \emph{dest}} & 储存控制字寄存器 & I16 \\
+{\code FSTSW \emph{dest}} & 储存状态字寄存器 & I16 AX \\
+{\code FSUB \emph{src}} & {\code ST0 -= \emph{src}} & ST\emph{n} F D \\
+{\code FSUB \emph{dest}, ST0} & {\code \emph{dest} -= STO} & ST\emph{n} \\
+{\code FSUBP \emph{dest}[,ST0]} & {\code \emph{dest} -= ST0} & ST\emph{n} \\
+{\code FSUBR \emph{src}} & {\code ST0 = \emph{src}-ST0} & ST\emph{n} F D \\
+{\code FSUBR \emph{dest}, ST0} & {\code \emph{dest} = ST0-\emph{dest}} 
+& ST\emph{n} \\
+{\code FSUBP \emph{dest}[,ST0]} & {\code \emph{dest} = ST0-\emph{dest}} 
+& ST\emph{n} \\
+{\code FTST} & 比较{\code ST0}和0.0 & \\
+{\code FXCH \emph{dest}} & 将{\code ST0}和{\code \emph{dest}}内容交换 
+& ST\emph{n} \\
+\end{longtable}
+
+\renewcommand{\thefootnote}{\arabic{footnote}}
+
+
