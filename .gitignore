@@ -223,3 +223,11 @@ TSWLatexianTemp*
 *.o
 *.obj
 *~
+
+# Generated files for examples
+examples/borland
+examples/djgpp
+examples/linux
+examples/ms
+examples/watcom
+!examples/*/Makefile

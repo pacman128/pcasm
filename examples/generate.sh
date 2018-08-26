@@ -7,7 +7,7 @@ generate() {
 
     for f in $m4_files; do
 	base="${f%.*}"
-	m4 --define=_SYSTEM=$1 $f | expand >$2/$base.asm
+	m4 --prefix-builtins --define=_SYSTEM=$1 $f | expand >$2/$base.asm
     done
     cp asm_io.* *.c *.cpp *.h *.hpp $2
 }
