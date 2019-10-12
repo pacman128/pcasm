@@ -140,7 +140,7 @@ method uses the \emph{stack}.
 
 \section{The Stack\index{stack|(}}
 
-Many CPU's have built-in support for a stack. A stack is a Last-In First-Out
+Many CPUs have built-in support for a stack. A stack is a Last-In First-Out
 (\emph{LIFO}) list. The stack is an area of memory that is organized in this
 fashion. The {\code PUSH} instruction adds data to the stack and the
 {\code POP} instruction removes data. The data removed is always the last
@@ -157,7 +157,7 @@ words can be pushed too, but in 32-bit protected mode, it is better to
 work with only double words on the stack.} on the stack by subtracting
 4 from ESP and then stores the double word at {\code [ESP]}. The
 {\code POP} instruction reads the double word at {\code [ESP]} and
-then adds 4 to ESP. The code below demostrates how these instructions
+then adds 4 to ESP. The code below demonstrates how these instructions
 work and assumes that ESP is initially {\code 1000H}.
 \begin{AsmCodeListing}[frame=none]
       push   dword 1    ; 1 stored at 0FFCh, ESP = 0FFCh
@@ -618,7 +618,7 @@ subprogram_label:
 
 \MarginNote{Despite the fact that {\code ENTER} and {\code LEAVE} simplify
 the prologue and epilogue they are not used very often. Why? Because
-they are slower than the equivalent simplier instructions! This is an
+they are slower than the equivalent simpler instructions! This is an
 example of when one can not assume that a one instruction sequence is
 faster than a multiple instruction one.} 
 The prologue and epilogue of a subprogram can be simplified by using
@@ -626,7 +626,7 @@ two special instructions that are designed specifically for this
 purpose. The {\code ENTER} instruction performs the prologue code and the
 {\code LEAVE} performs the epilogue. The {\code ENTER} instruction
 takes two immediate operands. For the C calling convention, the second
-operand is always 0. The first operand is the number bytes needed by
+operand is always 0. The first operand is the number of bytes needed by
 local variables. The {\code LEAVE} instruction has no
 operands. Figure~\ref{fig:subskel3} shows how these instructions are
 used. Note that the program skeleton (Figure~\ref{fig:skel}) also uses
@@ -980,14 +980,14 @@ void __cdecl f( int );
 
 There are advantages and disadvantages to each of the calling
 conventions.  The main advantages of the {\code cdecl}\index{calling
-convention!C} convention is that it is simple and very flexible. It
+convention!C} convention are that it is simple and very flexible. It
 can be used for any type of C function and C compiler. Using other
 conventions can limit the portability of the subroutine. Its main
 disadvantage is that it can be slower than some of the others and use
 more memory (since every invocation of the function requires code to
 remove the parameters on the stack).
 
-The advantages of the {\code stdcall}\index{calling
+The advantage of the {\code stdcall}\index{calling
 convention!standard call} convention is that it uses less memory than
 {\code cdecl}. No stack cleanup is required after the {\code CALL}
 instruction. Its main disadvantage is that it can not be used with
