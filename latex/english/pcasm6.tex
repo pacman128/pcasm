@@ -115,7 +115,7 @@ international organization that has designed specific binary formats
 for storing floating point num\-bers. This format is used on most (but
 not all!)  computers made today. Often it is supported by the hardware
 of the computer itself. For example, Intel's numeric (or math)
-coprocessors (which are built into all its CPU's since the Pentium)
+coprocessors (which are built into all its CPUs since the Pentium)
 use it. The IEEE defines two different formats with different
 precisions: single and double precision. Single precision is used by
 {\code float} variables in C and double precision is used by {\code
@@ -170,7 +170,7 @@ exponent and 7F is stored from bit 23 to 30. This
 \emph{biased exponent} is always non-negative.
 
 The fraction part assumes a normalized significand (in the form 
-$1.sssssssss$). Since the first bit is always an one, the leading one is
+$1.sssssssss$). Since the first bit is always a one, the leading one is
 \emph{not stored!} This allows the storage of an additional bit at the end
 and so increases the precision slightly. This idea is know as the
 \emph{hidden one representation}\index{floating point!representation!hidden one}.
@@ -185,7 +185,7 @@ the correct interpretation!} First, it is positive so the sign bit is
 + 4 = 83_{16}$. Finally, the fraction is 01111101100110011001100
 (remember the leading one is hidden). Putting this all together
 (to help clarify the different sections of the floating point
-format, the sign bit and the faction have been underlined and the
+format, the sign bit and the fraction have been underlined and the
 bits have been grouped into 4-bit nibbles):
 \[ \underline{0}\,100\;0001\;1
    \,\underline{011\;1110\;1100\;1100\;1100\;1100}_2 = 41 \mathrm{BE} 
@@ -424,7 +424,7 @@ integrated the math coprocessor into the 80486
 itself.\footnote{However, the 80486SX did \emph{not} have have an
 integrated coprocessor.  There was a separate 80487SX chip for these
 machines.}  Since the Pentium, all generations of 80x86 processors
-have a builtin math coprocessor; however, it is still programmed as if
+have a built-in math coprocessor; however, it is still programmed as if
 it was a separate unit. Even earlier systems without a coprocessor can
 install software that emulates a math coprocessor. These emulator
 packages are automatically activated when a program executes a
