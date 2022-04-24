@@ -284,8 +284,8 @@ components often use different clock speeds than the CPU.}. The clock
 does not keep track of minutes and seconds. It simply beats at a
 constant rate. The electronics of the CPU uses the beats to perform
 their operations correctly, like how the beats of a metronome help one
-play music at the correct rhythm.  The number of beats (or as they are
-usually called \emph{cycles}) an instruction requires depends on the
+play music at the correct rhythm.  The number of beats (or \emph{cycles}, as they are
+usually called) an instruction requires depends on the
 CPU generation and model. The number of cycles depends on the
 instructions before it and other factors as well.
 
@@ -831,7 +831,7 @@ or double word. To fix this, add a size specifier:
 \begin{AsmCodeListing}[frame=none, numbers=none]
       mov    dword [L6], 1       ; store a 1 at L6
 \end{AsmCodeListing}
-\index{DWORD}This tells the assembler to store an 1 at the double word that starts at
+\index{DWORD}This tells the assembler to store a 1 at the double word that starts at
 {\code L6}. Other size specifiers are: {\code BYTE}\index{BYTE}, {\code WORD}\index{WORD},
 {\code QWORD}\index{QWORD} and {\code TWORD}\footnote{{\code TWORD} defines a ten byte
 area of memory. The floating point coprocessor uses this data type.}\index{TWORD}.
