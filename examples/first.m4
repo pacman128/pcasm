@@ -9,9 +9,9 @@ m4_include(`asm.m4')
 ; nasm -f coff first.asm
 ; gcc -o first first.o driver.c asm_io.o
 ;
-; Using Linux and gcc:
+; Using Linux and gcc (on x86_64):
 ; nasm -f elf first.asm
-; gcc -o first first.o driver.c asm_io.o
+; gcc -m32 -o first first.o driver.c asm_io.o
 ;
 ; Using Borland C/C++
 ; nasm -f obj first.asm
