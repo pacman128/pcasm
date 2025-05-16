@@ -267,13 +267,14 @@ int b = (int) schar;     /* b = -1  (0xFFFFFFFF) */
 \label{fig:charExt}
 \end{figure}
 
+\begin{samepage}
 There is a common C programming bug that directly relates to this subject.
 Consider the code in Figure~\ref{fig:IObug}. The prototype of 
-{\code fgetc()}{\samepage is:
+{\code fgetc()} is:
 \begin{CodeQuote}
 int fgetc( FILE * );
 \end{CodeQuote}
-One might question }why does the function return back an {\code int}
+One might question why does the function return back an {\code int}
 since it reads characters? The reason is that it normally does return
 back an {\code char} (extended to an {\code int} value using zero
 extension). However, there is one value that it may return that is not
@@ -282,6 +283,7 @@ $-1$. Thus, {\code fgetc()} either returns back a {\code char}
 extended to an {\code int} value (which looks like {\code 000000{\em
 xx}} in hex) or {\code EOF} (which looks like {\code FFFFFFFF} in
 hex).
+\end{samepage}
 
 \begin{figure}[t]
 \begin{lstlisting}[stepnumber=0,frame=tlrb]{}
@@ -519,7 +521,7 @@ _asm_main:
 \end{AsmCodeListing}
 \index{math.asm|)}
 
-\subsection{Extended precision arithmetic \label{sec:ExtPrecArith} \index{integer!extended precision|(}}}
+\subsection{Extended precision arithmetic \label{sec:ExtPrecArith} \index{integer!extended precision|(}}
 
 Assembly language also provides instructions that allow one to perform
 addition and subtraction of numbers larger than double words. These
